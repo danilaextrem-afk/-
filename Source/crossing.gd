@@ -8,7 +8,9 @@ const FUSE := Vector3(4,0,-5)
 const BELL := Vector3(0,0,-12)
 const GUIDE := Vector3(-4,0,-17)
 const FIRE := Vector3(-2,0,-25)
-var step := Step.YARD
+var step: int = Step.YARD
+var village := preload("res://Source/village.gd").new()
+var sword := Node3D.new()
 var tenant := ""
 var evidence := ""
 var slot_path := Slot.PATH
@@ -26,7 +28,7 @@ var guide := Node3D.new()
 
 
 func build_places() -> void:
-	for place in [yard,cellar,forest,hero]:
+	for place in [yard,cellar,forest,hero,village]:
 		add_child(place)
 	box(yard,Vector3(0,-.2,-10),Vector3(23,.4,37),"424a52")
 	box(yard,Vector3(2,2.8,-13),Vector3(7,5.6,4),"784e45")
@@ -69,6 +71,11 @@ func build_places() -> void:
 	for i in 4:
 		box(forest,FIRE+Vector3(.25*cos(i*1.6),.25,.25*sin(i*1.6)),Vector3(.24,.5,.24),"ff9f52")
 	person(hero,Vector3.ZERO,"65707a")
+	hero.add_child(sword)
+	sword.position = Vector3(.57,1,.04)
+	box(sword,Vector3(0,.35,0),Vector3(.10,.8,.035),"9b9c97")
+	box(sword,Vector3.ZERO,Vector3(.29,.06,.06),"53483b")
+	sword.rotation.x = -.65
 	var camera := Camera3D.new()
 	hero.add_child(camera)
 	camera.position = Vector3(0,5.2,6.2)
@@ -100,6 +107,7 @@ func _ready() -> void:
 	step = maxi(0,state.get("crossing",0))
 	tenant = state.get("tenant","")
 	evidence = state.get("evidence","")
+	if step >= village.Stage.SMITH_ESCAPED: hero.position = village.FORGE+Vector3.BACK*3
 	if step == Step.MIRA: hero.position = GUIDE+Vector3.BACK*2
 	if step == Step.CAMP:
 		hero.position = FIRE+Vector3.BACK*2
@@ -111,6 +119,7 @@ func target_near(pos: Vector3) -> bool:
 	return hero.position.distance_to(pos) < 2.6
 
 func available() -> String:
+	if step >= village.Stage.ELDER: return village.prompt(step,hero.position)
 	match step:
 		Step.YARD:
 			if target_near(HATCH) and tenant == "rescued": return "Открыть угольный люк"
@@ -123,18 +132,23 @@ func available() -> String:
 			if target_near(GUIDE): return "Окликнуть охотницу"
 		Step.MIRA:
 			if target_near(FIRE): return "Сесть у огня"
+		Step.CAMP:
+			if target_near(FIRE): return "Идти с Мирой в селение"
 	return ""
 
 func draw_state() -> void:
 	yard.visible = step <= Step.FUSE
 	cellar.visible = step == Step.CELLAR
-	forest.visible = step >= Step.GLIMPSE
+	forest.visible = step >= Step.GLIMPSE and step <= Step.CAMP
+	village.visible = step >= village.Stage.ELDER
+	village.show_stage(step)
+	sword.visible = step >= village.Stage.BLADE_ESCAPED
 	var lines := ["Архивный адрес · Москва, 2026\nПодойди к двери котельной.", "Замок обесточен. Справа во дворе стоит зелёный щит.",
 		"Подвал часовни · На балке висит колокол без верёвки.", "Сквозь камень проступает лес. Звон ещё держится.",
 		"Русь · 1348 · Лес чужих голосов\nТелефона и снаряжения нет. Справа зовут знакомым голосом. Слева у берёз стоит охотница.",
 		"Мира: «Если лес заговорит твоим голосом — не отвечай. Иди за мной к огню».",
 		"Русь · 1348 · Стоянка Миры\nПозади лес. За холмом дымят крыши селения."]
-	hud.text = lines[step]
+	hud.text = village.hint(step) if village.visible else lines[step]
 	if step == Step.YARD and tenant == "rescued": hud.text += "\nВ плане отмечен угольный люк слева от здания."
 	if not message.is_empty(): hud.text += "\n" + message
 	refresh_action()
@@ -155,6 +169,9 @@ func enter(next: int, spawn: Vector3) -> void:
 
 func interact() -> void:
 	if available().is_empty(): return
+	if village.visible:
+		enter(village.next_step(step,hero.position),hero.position)
+		return
 	match step:
 		Step.YARD:
 			if target_near(HATCH): enter(Step.CELLAR,Vector3(0,0,-6))
@@ -166,6 +183,7 @@ func interact() -> void:
 			enter(Step.GLIMPSE,hero.position)
 		Step.FOREST: enter(Step.MIRA,hero.position)
 		Step.MIRA: enter(Step.CAMP,hero.position)
+		Step.CAMP: enter(village.Stage.ELDER,Vector3.ZERO)
 
 func _unhandled_key_input(key: InputEvent) -> void:
 	if key is InputEventKey and key.pressed and not key.echo and key.physical_keycode == KEY_E: interact()
@@ -176,7 +194,7 @@ func _physics_process(delta: float) -> void:
 	move = move.limit_length()
 	hero.position += Vector3(move.x,0,move.y)*4.6*delta
 	hero.position.x = clampf(hero.position.x,-5,5)
-	hero.position.z = clampf(hero.position.z,-27 if forest.visible else -17,2)
+	hero.position.z = clampf(hero.position.z,-27 if forest.visible or village.visible else -17,2)
 	if step == Step.GLIMPSE:
 		vision_left -= delta
 		if vision_left <= 0: enter(Step.FOREST,Vector3.ZERO)
