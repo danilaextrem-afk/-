@@ -24,4 +24,6 @@ func run() -> void:
 	road.restart()
 	results.append(road.mount.position == Vector3.ZERO and not road.triggered and road.horse.visible)
 	print("Road checks: ",results)
+	road.queue_free()
+	await create_timer(0.35).timeout
 	quit(1 if false in results else 0)
