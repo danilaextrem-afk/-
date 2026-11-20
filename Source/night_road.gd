@@ -225,5 +225,10 @@ func resume_district() -> void:
 	var saved := Slot.resume(slot_path)
 	if saved.is_empty():
 		return
+	saved["slot_path"] = slot_path
+	if saved.crossing >= 0:
+		get_tree().set_meta("crossing_entry",saved)
+		get_tree().change_scene_to_file("res://Content/Crossing.tscn")
+		return
 	get_tree().set_meta("district_entry",saved)
 	get_tree().change_scene_to_file("res://Content/District.tscn")

@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://Source/walk_scene.gd"
 
 const Slot = preload("res://Source/campaign_slot.gd")
 enum Stage { ILYA, RECORDER, CAMERA, NEIGHBOR, ENTRANCE, LANDING, FALSE_DOOR, SIGN, LISTEN, TENANT, MARINA, ARCHIVE }
@@ -41,33 +41,6 @@ var knock_wait := 0.0
 var survivor := Node3D.new()
 var notice := ""
 var sign_mark := Node3D.new()
-
-func box(parent: Node3D, pos: Vector3, size: Vector3, color: String) -> MeshInstance3D:
-	var m := BoxMesh.new()
-	m.size = size
-	var part := MeshInstance3D.new()
-	part.mesh = m
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(color)
-	part.material_override = mat
-	parent.add_child(part)
-	part.position = pos
-	return part
-
-func label(parent: Node3D, pos: Vector3, s: String) -> Label3D:
-	var l := Label3D.new()
-	l.text = s
-	l.position = pos
-	l.font_size = 40
-	l.pixel_size = 0.014
-	parent.add_child(l)
-	return l
-
-func person(parent: Node3D, pos: Vector3, coat: String) -> void:
-	box(parent,pos+Vector3.UP,Vector3(.72,1.3,.5),coat)
-	box(parent,pos+Vector3.UP*1.93,Vector3(.43,.49,.42),"b18c74")
-	for side in [-1,1]:
-		box(parent,pos+Vector3(side*.18,.25,0),Vector3(.27,.5,.36),"282931")
 
 func make_world() -> void:
 	for node in [outside,inside,avatar,marker]:
@@ -140,14 +113,6 @@ func make_world() -> void:
 	marker.pixel_size = .014
 	marker.modulate = Color("#f4c480")
 
-func control(row: HBoxContainer, title: String) -> Button:
-	var b := Button.new()
-	b.text = title
-	b.custom_minimum_size = Vector2(140,84)
-	b.focus_mode = Control.FOCUS_NONE
-	row.add_child(b)
-	return b
-
 func _ready() -> void:
 	make_world()
 	var ui := CanvasLayer.new()
@@ -176,6 +141,7 @@ func _ready() -> void:
 	var state: Dictionary = get_tree().get_meta("district_entry",{})
 	if get_tree().has_meta("district_entry"):
 		get_tree().remove_meta("district_entry")
+	slot_path = state.get("slot_path",slot_path)
 	stage = state.get("stage",0)
 	evidence = state.get("evidence","")
 	tenant = state.get("tenant","")
@@ -221,12 +187,24 @@ func toggle_light() -> void:
 	set_view()
 
 func update_action() -> void:
-	action.visible = not finished and avatar.position.distance_to(TARGETS[stage]) < 2.7
+	action.visible = avatar.position.distance_to(TARGETS[stage]) < 2.7
 	action.text = ACTIONS[stage] + " [E]"
+	if finished:
+		action.text = "К часовне [E]"
 	alternative.visible = action.visible and stage == Stage.TENANT
 
 func interact() -> void:
-	if finished or avatar.position.distance_to(TARGETS[stage]) >= 2.7:
+	if avatar.position.distance_to(TARGETS[stage]) >= 2.7:
+		return
+	if finished:
+		if Slot.store_checkpoint(stage,evidence,slot_path,true,tenant,0) == OK:
+			var entry := Slot.resume(slot_path)
+			entry["slot_path"] = slot_path
+			get_tree().set_meta("crossing_entry",entry)
+			get_tree().change_scene_to_file("res://Content/Crossing.tscn")
+		else:
+			notice = "Не удалось записать контрольную точку."
+			set_view()
 		return
 	if stage == Stage.FALSE_DOOR and not torch.visible:
 		notice = "В темноте не видно замка. Нажми F или «Фонарь»."

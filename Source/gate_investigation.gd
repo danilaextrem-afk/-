@@ -51,7 +51,7 @@ func build(forest: Node3D, city: Node3D) -> void:
 	add_child(bell_player)
 	bell_player.stream = bell_sound()
 
-func bell_sound() -> AudioStreamWAV:
+static func bell_sound() -> AudioStreamWAV:
 	var sample_rate := 22050
 	var frames := sample_rate * 2
 	var samples := PackedByteArray()

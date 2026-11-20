@@ -2,12 +2,13 @@ extends RefCounted
 
 const PATH := "user://district_v1.cfg"
 
-static func store_checkpoint(stage: int, evidence: String, path := PATH, finished := false, tenant := "") -> Error:
+static func store_checkpoint(stage: int, evidence: String, path := PATH, finished := false, tenant := "", crossing := -1) -> Error:
 	var config := ConfigFile.new()
-	config.set_value("campaign", "version", 2)
+	config.set_value("campaign", "version", 3)
 	config.set_value("district", "stage", stage)
 	config.set_value("district", "finished", finished)
 	config.set_value("district", "tenant", tenant)
+	config.set_value("campaign","crossing",crossing)
 	config.set_value("road", "evidence", evidence)
 	var result := config.save(path + ".tmp")
 	if result != OK:
@@ -19,7 +20,7 @@ static func resume(path := PATH) -> Dictionary:
 	if not FileAccess.file_exists(path) or config.load(path) != OK:
 		return {}
 	var version = config.get_value("campaign", "version", 0)
-	if version not in [1,2]:
+	if version not in [1,2,3]:
 		return {}
 	var stage = config.get_value("district", "stage", -1)
 	var evidence = config.get_value("road", "evidence", "")
@@ -32,4 +33,7 @@ static func resume(path := PATH) -> Dictionary:
 	var tenant = config.get_value("district","tenant","")
 	if stage >= 10 and tenant not in ["rescued","called"]:
 		return {}
-	return {"stage":stage,"evidence":evidence,"finished":stage == 11 and done,"tenant":tenant}
+	var crossing = config.get_value("campaign","crossing",-1) if version == 3 else -1
+	if typeof(crossing) != TYPE_INT or crossing < -1 or crossing > 6 or (crossing >= 0 and (stage != 11 or not done)):
+		return {}
+	return {"crossing":crossing,"stage":stage,"evidence":evidence,"finished":stage == 11 and done,"tenant":tenant}
