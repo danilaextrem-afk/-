@@ -1,0 +1,12 @@
+{
+  "id": "glimpse.fortress_road.01",
+  "source_epoch": 1348,
+  "target_epoch": 2026,
+  "duration_sec": 4.0,
+  "visual_variant": "horse_to_car",
+  "trigger": "road_marker",
+  "cooldown": 15.0,
+  "journal_clue": "На окне панельного дома проступил знак колокола.",
+  "can_be_false": true,
+  "accessibility_fallback": "Смена декораций без вспышки и тряски, улика дублируется текстом."
+}
