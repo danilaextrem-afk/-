@@ -61,6 +61,26 @@ func run() -> void:
 		await scene_changed
 		scene = current_scene
 		check(scene.sword.visible and scene.village.witness.visible != escape and scene.evidence == "улика","persistent outcome")
+		walk(scene,scene.village.FORGE)
+		scene.interact()
+		check(scene.fighting,"combat starts from an old blade checkpoint")
+		walk(scene,scene.fight.enemy.position)
+		scene.block_button.button_down.emit()
+		scene.fight.windup = .1
+		scene.advance_fight(.1)
+		check(scene.fight.health == 3 and scene.fight.stamina < 100,"block spends stamina and prevents damage")
+		scene.block_button.button_up.emit()
+		for hit in 3:
+			scene.fight.windup = .1
+			scene.advance_fight(.1)
+		check(not scene.fighting and scene.sword.visible,"defeat returns to the forge with the blade")
+		scene.interact()
+		walk(scene,scene.fight.enemy.position)
+		for hit in 3:
+			scene.strike()
+			scene.advance_fight(.55)
+		check(not scene.fighting and scene.step == (14 if escape else 15),"victory preserves village outcome")
+		check(Slot.resume(path).get("crossing") == scene.step,"victory checkpoint reloads")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("Village routes: ", "PASS" if errors.is_empty() else str(errors))
 	quit(int(not errors.is_empty()))

@@ -10,6 +10,11 @@ const GUIDE := Vector3(-4,0,-17)
 const FIRE := Vector3(-2,0,-25)
 var step: int = Step.YARD
 var village := preload("res://Source/village.gd").new()
+var fight := preload("res://Source/forge_combat.gd").new()
+var fighting := false
+var strike_button: Button
+var block_button: Button
+var block_held := false
 var sword := Node3D.new()
 var tenant := ""
 var evidence := ""
@@ -23,12 +28,14 @@ var action: Button
 var keys := {}
 var vision_left := 0.0
 var message := ""
+var camera := Camera3D.new()
+var sun := DirectionalLight3D.new()
 var chime := AudioStreamPlayer3D.new()
 var guide := Node3D.new()
 
 
 func build_places() -> void:
-	for place in [yard,cellar,forest,hero,village]:
+	for place in [yard,cellar,forest,hero,village,fight]:
 		add_child(place)
 	box(yard,Vector3(0,-.2,-10),Vector3(23,.4,37),"424a52")
 	box(yard,Vector3(2,2.8,-13),Vector3(7,5.6,4),"784e45")
@@ -76,11 +83,9 @@ func build_places() -> void:
 	box(sword,Vector3(0,.35,0),Vector3(.10,.8,.035),"9b9c97")
 	box(sword,Vector3.ZERO,Vector3(.29,.06,.06),"53483b")
 	sword.rotation.x = -.65
-	var camera := Camera3D.new()
 	hero.add_child(camera)
 	camera.position = Vector3(0,5.2,6.2)
 	camera.rotation.x = -.56
-	var sun := DirectionalLight3D.new()
 	add_child(sun)
 	sun.rotation_degrees = Vector3(-52,-22,0)
 
@@ -100,6 +105,11 @@ func _ready() -> void:
 		keys[pair[0]] = control(row,pair[1])
 	action = control(row,"Осмотреть")
 	action.pressed.connect(interact)
+	strike_button = control(row,"Удар [F]")
+	strike_button.pressed.connect(strike)
+	block_button = control(row,"Блок [Q]")
+	block_button.button_down.connect(func(): block_held = true)
+	block_button.button_up.connect(func(): block_held = false)
 	var state: Dictionary = get_tree().get_meta("crossing_entry",{})
 	if get_tree().has_meta("crossing_entry"):
 		get_tree().remove_meta("crossing_entry")
@@ -119,6 +129,9 @@ func target_near(pos: Vector3) -> bool:
 	return hero.position.distance_to(pos) < 2.6
 
 func available() -> String:
+	if fighting: return ""
+	if step in [village.Stage.BLADE_ESCAPED,village.Stage.BLADE_CLEARED] and target_near(village.FORGE):
+		return "Начать боевой урок"
 	if step >= village.Stage.ELDER: return village.prompt(step,hero.position)
 	match step:
 		Step.YARD:
@@ -137,11 +150,20 @@ func available() -> String:
 	return ""
 
 func draw_state() -> void:
+	fight.visible = fighting
+	camera.position = Vector3(0,3.4,4.4) if fighting else Vector3(0,5.2,6.2)
+	camera.rotation.x = -.37 if fighting else -.56
+	strike_button.visible = fighting
+	block_button.visible = fighting
 	yard.visible = step <= Step.FUSE
 	cellar.visible = step == Step.CELLAR
 	forest.visible = step >= Step.GLIMPSE and step <= Step.CAMP
 	village.visible = step >= village.Stage.ELDER
 	village.show_stage(step)
+	camera.environment = village.dusk if village.visible else null
+	sun.light_energy = .65 if village.visible else 1.0
+	sun.light_color = Color("#b4d2ed") if village.visible else Color.WHITE
+	sun.shadow_enabled = village.visible
 	sword.visible = step >= village.Stage.BLADE_ESCAPED
 	var lines := ["Архивный адрес · Москва, 2026\nПодойди к двери котельной.", "Замок обесточен. Справа во дворе стоит зелёный щит.",
 		"Подвал часовни · На балке висит колокол без верёвки.", "Сквозь камень проступает лес. Звон ещё держится.",
@@ -169,6 +191,14 @@ func enter(next: int, spawn: Vector3) -> void:
 
 func interact() -> void:
 	if available().is_empty(): return
+	if step in [village.Stage.BLADE_ESCAPED,village.Stage.BLADE_CLEARED]:
+		fight.reset()
+		fighting = true
+		message = ""
+		hero.position = fight.START
+		draw_state()
+		advance_fight(0.0)
+		return
 	if village.visible:
 		enter(village.next_step(step,hero.position),hero.position)
 		return
@@ -185,8 +215,32 @@ func interact() -> void:
 		Step.MIRA: enter(Step.CAMP,hero.position)
 		Step.CAMP: enter(village.Stage.ELDER,Vector3.ZERO)
 
+func strike() -> void:
+	if fighting:
+		fight.strike(hero.position)
+
 func _unhandled_key_input(key: InputEvent) -> void:
-	if key is InputEventKey and key.pressed and not key.echo and key.physical_keycode == KEY_E: interact()
+	if key is InputEventKey and key.pressed and not key.echo:
+		if key.physical_keycode == KEY_E: interact()
+		if key.physical_keycode == KEY_F: strike()
+
+func advance_fight(delta: float) -> void:
+	var blocking := Input.is_physical_key_pressed(KEY_Q) or block_held
+	fight.advance(delta,hero.position,blocking)
+	fight.pose()
+	sword.rotation.x = -1.6 if fight.swing > .35 else (-.12 if blocking else -.65)
+	if fight.enemy_health == 0 or fight.health == 0:
+		fighting = false
+		block_held = false
+		sword.rotation.x = -.65
+		if fight.enemy_health == 0:
+			enter(step+2,hero.position)
+		else:
+			hero.position = village.FORGE+Vector3.BACK*1.5
+			message = "Мира оттащила тебя к кузнице. Можно повторить урок."
+			draw_state()
+		return
+	hud.text = "Первый клинок · Урок у кузницы\nУдар расходует выносливость. Удерживай блок, когда упырь замахивается.\n"+fight.status()
 
 func _physics_process(delta: float) -> void:
 	var move := Input.get_vector("ui_left","ui_right","ui_up","ui_down")
@@ -195,7 +249,9 @@ func _physics_process(delta: float) -> void:
 	hero.position += Vector3(move.x,0,move.y)*4.6*delta
 	hero.position.x = clampf(hero.position.x,-5,5)
 	hero.position.z = clampf(hero.position.z,-27 if forest.visible or village.visible else -17,2)
-	if step == Step.GLIMPSE:
+	if fighting:
+		advance_fight(delta)
+	elif step == Step.GLIMPSE:
 		vision_left -= delta
 		if vision_left <= 0: enter(Step.FOREST,Vector3.ZERO)
 	elif step == Step.FOREST and hero.position.x > 1.8 and hero.position.z < -13:
