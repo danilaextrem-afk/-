@@ -3,6 +3,9 @@ extends "res://Source/two_epoch_road.gd"
 enum Phase { GARAGE, DRIVE, GLIMPSE, ROADSIDE, MESSAGE, END }
 const SIGHTINGS := [82.0, 101.0, 120.0]
 var phase := Phase.GARAGE
+const Slot = preload("res://Source/campaign_slot.gd")
+var resume_button: Button
+var slot_path := Slot.PATH
 var speed := 0.0
 var sightings := 0
 var evidence := ""
@@ -56,6 +59,8 @@ func add_controls(row: HBoxContainer) -> void:
 	brake = button(row,"Тормоз ↓")
 	button(row,"Зеркало [M]").pressed.connect(look_back)
 	ride.text = "Газ ↑"
+	resume_button = button(row,"Продолжить")
+	resume_button.pressed.connect(resume_district)
 
 func set_rear(value: bool) -> void:
 	rear = value
@@ -92,6 +97,12 @@ func interact() -> void:
 				evidence = "На сырой обочине нет следов. Человек исчез."
 				figure.hide()
 		Phase.MESSAGE: phase = Phase.END
+		Phase.END:
+			if Slot.store_checkpoint(0,evidence,slot_path) != OK:
+				caption.text = "Не удалось сохранить поездку."
+				return
+			resume_district()
+			return
 	update_view()
 
 func _unhandled_key_input(key: InputEvent) -> void:
@@ -101,6 +112,7 @@ func _unhandled_key_input(key: InputEvent) -> void:
 			KEY_E: interact()
 
 func update_view() -> void:
+	resume_button.visible = phase == Phase.GARAGE and not Slot.resume(slot_path).is_empty()
 	forest.visible = phase == Phase.GLIMPSE
 	horse.visible = forest.visible
 	city.visible = not forest.visible
@@ -121,7 +133,10 @@ func update_view() -> void:
 			caption.text = "Телефон · Входящее сообщение от Ильи"
 			action.text = "Открыть [E]"
 			action.show()
-		Phase.END: caption.text = "Илья: «Кир, откуда у тебя доспехи? И что там за пожар?»\nЗапись с неизвестного номера · 00:04"
+		Phase.END:
+			action.show()
+			action.text = "К Илье [E]"
+			caption.text = "Илья: «Кир, откуда у тебя доспехи? И что там за пожар?»\nЗапись с неизвестного номера · 00:04"
 	journal.text = "Телефон Кирилла\nИлья · Автосервис"
 	if phase >= Phase.ROADSIDE:
 		journal.text += "\nНа четыре секунды вместо трассы появился лес."
@@ -205,3 +220,10 @@ func build_recording(ui: Node) -> void:
 	village.add_child(lens)
 	lens.position = Vector3(1.0,2.3,4)
 	lens.look_at(Vector3(0,1.5,0))
+
+func resume_district() -> void:
+	var saved := Slot.resume(slot_path)
+	if saved.is_empty():
+		return
+	get_tree().set_meta("district_entry",saved)
+	get_tree().change_scene_to_file("res://Content/District.tscn")
