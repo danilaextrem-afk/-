@@ -31,7 +31,7 @@ func run() -> void:
 	check(not clue.is_empty() and district.evidence == clue,"road evidence transfer")
 	district.interact()
 	check(district.stage == 0,"cannot use distant targets")
-	for i in 8:
+	for i in 12:
 		var target: Vector3 = district.TARGETS[i]
 		for frame in 900:
 			var delta_pos: Vector3 = target-district.avatar.position
@@ -51,7 +51,7 @@ func run() -> void:
 			district.toggle_light()
 		district.action.pressed.emit()
 		var stored := Slot.resume(slot)
-		check(stored.get("stage") == mini(7,i+1),"checkpoint %d" % i)
+		check(stored.get("stage") == mini(11,i+1),"checkpoint %d" % i)
 		if i == 4:
 			change_scene_to_file("res://Content/NightRoad.tscn")
 			await scene_changed
@@ -64,7 +64,7 @@ func run() -> void:
 			district = current_scene
 			district.slot_path = slot
 			check(district.stage == 5 and district.evidence == clue and district.inside.visible,"resume interior")
-	check(district.finished and Slot.resume(slot).finished and district.sign_mark.visible,"finish and persist sign")
+	check(district.finished and Slot.resume(slot).finished and district.tenant == "rescued" and "угольным" in district.logbook.text,"finish archive and keep witness note")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(slot))
 	print("District campaign: ", "PASS" if failures.is_empty() else str(failures))
 	quit(int(not failures.is_empty()))

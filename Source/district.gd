@@ -1,9 +1,9 @@
 extends Node3D
 
 const Slot = preload("res://Source/campaign_slot.gd")
-enum Stage { ILYA, RECORDER, CAMERA, NEIGHBOR, ENTRANCE, LANDING, FALSE_DOOR, SIGN }
-const TARGETS := [Vector3(0,0,-6), Vector3(4,0,-8), Vector3(-4,0,-13), Vector3(3,0,-23), Vector3(0,0,-29), Vector3(0,0,-6), Vector3(3,0,-13), Vector3(-3,0,-16)]
-const ACTIONS := ["Поговорить с Ильёй","Проверить запись","Прочитать шильдик","Выслушать соседку","Войти в подъезд № 9","Осмотреть площадку","Посветить на замок","Зарисовать знак"]
+enum Stage { ILYA, RECORDER, CAMERA, NEIGHBOR, ENTRANCE, LANDING, FALSE_DOOR, SIGN, LISTEN, TENANT, MARINA, ARCHIVE }
+const TARGETS := [Vector3(0,0,-6), Vector3(4,0,-8), Vector3(-4,0,-13), Vector3(3,0,-23), Vector3(0,0,-29), Vector3(0,0,-6), Vector3(3,0,-13), Vector3(-3,0,-16), Vector3(-4,0,-8), Vector3(-4,0,-8), Vector3(2,0,-20), Vector3(-2,0,-13)]
+const ACTIONS := ["Поговорить с Ильёй","Проверить запись","Прочитать шильдик","Выслушать соседку","Войти в подъезд № 9","Осмотреть площадку","Посветить на замок","Зарисовать знак","Ответить на стук","Помочь выйти","Поговорить с Мариной","Сверить архивный план"]
 const HINTS := [
 	"Илья ждёт под вывеской мастерской.",
 	"Илья: «Мне ролик тоже переслали. Оригинал ищи на регистраторе у верстака».",
@@ -12,7 +12,12 @@ const HINTS := [
 	"Соседка: «Саша пошёл за ключами. Слышу его за дверью, а домой он так и не вернулся». Найди девятый подъезд.",
 	"Дверь захлопнулась. У почтовых ящиков мелькнула тень. Дойди до площадки.",
 	"Голос соседки доносится из квартиры справа. Включи фонарь и осмотри замок.",
-	"У двери нет замочной скважины. Слева под краской видна насечка. Зарисуй её."
+	"У двери нет замочной скважины. Слева под краской видна насечка. Зарисуй её.",
+	"Из квартиры зовут голосом соседки. Отойди от двери и прислушайся к трубам.",
+	"Александр: «Два коротких, один длинный. Это я. Засов снаружи!» Можно открыть или вызвать помощь.",
+	"Во дворе у лавки ждёт журналистка Марина Белова.",
+	"На столе разложена старая карта. Сопоставь отметку у часовни с зарисовкой."
+
 ]
 var stage := Stage.ILYA
 var evidence := ""
@@ -28,6 +33,12 @@ var logbook := Label.new()
 var keys := {}
 var slot_path := Slot.PATH
 var finished := false
+var tenant := ""
+var alternative: Button
+var knock := preload("res://Source/pipe_knock.gd").new()
+var archive_sheet := Node3D.new()
+var knock_wait := 0.0
+var survivor := Node3D.new()
 var notice := ""
 var sign_mark := Node3D.new()
 
@@ -94,6 +105,20 @@ func make_world() -> void:
 	seal.rotation.x = PI/2
 	sign_mark.add_child(seal)
 	box(sign_mark,Vector3(0,0,.02),Vector3(.045,.75,.05),"d5bf97").rotation.z = -.45
+	inside.add_child(knock)
+	knock.position = TARGETS[Stage.LISTEN] + Vector3.UP
+	box(inside,knock.position,Vector3(.22,2.7,.22),"8b7158")
+	outside.add_child(survivor)
+	person(survivor,Vector3(-1,0,-20),"4f6454")
+	person(outside,TARGETS[Stage.MARINA],"99663d")
+	box(outside,TARGETS[Stage.ARCHIVE]+Vector3.UP*.76,Vector3(2,.14,1.1),"765943")
+	box(outside,TARGETS[Stage.ARCHIVE]+Vector3.UP*.85,Vector3(1.4,.025,.8),"dcc69f")
+	outside.add_child(archive_sheet)
+	archive_sheet.position = TARGETS[Stage.ARCHIVE]+Vector3.UP*.875
+	for offset in [-.37,0,.37]:
+		box(archive_sheet,Vector3(offset,0,0),Vector3(.022,.012,.67),"655d50")
+	box(archive_sheet,Vector3(0,0,.14),Vector3(1.19,.012,.022),"655d50")
+	box(archive_sheet,Vector3(.23,.008,-.13),Vector3(.19,.012,.14),"884235")
 	inside.add_child(shadow)
 	person(shadow,Vector3.ZERO,"15121e")
 	shadow.position = Vector3(2.8,0,-9)
@@ -144,6 +169,8 @@ func _ready() -> void:
 		keys[pair[0]] = control(row,pair[1])
 	action = control(row,"Осмотреть [E]")
 	action.pressed.connect(interact)
+	alternative = control(row,"Вызвать помощь [R]")
+	alternative.pressed.connect(call_help)
 	control(row,"Фонарь [F]").pressed.connect(toggle_light)
 	control(row,"Журнал").pressed.connect(func(): logbook.visible = not logbook.visible)
 	var state: Dictionary = get_tree().get_meta("district_entry",{})
@@ -151,21 +178,26 @@ func _ready() -> void:
 		get_tree().remove_meta("district_entry")
 	stage = state.get("stage",0)
 	evidence = state.get("evidence","")
+	tenant = state.get("tenant","")
 	finished = state.get("finished",false)
 	if stage > 0:
 		avatar.position = TARGETS[stage] + Vector3(0,0,2.8)
 	set_view()
 
 func set_view() -> void:
-	outside.visible = stage < Stage.LANDING
+	outside.visible = stage < Stage.LANDING or stage >= Stage.MARINA
+	survivor.visible = tenant == "rescued"
+	archive_sheet.visible = stage == Stage.ARCHIVE
 	inside.visible = not outside.visible
-	sign_mark.visible = stage == Stage.SIGN
+	sign_mark.visible = stage >= Stage.SIGN
 	shadow.visible = stage == Stage.LANDING
 	marker.position = TARGETS[stage] + Vector3(0,2.75,0)
 	marker.text = ACTIONS[stage]
-	marker.visible = not finished
+	marker.visible = not finished and stage != Stage.LISTEN
 	hud.text = "Москва · " + ("Девятый подъезд" if inside.visible else "Двор автосервиса") + "\n"
-	hud.text += "Первый знак Завесы зарисован. След в журнале." if finished else HINTS[stage]
+	hud.text += "Архивная отметка совпала: старая часовня стояла на месте котельной. Адрес записан." if finished else HINTS[stage]
+	if stage == Stage.ARCHIVE:
+		hud.text += "\n" + ("Марина: «Саша подтвердил твои слова. Бери мой оригинал плана»." if tenant == "rescued" else "Марина: «Пока бригада разбирается, сверим только копию».")
 	if not notice.is_empty():
 		hud.text += "\n" + notice
 	logbook.text = "Телефон Кирилла\n" + evidence
@@ -173,8 +205,14 @@ func set_view() -> void:
 		logbook.text += "\nДВ-03 снимала двор. В исходном файле — пожар."
 	if stage >= Stage.ENTRANCE:
 		logbook.text += "\nПропал Александр, жилец девятого подъезда."
-	if finished:
+	if stage > Stage.SIGN:
 		logbook.text += "\nНа косяке: разомкнутое кольцо, перечёркнутое чертой."
+	if stage >= Stage.MARINA:
+		logbook.text += "\n" + ("Александр вышел со мной." if tenant == "rescued" else "Спасателям передан номер подъезда.")
+	if finished:
+		logbook.text += "\nАрхив: под котельной сохранился подвал часовни."
+		if tenant == "rescued":
+			logbook.text += "\nПомета на обороте оригинала: второй спуск за угольным люком."
 	update_action()
 
 func toggle_light() -> void:
@@ -185,6 +223,7 @@ func toggle_light() -> void:
 func update_action() -> void:
 	action.visible = not finished and avatar.position.distance_to(TARGETS[stage]) < 2.7
 	action.text = ACTIONS[stage] + " [E]"
+	alternative.visible = action.visible and stage == Stage.TENANT
 
 func interact() -> void:
 	if finished or avatar.position.distance_to(TARGETS[stage]) >= 2.7:
@@ -194,21 +233,31 @@ func interact() -> void:
 		set_view()
 		return
 	notice = ""
-	if stage == Stage.SIGN:
+	if stage == Stage.TENANT and tenant.is_empty():
+		tenant = "rescued"
+	if stage == Stage.ARCHIVE:
 		finished = true
 	else:
 		stage += 1
 		if stage == Stage.LANDING:
 			avatar.position = Vector3.ZERO
-	if Slot.store_checkpoint(stage,evidence,slot_path,finished) != OK:
+		elif stage == Stage.MARINA:
+			avatar.position = TARGETS[Stage.ENTRANCE]
+	if Slot.store_checkpoint(stage,evidence,slot_path,finished,tenant) != OK:
 		notice = "Не удалось записать контрольную точку."
 	set_view()
+
+func call_help() -> void:
+	if stage == Stage.TENANT and avatar.position.distance_to(TARGETS[stage]) < 2.7:
+		tenant = "called"
+		interact()
 
 func _unhandled_key_input(key: InputEvent) -> void:
 	if key is InputEventKey and key.pressed and not key.echo:
 		match key.physical_keycode:
 			KEY_E: interact()
 			KEY_F: toggle_light()
+			KEY_R: call_help()
 
 func _physics_process(delta: float) -> void:
 	var direction := Input.get_vector("ui_left","ui_right","ui_up","ui_down")
@@ -217,6 +266,13 @@ func _physics_process(delta: float) -> void:
 	avatar.position += Vector3(direction.x,0,direction.y)*delta*4.6
 	avatar.position.x = clampf(avatar.position.x,-5,5)
 	avatar.position.z = clampf(avatar.position.z,-19 if inside.visible else -30,1)
+	if stage == Stage.LISTEN:
+		knock_wait -= delta
+		if knock_wait <= 0:
+			knock.play()
+			knock_wait = 3.0
+		var near_pipe := avatar.position.distance_to(TARGETS[stage]) < 5.5
+		hud.text = HINTS[stage] + ("\n[Рядом: три удара по трубе.]" if near_pipe else "\n[Глухой стук у левой стены, ближе к почтовым ящикам.]")
 	if shadow.visible:
 		shadow.position.x = 2.8*sin(Time.get_ticks_msec()*.001)
 	update_action()
