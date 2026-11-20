@@ -1,7 +1,7 @@
 config_version=5
 [application]
-config/name="РАЗЛОМ — Крепостная дорога"
-run/main_scene="res://Content/Road.tscn"
+config/name="РАЗЛОМ: ЧЁРНЫЙ ЗВОН"
+run/main_scene="res://Content/NightRoad.tscn"
 [display]
 window/size/viewport_width=1920
 window/size/viewport_height=1080
