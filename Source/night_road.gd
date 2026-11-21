@@ -76,6 +76,7 @@ func look_back() -> void:
 func restart() -> void:
 	phase = Phase.GARAGE
 	speed = 0
+	horse.pose(0)
 	mount.position = Vector3.ZERO
 	sightings = 0
 	trip_time = 0
@@ -156,6 +157,8 @@ func _physics_process(delta: float) -> void:
 	mount.position.x = clampf(mount.position.x + clampf(steer,-1,1)*minf(speed,5)*delta,-4.4,4.4)
 	mount.position.z -= speed*delta
 	car.roll(speed*delta)
+	if horse.visible:
+		horse.pose(speed*delta)
 	trip_time += delta
 	traffic.position = Vector3(-3.1,0,-130+fmod(trip_time*8,155))
 	var distance := -mount.position.z

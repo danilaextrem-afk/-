@@ -13,6 +13,7 @@ func build_location() -> void:
 func restart() -> void:
 	journal.hide()
 	mount.position = Vector3.ZERO
+	horse.pose(0)
 	clock = Glimpse.new()
 	triggered = false
 	seen = false
@@ -58,13 +59,14 @@ func _physics_process(delta: float) -> void:
 	var steering := Input.get_axis("ui_left","ui_right") + float(right.button_pressed) - float(left.button_pressed)
 	var half_width := 2.5 if mount.position.z < -102 else 4.5
 	mount.position.x = clampf(mount.position.x + clampf(steering,-1,1)*delta*4,-half_width,half_width)
+	var previous_z := mount.position.z
 	if ride.button_pressed or Input.is_action_pressed("ui_up"):
 		var through_gate := quest.stage >= Investigation.Stage.PASS_GATE and absf(mount.position.x) <= 2.5
 		var road_end := -113.0 if through_gate else -102.0
-		var previous_z := mount.position.z
 		mount.position.z = maxf(road_end, mount.position.z - delta*9)
 		if car.visible:
 			car.roll(previous_z - mount.position.z)
+	horse.pose(previous_z - mount.position.z)
 	var active := clock.remaining > 0
 	clock.advance(delta)
 	if not triggered and mount.position.z <= -20:

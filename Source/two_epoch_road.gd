@@ -7,7 +7,7 @@ var clock := Glimpse.new()
 var forest := Node3D.new()
 var city := Node3D.new()
 var mount := Node3D.new()
-var horse := Node3D.new()
+var horse := preload("res://Source/road_horse.gd").new()
 var car := preload("res://Source/road_sedan.gd").new()
 var camera := Camera3D.new()
 var caption := Label.new()
@@ -64,13 +64,6 @@ func _ready() -> void:
 	for side in [-1,1]:
 		block(forest,Vector3(side*6,5,-107),Vector3(6,10,7),"726d64")
 	block(forest,Vector3(0,8,-107),Vector3(10,2,3),"726d64")
-	block(horse,Vector3(0,1.2,0),Vector3(0.9,0.9,2.1),"68422e")
-	block(horse,Vector3(0,1.92,-0.95),Vector3(0.56,1.0,0.65),"775137")
-	for x in [-0.31,0.31]:
-		for z in [-0.7,0.7]:
-			block(horse,Vector3(x,0.43,z),Vector3(0.22,0.86,0.26),"443026")
-	block(horse,Vector3(0,2.05,0.15),Vector3(0.55,0.85,0.45),"474d58")
-	block(horse,Vector3(0,2.63,0.15),Vector3(0.37,0.37,0.37),"c6a18b")
 	build_location()
 	mount.add_child(camera)
 	camera.position = Vector3(0,4.5,7.4)
