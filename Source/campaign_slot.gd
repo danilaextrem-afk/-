@@ -4,13 +4,14 @@ const GROVE_START := 26
 const GROVE_END := 30
 const PATH := "user://district_v1.cfg"
 
-static func store_checkpoint(stage: int, evidence: String, path := PATH, finished := false, tenant := "", crossing := -1) -> Error:
+static func store_checkpoint(stage: int, evidence: String, path := PATH, finished := false, tenant := "", crossing := -1, hunt := -1) -> Error:
 	var config := ConfigFile.new()
-	config.set_value("campaign", "version", 7)
+	config.set_value("campaign", "version", 8)
 	config.set_value("district", "stage", stage)
 	config.set_value("district", "finished", finished)
 	config.set_value("district", "tenant", tenant)
 	config.set_value("campaign","crossing",crossing)
+	config.set_value("campaign","hunt",hunt)
 	config.set_value("road", "evidence", evidence)
 	var result := config.save(path + ".tmp")
 	if result != OK:
@@ -22,7 +23,7 @@ static func resume(path := PATH) -> Dictionary:
 	if not FileAccess.file_exists(path) or config.load(path) != OK:
 		return {}
 	var version = config.get_value("campaign", "version", 0)
-	if version not in [1,2,3,4,5,6,7]:
+	if version not in [1,2,3,4,5,6,7,8]:
 		return {}
 	var stage = config.get_value("district", "stage", -1)
 	var evidence = config.get_value("road", "evidence", "")
@@ -36,7 +37,9 @@ static func resume(path := PATH) -> Dictionary:
 	if stage >= 10 and tenant not in ["rescued","called"]:
 		return {}
 	var crossing = config.get_value("campaign","crossing",-1) if version >= 3 else -1
-	var last_step: int = {3:6,4:13,5:15,6:25,7:33}.get(version,6)
+	var last_step: int = {3:6,4:13,5:15,6:25,7:33,8:33}.get(version,6)
 	if typeof(crossing) != TYPE_INT or crossing < -1 or crossing > last_step or (crossing >= 0 and (stage != 11 or not done)):
 		return {}
-	return {"crossing":crossing,"stage":stage,"evidence":evidence,"finished":stage == 11 and done,"tenant":tenant}
+	var hunt = config.get_value("campaign","hunt",-1) if version >= 8 else -1
+	if typeof(hunt) != TYPE_INT or hunt < -1 or hunt > 4 or (hunt >= 0 and crossing < GROVE_END): return {}
+	return {"hunt":hunt,"crossing":crossing,"stage":stage,"evidence":evidence,"finished":stage == 11 and done,"tenant":tenant}

@@ -49,6 +49,18 @@ func restart() -> void:
 	update_view()
 
 func interact() -> void:
+	if complete and not entry.is_empty():
+		var outcome: int = entry.crossing
+		if outcome < Slot.GROVE_END: outcome += 4
+		if Slot.store_checkpoint(11,entry.evidence,entry.slot_path,true,entry.tenant,outcome,0) != OK:
+			notice = "Не удалось сохранить договор."
+			update_view()
+			return
+		var saved := Slot.resume(entry.slot_path)
+		saved["slot_path"] = entry.slot_path
+		get_tree().set_meta("hunt_entry",saved)
+		get_tree().change_scene_to_file("res://Content/Hunt.tscn")
+		return
 	if not trained and mount.position.distance_to(TARGET) <= 3.0:
 		trained = true
 		swing_left = .35
@@ -84,6 +96,10 @@ func update_view() -> void:
 	journal.text = caption.text
 	action.text = "Ударить с седла [E]" if not trained else "Окликнуть [E]"
 	action.visible = not complete and not vision and (not trained or scout.position.z <= -100) and mount.position.distance_to(scout.position if trained else TARGET) <= 3
+
+	if complete and not entry.is_empty():
+		action.text = "Принять договор Миры [E]"
+		action.show()
 
 func _physics_process(delta: float) -> void:
 	if complete: return
