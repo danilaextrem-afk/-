@@ -1,0 +1,30 @@
+name: Black Bell native 4K PBR maps (artifact)
+on:
+  push:
+    paths:
+      - Tools/generate_blackbell_4k.py
+      - .github/workflows/blackbell-4k.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-4k-pbr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free open-source image dependencies
+        run: python -m pip install "numpy>=2.0,<3.0" "pillow>=11,<13"
+      - name: Fast sanity test at 256
+        run: python Tools/generate_blackbell_4k.py --size 256 --out build/blackbell-smoke
+      - name: Generate 12 true 4096x4096 PBR textures
+        run: python Tools/generate_blackbell_4k.py --size 4096 --out build/BlackBell_4K
+      - name: Upload without filling Git repository with binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: RAZLOM-BlackBell-original-PBR-4K
+          path: build/BlackBell_4K/
+          retention-days: 14
