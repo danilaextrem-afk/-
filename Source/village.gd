@@ -1,7 +1,7 @@
 extends "res://Source/walk_scene.gd"
 
 # Values follow the camp checkpoint (6) in the campaign save.
-enum Stage { ELDER = 7, DECIDE, TRACK, SMITH_ESCAPED, SMITH_CLEARED, BLADE_ESCAPED, BLADE_CLEARED }
+enum Stage { ELDER = 7, DECIDE, TRACK, SMITH_ESCAPED, SMITH_CLEARED, BLADE_ESCAPED, BLADE_CLEARED, SAFE_ESCAPED, SAFE_CLEARED }
 const ELDER := Vector3(0,0,-5)
 const PRISONER := Vector3(-4,0,-12)
 const GRANARY := Vector3(4,0,-14)
@@ -37,10 +37,11 @@ func _ready() -> void:
 func show_stage(stage: int) -> void:
 	captive.visible = stage in [Stage.ELDER,Stage.DECIDE,Stage.TRACK]
 	shutter.visible = captive.visible
-	witness.visible = stage in [Stage.SMITH_CLEARED,Stage.BLADE_CLEARED]
+	witness.visible = stage in [Stage.SMITH_CLEARED,Stage.BLADE_CLEARED,Stage.SAFE_CLEARED]
 
 func hint(stage: int) -> String:
 	match stage:
+		Stage.SAFE_ESCAPED,Stage.SAFE_CLEARED: return "Первый клинок · Упырь повержен, кузница в безопасности."
 		Stage.ELDER: return "Мира привела тебя в селение. Староста ждёт на дороге перед избами."
 		Stage.DECIDE: return "Староста: «Засов разнесло, зерно пропало. А кроме Богдашки тут никого».\nСлева — клеть с пленником. Справа — выломанный порог амбара."
 		Stage.TRACK: return "Три борозды идут изнутри. Щепа лежит снаружи. Отнеси обломок старосте."

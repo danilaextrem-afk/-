@@ -10,6 +10,9 @@ const GUIDE := Vector3(-4,0,-17)
 const FIRE := Vector3(-2,0,-25)
 var step: int = Step.YARD
 var village := preload("res://Source/village.gd").new()
+var ghoul := preload("res://Source/forge_ghoul.gd").new()
+var strike_button: Button
+var guard_button: Button
 var sword := Node3D.new()
 var tenant := ""
 var evidence := ""
@@ -86,6 +89,7 @@ func build_places() -> void:
 
 func _ready() -> void:
 	build_places()
+	village.add_child(ghoul)
 	var ui := CanvasLayer.new()
 	add_child(ui)
 	ui.add_child(hud)
@@ -100,6 +104,10 @@ func _ready() -> void:
 		keys[pair[0]] = control(row,pair[1])
 	action = control(row,"Осмотреть")
 	action.pressed.connect(interact)
+	strike_button = control(row,"Удар [Space]")
+	strike_button.pressed.connect(strike)
+	guard_button = control(row,"Блок [Q]")
+	guard_button.pressed.connect(ghoul.guard)
 	var state: Dictionary = get_tree().get_meta("crossing_entry",{})
 	if get_tree().has_meta("crossing_entry"):
 		get_tree().remove_meta("crossing_entry")
@@ -119,6 +127,10 @@ func target_near(pos: Vector3) -> bool:
 	return hero.position.distance_to(pos) < 2.6
 
 func available() -> String:
+	if ghoul.fighting(): return ""
+	if step in [village.Stage.BLADE_ESCAPED,village.Stage.BLADE_CLEARED]:
+		if ghoul.phase == ghoul.Phase.LOST: return "Попробовать снова"
+		if target_near(village.FORGE): return "Защитить кузницу"
 	if step >= village.Stage.ELDER: return village.prompt(step,hero.position)
 	match step:
 		Step.YARD:
@@ -154,6 +166,8 @@ func draw_state() -> void:
 	refresh_action()
 
 func refresh_action() -> void:
+	strike_button.visible = ghoul.fighting()
+	guard_button.visible = ghoul.fighting()
 	var prompt := available()
 	action.visible = not prompt.is_empty()
 	action.text = prompt + " [E]"
@@ -170,6 +184,10 @@ func enter(next: int, spawn: Vector3) -> void:
 func interact() -> void:
 	if available().is_empty(): return
 	if village.visible:
+		if step in [village.Stage.BLADE_ESCAPED,village.Stage.BLADE_CLEARED]:
+			ghoul.begin(hero.position+Vector3(0,0,4))
+			refresh_action()
+			return
 		enter(village.next_step(step,hero.position),hero.position)
 		return
 	match step:
@@ -185,8 +203,18 @@ func interact() -> void:
 		Step.MIRA: enter(Step.CAMP,hero.position)
 		Step.CAMP: enter(village.Stage.ELDER,Vector3.ZERO)
 
+func strike() -> void:
+	ghoul.strike(hero.position)
+	if ghoul.phase == ghoul.Phase.WON and step in [village.Stage.BLADE_ESCAPED,village.Stage.BLADE_CLEARED]:
+		sword.rotation.x = -.65
+		enter(step+2,hero.position)
+
 func _unhandled_key_input(key: InputEvent) -> void:
-	if key is InputEventKey and key.pressed and not key.echo and key.physical_keycode == KEY_E: interact()
+	if key is InputEventKey and key.pressed and not key.echo:
+		match key.physical_keycode:
+			KEY_E: interact()
+			KEY_SPACE: strike()
+			KEY_Q: ghoul.guard()
 
 func _physics_process(delta: float) -> void:
 	var move := Input.get_vector("ui_left","ui_right","ui_up","ui_down")
@@ -204,4 +232,11 @@ func _physics_process(delta: float) -> void:
 		draw_state()
 	elif step == Step.MIRA:
 		guide.position = guide.position.move_toward(FIRE+Vector3.LEFT,delta*2.3)
+	if ghoul.fighting():
+		ghoul.advance(delta,hero.position)
+		sword.rotation.x = -.65 + 1.4*ghoul.attack_delay/.5 - ghoul.guard_left
+		var warning := "Упырь замахнулся!" if ghoul.phase == ghoul.Phase.WINDUP else "Защити кузницу"
+		hud.text = "%s · Здоровье %d/3 · Выносливость %d · Упырь %d/3" % [warning,ghoul.health,roundi(ghoul.stamina),ghoul.hits_left]
+	if ghoul.phase == ghoul.Phase.LOST:
+		hud.text = "Кирилл отступил. Мира отвлекла упыря. Можно повторить бой."
 	refresh_action()
