@@ -4,6 +4,7 @@
 #include "Components/TextRenderComponent.h"
 #include "Engine/PointLight.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/TextRenderActor.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerStart.h"
@@ -64,6 +65,28 @@ void AEntranceGameMode::InitGame(const FString& MapName, const FString& Options,
     Mesh(Block, {410,-820,79}, {68,42,5}, TEXT("ArchivePlan"));
     Mesh(Block, {-90,-960,86}, {10,105,172});
     Mesh(Block, {-83,-960,130}, {5,47,32}, TEXT("ArchivePhoto"));
+    if (UStaticMesh* Facade = LoadObject<UStaticMesh>(nullptr,
+        TEXT("/Game/EntranceNine/SM_EntranceNine.SM_EntranceNine")))
+    {
+        const FBox Bounds = Facade->GetBoundingBox();
+        const FVector Center = Bounds.GetCenter();
+        // Infer the projecting stairs from their offset from the wall origin.
+        const FVector Front = Bounds.GetSize().X < Bounds.GetSize().Y
+            ? FVector(FMath::Sign(Center.X), 0, 0) : FVector(0, FMath::Sign(Center.Y), 0);
+        const FRotator Facing(0, 180.f - Front.Rotation().Yaw, 0);
+        auto* Frontage = World->SpawnActor<AStaticMeshActor>(FVector(790,-740,-Bounds.Min.Z), Facing);
+        auto* Surface = Frontage->GetStaticMeshComponent();
+        Surface->SetMobility(EComponentMobility::Movable);
+        Surface->SetStaticMesh(Facade);
+        Surface->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+        Frontage->Tags.Add(TEXT("EntranceNineFacade"));
+        auto* Fixture = World->SpawnActor<APointLight>(FVector(710,-740,355), FRotator::ZeroRotator);
+        auto* Bulb = CastChecked<UPointLightComponent>(Fixture->GetLightComponent());
+        Bulb->SetMobility(EComponentMobility::Movable);
+        Bulb->SetIntensity(600.f);
+        Bulb->SetLightColor(FLinearColor(1.f,.56f,.27f));
+        Bulb->SetAttenuationRadius(600.f);
+    }
     auto* YardLight = World->SpawnActor<APointLight>(FVector(200,-760,265), FRotator::ZeroRotator);
     auto* YardLamp = CastChecked<UPointLightComponent>(YardLight->GetLightComponent());
     YardLamp->SetMobility(EComponentMobility::Movable);
