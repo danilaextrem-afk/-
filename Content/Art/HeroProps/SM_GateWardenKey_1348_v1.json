@@ -6,7 +6,9 @@
   "purpose": "Investigative close-up hero prop from the forge / watchman chest story beat",
   "files": {
     "mesh": "Content/Art/HeroProps/SM_GateWardenKey_1348_v1.obj",
-    "preview_materials": "Content/Art/HeroProps/SM_GateWardenKey_1348_v1.mtl"
+    "preview_materials": "Content/Art/HeroProps/SM_GateWardenKey_1348_v1.mtl",
+    "uvdraft": "Content/Art/HeroProps/SM_GateWardenKey_1348_v1_UVdraft.obj",
+    "uvdraft_preview_mtl": "Content/Art/HeroProps/SM_GateWardenKey_1348_v1_PBRdraft.mtl"
   },
   "authoring": "Original procedural hand-defined mesh in current ChatGPT art session; no third-party geometry",
   "license": "Original work authored for the project",
@@ -38,24 +40,30 @@
     }
   },
   "materials": {
-    "state": "preview MTL; NOT texture-backed PBR",
-    "missing": [
-      "BaseColor",
-      "Normal",
-      "Roughness",
-      "Metallic",
-      "AO",
-      "UV-unwrapping"
+    "state": "256px procedural PBR draft TGAs physically committed; not sculpt baked/production art",
+    "maps": [
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenKey_1348_v1_BaseColor.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenKey_1348_v1_Normal.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenKey_1348_v1_ORM.tga"
+    ],
+    "material_binding_json": "Content/Art/HeroProps/PBR_Draft/material_bundle_v1.json",
+    "needs": [
+      "authored seam fixes",
+      "manual tangent/normal review",
+      "production UV",
+      "sculpt-based normal bake",
+      "quality review"
     ]
   },
-  "status": "geometry_wip",
+  "status": "materials_wip",
   "acceptance": {
     "technical_geometry_validation": "static scan: 9032 finite vertices, 17272 valid non-degenerate triangles, 4 material groups, 13 objects; 144 degenerate pole triangles removed and winding reversed for 16552 tube/slab faces; manifold/shading still untested",
     "ue5_import": "not run",
     "nanite_lod_collision": "not verified",
     "gameplay_integration": "Astra 2 pending",
-    "quality_floor": "black bell v3 accepted by owner; key NOT yet art approved",
-    "real_4k_render": "not done"
+    "quality_floor": "not artistically approved",
+    "real_4k_render": "not done",
+    "texture_drafts": "nine TGA files total across key+chest parts committed; 3 key maps confirmed base64 size"
   },
   "notes": "Use one uniform unit convention: 1 OBJ unit = 1 metre = 100 UE centimetres if importer converts correctly. Do not count model as engine-ready or AAA accepted before full PBR and visual review.",
   "tests": {
@@ -72,5 +80,17 @@
     "pbr_maps": "MISSING",
     "uv": "MISSING",
     "ue5_import": "NOT_RUN"
+  },
+  "uv_draft": {
+    "v": 9032,
+    "vt": 9032,
+    "vn": 0,
+    "triangles": 17272,
+    "atlas_grid": [
+      2,
+      2
+    ],
+    "status": "projected per-vertex UV; generated normals in UE5 pending",
+    "validated": "all OBJ v/vt indices in range, UV within [0,1]"
   }
 }
