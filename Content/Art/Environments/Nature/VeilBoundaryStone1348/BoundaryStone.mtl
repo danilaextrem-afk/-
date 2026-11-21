@@ -1,0 +1,9 @@
+newmtl stone
+Kd 0.42 0.43 0.40
+Ks 0.03 0.03 0.03
+Ns 8
+
+newmtl rune
+Kd 0.20 0.22 0.18
+Ks 0.08 0.08 0.08
+Ns 20
