@@ -15,6 +15,11 @@ var fighting := false
 var strike_button: Button
 var block_button: Button
 var block_held := false
+var figure := Node3D.new()
+var boots: Array[MeshInstance3D] = []
+var sleeves: Array[MeshInstance3D] = []
+var meters := preload("res://Source/forge_hud.gd").new()
+var gait := 0.0
 var sword := Node3D.new()
 var tenant := ""
 var evidence := ""
@@ -77,11 +82,25 @@ func build_places() -> void:
 	guide.position = GUIDE
 	for i in 4:
 		box(forest,FIRE+Vector3(.25*cos(i*1.6),.25,.25*sin(i*1.6)),Vector3(.24,.5,.24),"ff9f52")
-	person(hero,Vector3.ZERO,"65707a")
-	hero.add_child(sword)
-	sword.position = Vector3(.57,1,.04)
-	box(sword,Vector3(0,.35,0),Vector3(.10,.8,.035),"9b9c97")
-	box(sword,Vector3.ZERO,Vector3(.29,.06,.06),"53483b")
+	hero.add_child(figure)
+	var body := MeshInstance3D.new()
+	body.mesh = preload("res://Art/Forge/traveller_coat.obj")
+	figure.add_child(body)
+	for side in [-1,1]:
+		var boot := MeshInstance3D.new()
+		boot.mesh = preload("res://Art/Forge/boot_-1.obj") if side < 0 else preload("res://Art/Forge/boot_1.obj")
+		figure.add_child(boot)
+		boot.position = Vector3(side*.14,.86,.025)
+		boots.append(boot)
+		var sleeve := MeshInstance3D.new()
+		sleeve.mesh = preload("res://Art/Forge/sleeve_-1.obj") if side < 0 else preload("res://Art/Forge/sleeve_1.obj")
+		figure.add_child(sleeve)
+		sleeve.position = Vector3(side*.31,1.40,0)
+		sleeves.append(sleeve)
+	sleeves[1].add_child(sword)
+	sword.position = Vector3(.104,-.54,-.13)
+	box(sword,Vector3(0,.51,0),Vector3(.067,.85,.023),"9b9c97")
+	box(sword,Vector3(0,.09,0),Vector3(.24,.038,.045),"53483b")
 	sword.rotation.x = -.65
 	hero.add_child(camera)
 	camera.position = Vector3(0,5.2,6.2)
@@ -93,16 +112,21 @@ func _ready() -> void:
 	build_places()
 	var ui := CanvasLayer.new()
 	add_child(ui)
+	ui.add_child(meters)
+	meters.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meters.position = Vector2(54,40)
 	ui.add_child(hud)
-	hud.position = Vector2(32,24)
-	hud.add_theme_font_size_override("font_size",30)
-	hud.add_theme_constant_override("outline_size",6)
+	hud.position = Vector2(54,40)
+	hud.add_theme_font_size_override("font_size",25)
+	hud.add_theme_constant_override("outline_size",4)
 	var row := HBoxContainer.new()
 	ui.add_child(row)
 	row.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	row.position += Vector2(28,-104)
 	for pair in [["ui_left","◀"],["ui_up","▲"],["ui_down","▼"],["ui_right","▶"]]:
 		keys[pair[0]] = control(row,pair[1])
+	for button in keys.values():
+		button.visible = DisplayServer.is_touchscreen_available()
 	action = control(row,"Осмотреть")
 	action.pressed.connect(interact)
 	strike_button = control(row,"Удар [F]")
@@ -151,8 +175,10 @@ func available() -> String:
 
 func draw_state() -> void:
 	fight.visible = fighting
-	camera.position = Vector3(0,3.4,4.4) if fighting else Vector3(0,5.2,6.2)
-	camera.rotation.x = -.37 if fighting else -.56
+	meters.visible = fighting
+	hud.position = Vector2(54,146) if fighting else Vector2(54,40)
+	camera.position = Vector3(.73,1.71,2.08) if fighting else (Vector3(.48,2.15,3.7) if step >= village.Stage.ELDER else Vector3(0,5.2,6.2))
+	camera.rotation.x = -.075 if fighting else (-.21 if step >= village.Stage.ELDER else -.56)
 	strike_button.visible = fighting
 	block_button.visible = fighting
 	yard.visible = step <= Step.FUSE
@@ -161,8 +187,9 @@ func draw_state() -> void:
 	village.visible = step >= village.Stage.ELDER
 	village.show_stage(step)
 	camera.environment = village.dusk if village.visible else null
-	sun.light_energy = .65 if village.visible else 1.0
-	sun.light_color = Color("#b4d2ed") if village.visible else Color.WHITE
+	sun.light_energy = .75 if village.visible else 1.0
+	sun.light_color = Color("#d3d5df") if village.visible else Color.WHITE
+	sun.rotation_degrees = Vector3(-26,-56,0) if village.visible else Vector3(-52,-22,0)
 	sun.shadow_enabled = village.visible
 	sword.visible = step >= village.Stage.BLADE_ESCAPED
 	var lines := ["Архивный адрес · Москва, 2026\nПодойди к двери котельной.", "Замок обесточен. Справа во дворе стоит зелёный щит.",
@@ -200,7 +227,12 @@ func interact() -> void:
 		advance_fight(0.0)
 		return
 	if village.visible:
-		enter(village.next_step(step,hero.position),hero.position)
+		var next := village.next_step(step,hero.position)
+		if next in [village.Stage.BELL_ESCAPED,village.Stage.BELL_CLEARED]:
+			chime.reparent(self)
+			chime.position = hero.position + Vector3(0,3,-5)
+			chime.play()
+		enter(next,hero.position)
 		return
 	match step:
 		Step.YARD:
@@ -240,13 +272,30 @@ func advance_fight(delta: float) -> void:
 			message = "Мира оттащила тебя к кузнице. Можно повторить урок."
 			draw_state()
 		return
-	hud.text = "Первый клинок · Урок у кузницы\nУдар расходует выносливость. Удерживай блок, когда упырь замахивается.\n"+fight.status()
+	meters.update_fight(fight,blocking)
+	hud.text = "Упырь замахнулся" if fight.windup > 0 else "Первый клинок  ·  Кузнечный двор"
 
 func _physics_process(delta: float) -> void:
 	var move := Input.get_vector("ui_left","ui_right","ui_up","ui_down")
 	move += Vector2(float(keys.ui_right.button_pressed)-float(keys.ui_left.button_pressed),float(keys.ui_down.button_pressed)-float(keys.ui_up.button_pressed))
 	move = move.limit_length()
-	hero.position += Vector3(move.x,0,move.y)*4.6*delta
+	var direction := Vector3(move.x,0,move.y)
+	if fighting:
+		var to_enemy: Vector3 = fight.enemy.position - hero.position
+		if to_enemy.length_squared() > .001:
+			figure.rotation.y = lerp_angle(figure.rotation.y,atan2(-to_enemy.x,-to_enemy.z),minf(1,delta*12))
+	elif direction.length_squared() > .01:
+		figure.rotation.y = lerp_angle(figure.rotation.y,atan2(-direction.x,-direction.z),minf(1,delta*12))
+	gait += delta*11*move.length()
+	figure.position.y = absf(sin(gait))*.037*move.length()
+	for i in 2:
+		var stride := sin(gait + PI*i)*move.length()
+		boots[i].rotation.x = .52*stride
+		sleeves[i].rotation.x = -.30*stride
+	if fighting:
+		sleeves[1].rotation.x += .48 + sin((.55-fight.swing)/.55*PI)*1.35 if fight.swing > 0 else (.95 if block_held or Input.is_physical_key_pressed(KEY_Q) else .34)
+	figure.rotation.z = sin(gait)*.022*move.length()
+	hero.position += direction*4.6*delta
 	hero.position.x = clampf(hero.position.x,-5,5)
 	hero.position.z = clampf(hero.position.z,-27 if forest.visible or village.visible else -17,2)
 	if fighting:

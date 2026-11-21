@@ -4,6 +4,7 @@ enum Phase { GARAGE, DRIVE, GLIMPSE, ROADSIDE, MESSAGE, END }
 const SIGHTINGS := [82.0, 101.0, 120.0]
 var phase := Phase.GARAGE
 const Slot = preload("res://Source/campaign_slot.gd")
+var chapter_button: Button
 var resume_button: Button
 var slot_path := Slot.PATH
 var speed := 0.0
@@ -61,6 +62,12 @@ func add_controls(row: HBoxContainer) -> void:
 	ride.text = "Газ ↑"
 	resume_button = button(row,"Продолжить")
 	resume_button.pressed.connect(resume_district)
+	chapter_button = button(row,"Первый клинок")
+	chapter_button.pressed.connect(open_forge)
+
+func open_forge() -> void:
+	get_tree().set_meta("crossing_entry",{"crossing":13,"tenant":"rescued","slot_path":"user://forge_chapter.cfg"})
+	get_tree().change_scene_to_file("res://Content/Crossing.tscn")
 
 func set_rear(value: bool) -> void:
 	rear = value
@@ -112,6 +119,7 @@ func _unhandled_key_input(key: InputEvent) -> void:
 			KEY_E: interact()
 
 func update_view() -> void:
+	chapter_button.visible = phase == Phase.GARAGE
 	resume_button.visible = phase == Phase.GARAGE and not Slot.resume(slot_path).is_empty()
 	forest.visible = phase == Phase.GLIMPSE
 	horse.visible = forest.visible

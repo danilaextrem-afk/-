@@ -1,7 +1,7 @@
 extends "res://Source/walk_scene.gd"
 
 const START := Vector3(0,0,-22)
-const SPAWN := Vector3(0,0,-26)
+const SPAWN := Vector3(1.15,0,-26)
 const MAX_STAMINA := 100.0
 var enemy := Node3D.new()
 var arms: Array[MeshInstance3D] = []
@@ -14,19 +14,16 @@ var swing := 0.0
 
 func _ready() -> void:
 	add_child(enemy)
-	var torso := box(enemy,Vector3(0,1.04,-.08),Vector3(.68,.92,.37),"3a3834")
-	torso.rotation.x = .24
-	box(enemy,Vector3(0,1.59,-.28),Vector3(.36,.35,.34),"77786e")
+	enemy.scale = Vector3.ONE * 1.12
+	var torso := MeshInstance3D.new()
+	torso.mesh = preload("res://Art/Forge/ghoul.obj")
+	enemy.add_child(torso)
 	for side in [-1,1]:
-		var arm := box(enemy,Vector3(side*.41,1.01,-.18),Vector3(.18,.82,.19),"676d62")
-		arm.rotation.z = side*.35
-		arm.rotation.x = .4
+		var arm := MeshInstance3D.new()
+		arm.mesh = preload("res://Art/Forge/left_claw.obj") if side < 0 else preload("res://Art/Forge/right_claw.obj")
+		enemy.add_child(arm)
+		arm.position = Vector3(side*.32,1.55,-.04)
 		arms.append(arm)
-		box(enemy,Vector3(side*.18,.37,.02),Vector3(.23,.74,.27),"47413a")
-		var eye := box(enemy,Vector3(side*.09,1.62,-.46),Vector3(.07,.045,.03),"dc693c")
-		var material := eye.material_override as StandardMaterial3D
-		material.emission_enabled = true
-		material.emission = Color("#f64b23")
 	reset()
 
 func reset() -> void:
@@ -47,7 +44,7 @@ func strike(hero_position: Vector3) -> void:
 
 func pose() -> void:
 	for arm in arms:
-		arm.rotation.x = -.95 if windup > 0 else .4
+		arm.rotation.x = 1.8 * (1.0 - windup / .8) + .45 if windup > 0 else -.45 * recovery
 
 func advance(delta: float, hero_position: Vector3, blocking: bool) -> void:
 	swing = maxf(0.0,swing-delta)
