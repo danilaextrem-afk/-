@@ -1,9 +1,9 @@
 // Original procedural 1348 wagon wheel; units cm, Z-up; wheel axle along Y.
 // Run: node generate.mjs > SM_WagonWheel1348_LOD0.obj
 const v=[],vt=[],f=[];let group='wood';
-function quad(a,b,c,d){f.push([group,[a,b,c],[a,c,d]])}
+function quad(a,b,c,d){f.push([group,[a,b,c]]);f.push([group,[a,c,d]])}
 function vert(x,y,z,u,w){v.push([x,y,z]);vt.push([u,w]);return v.length}
 function ring(r0,r1,y0,y1,n,tag){group=tag;const ids=[];for(let j=0;j<4;j++){let r=j%2?r1:r0,y=j<2?y0:y1,ar=[];for(let i=0;i<n;i++){let a=2*Math.PI*i/n;ar.push(vert(r*Math.cos(a),y,r*Math.sin(a),i/n,j/3))}ids.push(ar)}for(let i=0;i<n;i++){let k=(i+1)%n;quad(ids[0][i],ids[0][k],ids[2][k],ids[2][i]);quad(ids[1][k],ids[1][i],ids[3][i],ids[3][k]);quad(ids[2][i],ids[2][k],ids[3][k],ids[3][i]);quad(ids[0][k],ids[0][i],ids[1][i],ids[1][k])}}
 function beam(a,b,width,tag){group=tag;let d=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],l=Math.hypot(...d),ex=[-d[2]/l,0,d[0]/l],ey=[0,1,0],corn=[];for(const p of [a,b]){let arr=[];for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]])arr.push(vert(p[0]+ex[0]*width*sx/2,p[1]+sy*width/2,p[2]+ex[2]*width*sx/2,(sx+1)/2,(sy+1)/2));corn.push(arr)}for(let j=0;j<4;j++)quad(corn[0][j],corn[0][(j+1)%4],corn[1][(j+1)%4],corn[1][j]);quad(...corn[0].slice().reverse());quad(...corn[1])}
 ring(62,73,-8,8,96,'wood');ring(8,16,-15,15,48,'wood');for(let i=0;i<12;i++){let a=2*Math.PI*i/12;beam([13*Math.cos(a),0,13*Math.sin(a)],[65*Math.cos(a),0,65*Math.sin(a)],9,'wood')}ring(72.5,75,-8.8,8.8,96,'iron');ring(6.2,8,-16,16,48,'iron');
-let out=['# RAZLOM original wagon wheel v0.1','mtllib SM_WagonWheel1348.mtl','o SM_WagonWheel1348_LOD0'];for(const p of v)out.push('v '+p.join(' '));for(const t of vt)out.push('vt '+t.join(' '));let old='';for(const [g,triangles] of f){if(g!==old){out.push('usemtl '+g);old=g}for(const tri of triangles)out.push('f '+tri.map(i=>i+'/'+i).join(' '))}console.log(out.join('\n'));
+let out=['# RAZLOM original wagon wheel v0.1','mtllib SM_WagonWheel1348.mtl','o SM_WagonWheel1348_LOD0'];for(const p of v)out.push('v '+p.join(' '));for(const t of vt)out.push('vt '+t.join(' '));let old='';for(const [g,tri] of f){if(g!==old){out.push('usemtl '+g);old=g}out.push('f '+tri.map(i=>i+'/'+i).join(' '))}console.log(out.join('\n'));
