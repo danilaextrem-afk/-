@@ -1,0 +1,22 @@
+{
+  "asset": "Gauge",
+  "epoch": 2026,
+  "version": 1,
+  "source": "build.py + textures.py",
+  "size_xyz_cm": [
+    8.4,
+    3.58,
+    11.3
+  ],
+  "triangles": 9264,
+  "degenerate_triangles": 0,
+  "mesh_nodes": 12,
+  "animations": [
+    "Gauge_movementAction"
+  ],
+  "embedded_images": 3,
+  "render": "Blender Cycles CPU, reimported GLB",
+  "ue5": "pending",
+  "collision": "Collision.obj, separate convex box (cm); UE5 association pending",
+  "lod": "base mesh only"
+}

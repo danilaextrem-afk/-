@@ -1,0 +1,20 @@
+{
+  "asset": "Entrance",
+  "epoch": 2026,
+  "version": 1,
+  "source": "build.py + textures.py",
+  "size_xyz_cm": [
+    40.0,
+    0.83,
+    20.0
+  ],
+  "triangles": 1812,
+  "degenerate_triangles": 0,
+  "mesh_nodes": 5,
+  "animations": [],
+  "embedded_images": 3,
+  "render": "Blender Cycles CPU, reimported GLB",
+  "ue5": "pending",
+  "collision": "Collision.obj, separate convex box (cm); UE5 association pending",
+  "lod": "base mesh only"
+}
