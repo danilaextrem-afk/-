@@ -1,0 +1,49 @@
+name: Build RAZLOM original hero art
+on:
+  push:
+    paths:
+      - Tools/generate_blackbell_hero.py
+      - .github/workflows/build-blackbell-hero.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  author-original-3d-mesh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install generation dependencies
+        run: python -m pip install "numpy>=2.0,<3.0" "pillow>=11,<13"
+      - name: Generate original OBJ and 12 PBR maps
+        run: python Tools/generate_blackbell_hero.py .
+      - name: Validate outputs
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('Content/Art/HeroProps')
+          m=json.loads((root/'BlackBell_Hero_v2.json').read_text())
+          assert m['vertices'] > 100_000, m
+          assert m['triangles'] > 170_000, m
+          assert (root/'SM_BlackBell_Hero_v2.obj').stat().st_size > 8_000_000
+          assert len(list((root/'Textures').glob('*.png'))) == 12
+          print('PASS',m['vertices'],'vertices,',m['triangles'],'triangles, 12 maps')
+          PY
+      - name: Commit 3D source files and material maps
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Content/Art/HeroProps/
+          if git diff --cached --quiet; then
+            echo 'No changed generated assets'
+          else
+            git commit -m 'assets: generate original Black Bell hero v2 geometry and PBR maps [skip ci]'
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
