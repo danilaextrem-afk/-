@@ -1,0 +1,23 @@
+{
+  "asset_id": "RZ_HERO_RATIBOR_FOREARM_BRACER_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "character": "Ратибор",
+  "license": "original in-house procedural mesh",
+  "status": "geometry_wip",
+  "mesh": "SM_RatiborBracer_v01.obj",
+  "source": "generate.js",
+  "units": "meters",
+  "vertices": 750,
+  "triangles": 1052,
+  "materials": [
+    "Leather",
+    "Iron",
+    "Bronze"
+  ],
+  "rig": "static clothing attachment; skin weights pending",
+  "lod": "LOD0 only; LOD1 pending",
+  "pbr": "MTL preview only; baked PBR maps missing",
+  "validation": "generator array-index construction only; no external OBJ parser, Blender render or UE5 import",
+  "art_floor": "Black Bell v3, not yet met"
+}
