@@ -53,10 +53,10 @@ func _ready() -> void:
 		if world == city: pavement = surface
 	var cube := BoxMesh.new()
 	cube.size = Vector3.ONE
-	var masonry := StandardMaterial3D.new()
-	masonry.vertex_color_use_as_albedo = true
-	var windows := masonry.duplicate() as StandardMaterial3D
-	windows.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var masonry := ShaderMaterial.new()
+	masonry.shader = preload("res://Content/Materials/panel_concrete.gdshader")
+	var windows := ShaderMaterial.new()
+	windows.shader = preload("res://Content/Materials/lit_apartment.gdshader")
 	for i in range(18):
 		var z := -7.0*i
 		for side in [-1,1]:
