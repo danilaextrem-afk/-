@@ -15,7 +15,7 @@
   "source_coordinate_system": "OBJ Z-up, dimensions in metres",
   "mesh": {
     "vertices": 9032,
-    "triangles": 17416,
+    "triangles": 17272,
     "has_vertex_normals": false,
     "has_uvs": false,
     "material_slots": [
@@ -50,12 +50,27 @@
   },
   "status": "geometry_wip",
   "acceptance": {
-    "technical_geometry_validation": "pending automated static QA",
+    "technical_geometry_validation": "static scan: 9032 finite vertices, 17272 valid non-degenerate triangles, 4 material groups, 13 objects; 144 degenerate pole triangles removed and winding reversed for 16552 tube/slab faces; manifold/shading still untested",
     "ue5_import": "not run",
     "nanite_lod_collision": "not verified",
     "gameplay_integration": "Astra 2 pending",
     "quality_floor": "black bell v3 accepted by owner; key NOT yet art approved",
     "real_4k_render": "not done"
   },
-  "notes": "Use one uniform unit convention: 1 OBJ unit = 1 metre = 100 UE centimetres if importer converts correctly. Do not count model as engine-ready or AAA accepted before full PBR and visual review."
+  "notes": "Use one uniform unit convention: 1 OBJ unit = 1 metre = 100 UE centimetres if importer converts correctly. Do not count model as engine-ready or AAA accepted before full PBR and visual review.",
+  "tests": {
+    "finite_vertices": "PASS",
+    "face_indices_in_range": "PASS",
+    "triangle_arity": "PASS",
+    "zero_area_triangles": "PASS (post-cleanup)",
+    "mtl_slots": [
+      "iron",
+      "steel",
+      "bronze",
+      "oxide"
+    ],
+    "pbr_maps": "MISSING",
+    "uv": "MISSING",
+    "ue5_import": "NOT_RUN"
+  }
 }
