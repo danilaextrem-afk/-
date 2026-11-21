@@ -4,6 +4,7 @@ enum Phase { GARAGE, DRIVE, GLIMPSE, ROADSIDE, MESSAGE, END }
 const SIGHTINGS := [82.0, 101.0, 120.0]
 var phase := Phase.GARAGE
 const Slot = preload("res://Source/campaign_slot.gd")
+var chapter_button: Button
 var resume_button: Button
 var slot_path := Slot.PATH
 var speed := 0.0
@@ -58,6 +59,15 @@ func add_controls(row: HBoxContainer) -> void:
 	resume_button = button(row,"Продолжить")
 	resume_button.pressed.connect(resume_district)
 
+	chapter_button = button(row,"Первый клинок")
+	chapter_button.pressed.connect(open_watch_chapter)
+
+func open_watch_chapter() -> void:
+	var saved := Slot.resume(preload("res://Source/watch_chapter.gd").CHAPTER_PATH)
+	if saved.get("crossing",0) in [14,15,16,17]:
+		get_tree().set_meta("watch_entry",saved)
+	get_tree().change_scene_to_file("res://Content/WatchChapter.tscn")
+
 func set_rear(value: bool) -> void:
 	rear = value
 	camera.position = Vector3(0,2.0,-1.7) if rear else Vector3(0,4.5,7.4)
@@ -109,6 +119,7 @@ func _unhandled_key_input(key: InputEvent) -> void:
 			KEY_E: interact()
 
 func update_view() -> void:
+	chapter_button.visible = phase == Phase.GARAGE
 	resume_button.visible = phase == Phase.GARAGE and not Slot.resume(slot_path).is_empty()
 	forest.visible = phase == Phase.GLIMPSE
 	horse.visible = forest.visible
