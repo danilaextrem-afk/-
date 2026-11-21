@@ -1,0 +1,43 @@
+{
+  "asset_id": "INT_2026_MOSCOW_APT09_MAILBOXES_001",
+  "revision": "0.1.0",
+  "author": "GPT2 environments",
+  "status": "WIP_NEEDS_UE5_AND_TEXTURE_QA",
+  "size_m": [
+    1.4,
+    0.32,
+    1.4
+  ],
+  "units": "meters",
+  "up_axis": "Z",
+  "models": {
+    "lod0": {
+      "triangles": 6292,
+      "vertices": 18876
+    },
+    "lod1": {
+      "triangles": 4008,
+      "vertices": 12024
+    }
+  },
+  "components": [
+    "12 mailbox doors",
+    "door hinges",
+    "mail insertion apertures",
+    "name labels",
+    "number stamps",
+    "lock cylinders and keyways",
+    "mounting frame",
+    "notice panel"
+  ],
+  "source": "Tools/Art/generate_moscow_mailboxes.mjs",
+  "validation": {
+    "original_mesh": true,
+    "uv": true,
+    "normals": true,
+    "engine_import": false,
+    "pbr_texture_maps": false,
+    "interactivity": false,
+    "collisions": false
+  }
+}
