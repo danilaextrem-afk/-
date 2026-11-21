@@ -1,0 +1,42 @@
+# RAZLOM: watchman's chest, preview palette only (not physically based textures)
+newmtl oak
+Ka 0.043 0.023 0.010
+Kd 0.25 0.127 0.063
+Ks 0.085 0.057 0.029
+Ns 30.0
+illum 2
+
+newmtl oak_dark
+Ka 0.032 0.018 0.009
+Kd 0.15 0.076 0.034
+Ks 0.060 0.042 0.024
+Ns 18.0
+illum 2
+
+newmtl grain
+Ka 0.018 0.012 0.009
+Kd 0.087 0.046 0.023
+Ks 0.030 0.025 0.014
+Ns 20.0
+illum 2
+
+newmtl iron
+Ka 0.010 0.013 0.014
+Kd 0.091 0.105 0.108
+Ks 0.28 0.27 0.26
+Ns 110.0
+illum 2
+
+newmtl steel
+Ka 0.053 0.050 0.049
+Kd 0.340 0.345 0.325
+Ks 0.62 0.60 0.59
+Ns 200.0
+illum 2
+
+newmtl recess
+Ka 0.002 0.004 0.004
+Kd 0.015 0.018 0.018
+Ks 0.011 0.012 0.012
+Ns 10.0
+illum 2
