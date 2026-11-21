@@ -1,0 +1,23 @@
+{
+  "asset_id": "RZ_HERO_RATIBOR_CLOAK_CLASP",
+  "version": "0.1.0",
+  "mesh": "SM_RatiborCloakClasp_v01.obj",
+  "vertices": 5310,
+  "triangles": 9152,
+  "uv_vertices": 5310,
+  "materials": [
+    "AgedBronze",
+    "PolishedBronze",
+    "OxidizedBronze",
+    "DarkIron",
+    "Leather"
+  ],
+  "textures": "BaseColor/Roughness/Metallic/Normal procedural PPM sources",
+  "source": "generate.js",
+  "lod": "LOD0 only",
+  "rig": "static prop attach to spine_03",
+  "status": "geometry_wip",
+  "UE5_test": "not run",
+  "render": "not run",
+  "visual_acceptance": "not met"
+}
