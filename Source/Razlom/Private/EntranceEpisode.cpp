@@ -74,7 +74,7 @@ void AEntranceCharacter::BeginPlay()
     if (UGameplayStatics::DoesSaveGameExist(Slot, 0))
     {
         const auto* Data = Cast<UEntranceSave>(UGameplayStatics::LoadGameFromSlot(Slot, 0));
-        if (Data && Data->Version == 1 && Data->Step <= EEntranceStep::Left)
+        if (Data && Data->Version == 1 && Data->Step <= EEntranceStep::Ilya)
             Step = Data->Step;
         else
         {
@@ -82,6 +82,8 @@ void AEntranceCharacter::BeginPlay()
             Message = TEXT("Сохранение не удалось прочитать. Исходный слот сохранён.");
         }
     }
+    if (Step == EEntranceStep::Phone || Step == EEntranceStep::Sender || Step == EEntranceStep::Ilya)
+        SetActorLocation(FVector(-1180, -75, 94), false, nullptr, ETeleportType::TeleportPhysics);
     Vision->OnGlimpseEnded.AddDynamic(this, &AEntranceCharacter::EndVision);
     UpdateScene();
 }
@@ -151,7 +153,13 @@ void AEntranceCharacter::UpdateScene()
 
 void AEntranceCharacter::Interact()
 {
-    if (Step == EEntranceStep::Neighbor && Facing(TEXT("Neighbor"), 240) && Commit(EEntranceStep::Evidence))
+    if (Step == EEntranceStep::Phone && Facing(TEXT("Phone"), 210) && Commit(EEntranceStep::Sender))
+        Message = TEXT("На записи горят крыши. Человек в кольчуге оборачивается. У него лицо Кирилла.");
+    else if (Step == EEntranceStep::Sender && Facing(TEXT("Phone"), 210) && Commit(EEntranceStep::Ilya))
+        Message = TEXT("Отправитель — Илья. Файл переслан в 02:17, в поле «Камера» прочерк.");
+    else if (Step == EEntranceStep::Ilya && Facing(TEXT("Ilya"), 240) && Commit(EEntranceStep::Neighbor))
+        Message = TEXT("Илья: «Я в это время спал. У девятого подъезда женщина ждёт. Сама увидела тебя на записи».");
+    else if (Step == EEntranceStep::Neighbor && Facing(TEXT("Neighbor"), 240) && Commit(EEntranceStep::Evidence))
         Message = TEXT("Соседка: «Он оставил ключ на подоконнике. Я слышала, как он стучал из пустой квартиры».");
     else if (Step == EEntranceStep::Evidence && Facing(TEXT("Evidence"), 190) && Commit(EEntranceStep::Shadow))
     {
@@ -202,6 +210,9 @@ FString AEntranceCharacter::Objective() const
 {
     switch (Step)
     {
+    case EEntranceStep::Phone: return TEXT("Сообщение с героем · Прочитайте сообщение на телефоне у верстака [E]");
+    case EEntranceStep::Sender: return TEXT("Откройте сведения о записи на телефоне [E]");
+    case EEntranceStep::Ilya: return TEXT("Расспросите Илью у выхода из мастерской [E]");
     case EEntranceStep::Neighbor: return TEXT("Подойдите к соседке у входа и поговорите [E]");
     case EEntranceStep::Evidence: return TEXT("Осмотрите ключ на подоконнике [E]");
     case EEntranceStep::Shadow: return Vision->IsGlimpseActive() ? TEXT("Русь, 1348") : TEXT("Подпустите тень и отбейтесь [ЛКМ]");

@@ -35,7 +35,19 @@ void AEntranceGameMode::InitGame(const FString& MapName, const FString& Options,
         Text->SetWorldSize(18.f);
     };
     Mesh(Block, {400,0,-15}, {1600,680,30});
-    Mesh(Block, {-395,0,145}, {10,680,290});
+    // A01M04 workshop and A01M05 entrance share a traversable threshold.
+    Mesh(Block, {-850,0,-15}, {900,680,30});
+    Mesh(Block, {-1295,0,145}, {10,680,290});
+    Mesh(Block, {-850,-335,145}, {900,10,290});
+    Mesh(Block, {-850,335,145}, {900,10,290});
+    Mesh(Block, {-395,-260,145}, {10,160,290});
+    Mesh(Block, {-395,170,145}, {10,340,290});
+    Mesh(Block, {-395,-90,260}, {10,180,60});
+    Mesh(Block, {-990,-75,45}, {100,80,90});
+    Mesh(Block, {-1000,-75,94}, {22,12,8}, TEXT("Phone"));
+    Label(TEXT("Телефон"), {-990,-75,122});
+    Mesh(Cylinder, {-590,85,82}, {50,50,164}, TEXT("Ilya"));
+    Label(TEXT("Илья"), {-590,85,185});
     Mesh(Block, {1195,0,145}, {10,680,290});
     Mesh(Block, {400,-335,145}, {1600,10,290});
     Mesh(Block, {400,335,48}, {1600,10,96});
@@ -58,7 +70,7 @@ void AEntranceGameMode::InitGame(const FString& MapName, const FString& Options,
     for (int32 X = -350; X <= 1150; X += 75)
         Mesh(Cylinder, {double(X),430,165}, {48,48,330}, TEXT("Epoch1348"), false);
 
-    for (int32 X = -200; X <= 1000; X += 400)
+    for (int32 X = -1000; X <= 1000; X += 400)
     {
         auto* Light = World->SpawnActor<APointLight>(FVector(X,0,245), FRotator::ZeroRotator);
         auto* Component = CastChecked<UPointLightComponent>(Light->GetLightComponent());

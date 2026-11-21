@@ -12,7 +12,7 @@ class UCameraComponent;
 class URazlomTimeGlimpseComponent;
 
 UENUM()
-enum class EEntranceStep : uint8 { Neighbor, Evidence, Shadow, Tenant, Helped, Left };
+enum class EEntranceStep : uint8 { Neighbor, Evidence, Shadow, Tenant, Helped, Left, Phone, Sender, Ilya };
 
 UCLASS()
 class RAZLOM_API UEntranceSave : public USaveGame
@@ -49,7 +49,7 @@ private:
     UPROPERTY() TObjectPtr<UCameraComponent> Camera;
     UPROPERTY() TObjectPtr<URazlomTimeGlimpseComponent> Vision;
     UPROPERTY() TObjectPtr<AActor> Shadow;
-    EEntranceStep Step = EEntranceStep::Neighbor;
+    EEntranceStep Step = EEntranceStep::Phone;
     FVector ShadowOrigin = FVector::ZeroVector;
     bool bSaveBlocked = false;
 };

@@ -17,7 +17,7 @@ bool FEntranceSmoke::RunTest(const FString& Parameters)
     if (!TestNotNull(TEXT("Game world"), World)) return false;
     auto* Hero = Cast<AEntranceCharacter>(UGameplayStatics::GetPlayerPawn(World, 0));
     if (!TestNotNull(TEXT("Possessed Kirill"), Hero)) return false;
-    for (FName Tag : {FName(TEXT("Neighbor")), FName(TEXT("Evidence")), FName(TEXT("Shadow")), FName(TEXT("Tenant"))})
+    for (FName Tag : {FName(TEXT("Phone")), FName(TEXT("Ilya")), FName(TEXT("Neighbor")), FName(TEXT("Evidence")), FName(TEXT("Shadow")), FName(TEXT("Tenant"))})
     {
         TArray<AActor*> Actors;
         UGameplayStatics::GetAllActorsWithTag(World, Tag, Actors);
