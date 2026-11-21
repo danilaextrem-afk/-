@@ -7,6 +7,8 @@ on:
       - Source/Razlom.Target.cs
       - Source/RazlomEditor.Target.cs
       - Tools/ue5_prepare_import.py
+      - Tests/archive_investigation.cpp
+      - Tests/voice_investigation.cpp
       - Tests/ue5_scaffold_check.py
       - .github/workflows/validate-ue5-scaffold.yml
   pull_request:
@@ -23,3 +25,9 @@ jobs:
           python-version: '3.11'
       - name: Validate native UE5 project source contracts
         run: python Tests/ue5_scaffold_check.py
+      - name: Compile and exercise standalone investigation rules
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror Tests/voice_investigation.cpp -o "$RUNNER_TEMP/voice-tests"
+          "$RUNNER_TEMP/voice-tests"
+          g++ -std=c++17 -Wall -Wextra -Werror Tests/archive_investigation.cpp -o "$RUNNER_TEMP/archive-tests"
+          "$RUNNER_TEMP/archive-tests"

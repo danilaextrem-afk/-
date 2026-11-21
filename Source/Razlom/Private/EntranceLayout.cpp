@@ -49,7 +49,26 @@ void AEntranceGameMode::InitGame(const FString& MapName, const FString& Options,
     Mesh(Cylinder, {-590,85,82}, {50,50,164}, TEXT("Ilya"));
     Label(TEXT("Илья"), {-590,85,185});
     Mesh(Block, {1195,0,145}, {10,680,290});
-    Mesh(Block, {400,-335,145}, {1600,10,290});
+    // Leave a 180 cm opening onto the courtyard between X=110 and X=290.
+    Mesh(Block, {-145,-335,145}, {510,10,290});
+    Mesh(Block, {745,-335,145}, {910,10,290});
+    Mesh(Block, {200,-335,260}, {180,10,60});
+    Mesh(Block, {200,-740,-15}, {1200,820,30});
+    Mesh(Block, {200,-1145,60}, {1200,10,120});
+    Mesh(Block, {-395,-740,60}, {10,810,120});
+    Mesh(Block, {795,-740,60}, {10,810,120});
+    Mesh(Block, {130,-700,42}, {130,42,12});
+    for (int X : {80,180}) Mesh(Block, {double(X),-700,20}, {8,34,40});
+    Mesh(Cylinder, {245,-725,82}, {48,48,164}, TEXT("Marina"));
+    Mesh(Block, {410,-820,38}, {90,55,76});
+    Mesh(Block, {410,-820,79}, {68,42,5}, TEXT("ArchivePlan"));
+    Mesh(Block, {-90,-960,86}, {10,105,172});
+    Mesh(Block, {-83,-960,130}, {5,47,32}, TEXT("ArchivePhoto"));
+    auto* YardLight = World->SpawnActor<APointLight>(FVector(200,-760,265), FRotator::ZeroRotator);
+    auto* YardLamp = CastChecked<UPointLightComponent>(YardLight->GetLightComponent());
+    YardLamp->SetMobility(EComponentMobility::Movable);
+    YardLamp->SetIntensity(6500.f);
+    YardLamp->SetAttenuationRadius(1050.f);
     Mesh(Block, {400,335,48}, {1600,10,96});
     Mesh(Block, {400,335,265}, {1600,10,50});
     for (int32 X = -395; X < 1200; X += 200)
@@ -67,6 +86,18 @@ void AEntranceGameMode::InitGame(const FString& MapName, const FString& Options,
     // Visibility traces can hit the shade while its overlap with the capsule triggers recoil.
     Shade->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
     Mesh(Cylinder, {855,-82,82}, {50,50,164}, TEXT("Tenant"));
+    Mesh(Block, {1183,-82,102.5}, {5,90,205}, TEXT("VoiceDoor"));
+    Mesh(Sphere, {1177,-48,100}, {6,8,8}, TEXT("VoiceDoorHandle"), false);
+    auto* Mark = Mesh(Block, {1185,10,135}, {3,28,24}, TEXT("VeilMark"));
+    Mark->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+    // Raised strokes catch the grazing phone light. Collision stays on the backing only.
+    for (int32 Side : {-1, 1})
+    {
+        auto* Stroke = Mesh(Block, {1182, 10.0 + Side * 5.0, 135}, {2,2,19}, NAME_None, false);
+        Stroke->SetActorRotation(FRotator(0, 0, Side * 30.f));
+        Stroke->AttachToActor(Mark, FAttachmentTransformRules::KeepWorldTransform);
+        Stroke->Tags.Add(TEXT("VeilStroke"));
+    }
     for (int32 X = -350; X <= 1150; X += 75)
         Mesh(Cylinder, {double(X),430,165}, {48,48,330}, TEXT("Epoch1348"), false);
 
