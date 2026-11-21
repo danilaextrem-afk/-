@@ -1,0 +1,124 @@
+# Reproducible geometry description (metres, Z up). Procedural authoring specification.
+# Ring sections: [z, radius_x, radius_y], 8 or 12 sides. Faces triangulated between adjacent rings.
+[
+  {
+    "name": "iron_blade",
+    "mat": "Iron",
+    "vertices": 40,
+    "triangles": 64
+  },
+  {
+    "name": "bronze_guard",
+    "mat": "Bronze",
+    "vertices": 36,
+    "triangles": 48
+  },
+  {
+    "name": "leather_grip",
+    "mat": "Leather",
+    "vertices": 48,
+    "triangles": 72
+  },
+  {
+    "name": "bronze_pommel",
+    "mat": "Bronze",
+    "vertices": 48,
+    "triangles": 72
+  },
+  {
+    "name": "grip_wire_0",
+    "mat": "Bronze",
+    "vertices": 24,
+    "triangles": 24
+  },
+  {
+    "name": "grip_wire_1",
+    "mat": "Bronze",
+    "vertices": 24,
+    "triangles": 24
+  },
+  {
+    "name": "grip_wire_2",
+    "mat": "Bronze",
+    "vertices": 24,
+    "triangles": 24
+  },
+  {
+    "name": "grip_wire_3",
+    "mat": "Bronze",
+    "vertices": 24,
+    "triangles": 24
+  },
+  {
+    "name": "grip_wire_4",
+    "mat": "Bronze",
+    "vertices": 24,
+    "triangles": 24
+  },
+  {
+    "name": "grip_wire_5",
+    "mat": "Bronze",
+    "vertices": 24,
+    "triangles": 24
+  },
+  {
+    "name": "grip_wire_6",
+    "mat": "Bronze",
+    "vertices": 24,
+    "triangles": 24
+  },
+  {
+    "name": "grip_wire_7",
+    "mat": "Bronze",
+    "vertices": 24,
+    "triangles": 24
+  },
+  {
+    "name": "guard_inlay_-1",
+    "mat": "Bone",
+    "vertices": 8,
+    "triangles": 12
+  },
+  {
+    "name": "rune_-1_0",
+    "mat": "Silver",
+    "vertices": 8,
+    "triangles": 12
+  },
+  {
+    "name": "rune_-1_1",
+    "mat": "Silver",
+    "vertices": 8,
+    "triangles": 12
+  },
+  {
+    "name": "rune_-1_2",
+    "mat": "Silver",
+    "vertices": 8,
+    "triangles": 12
+  },
+  {
+    "name": "guard_inlay_1",
+    "mat": "Bone",
+    "vertices": 8,
+    "triangles": 12
+  },
+  {
+    "name": "rune_1_0",
+    "mat": "Silver",
+    "vertices": 8,
+    "triangles": 12
+  },
+  {
+    "name": "rune_1_1",
+    "mat": "Silver",
+    "vertices": 8,
+    "triangles": 12
+  },
+  {
+    "name": "rune_1_2",
+    "mat": "Silver",
+    "vertices": 8,
+    "triangles": 12
+  }
+]

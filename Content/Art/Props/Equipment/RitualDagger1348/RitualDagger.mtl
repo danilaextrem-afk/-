@@ -1,0 +1,29 @@
+newmtl Iron
+Kd 0.18 0.2 0.21
+Ks 0.2 0.2 0.2
+Ns 30
+map_Kd Iron_basecolor.ppm
+
+newmtl Bronze
+Kd 0.48 0.3 0.12
+Ks 0.2 0.2 0.2
+Ns 30
+map_Kd Bronze_basecolor.ppm
+
+newmtl Leather
+Kd 0.15 0.075 0.035
+Ks 0.2 0.2 0.2
+Ns 30
+map_Kd Leather_basecolor.ppm
+
+newmtl Bone
+Kd 0.7 0.65 0.52
+Ks 0.2 0.2 0.2
+Ns 30
+map_Kd Bone_basecolor.ppm
+
+newmtl Silver
+Kd 0.48 0.52 0.54
+Ks 0.2 0.2 0.2
+Ns 30
+map_Kd Silver_basecolor.ppm

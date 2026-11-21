@@ -1,0 +1,24 @@
+{
+  "asset_id": "RZ_EQUIP_1348_RITUAL_DAGGER_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "category": "equipment",
+  "units": "metres",
+  "axis": "Z-up",
+  "lod0_triangles": 544,
+  "lod1_triangles": 256,
+  "materials": [
+    "Iron",
+    "Bronze",
+    "Leather",
+    "Bone",
+    "Silver"
+  ],
+  "collision": "not authored",
+  "rig": "rigid prop",
+  "status": "draft, not UE5 tested",
+  "limitations": [
+    "PBR maps are procedural low resolution",
+    "no mesh renderer verified"
+  ]
+}
