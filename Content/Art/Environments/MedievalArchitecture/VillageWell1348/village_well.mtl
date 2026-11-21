@@ -1,0 +1,21 @@
+# Provisional physically-based scalar values; no texture maps yet
+newmtl stone
+Kd 0.36 0.34 0.30
+Pr 0.91
+Pm 0.0
+newmtl wood
+Kd 0.27 0.15 0.08
+Pr 0.82
+Pm 0.0
+newmtl iron
+Kd 0.13 0.13 0.13
+Pr 0.64
+Pm 0.9
+newmtl water
+Kd 0.07 0.11 0.12
+Pr 0.12
+Pm 0.0
+newmtl rope
+Kd 0.37 0.27 0.14
+Pr 0.92
+Pm 0.0

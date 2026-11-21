@@ -1,0 +1,28 @@
+{
+  "asset_id": "RZ_ENV_1348_VILLAGE_WELL_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "asset_type": "static_mesh",
+  "units": "meters",
+  "up_axis": "Z",
+  "mesh": "SM_VillageWell1348_LOD0.obj",
+  "source": "generate.js",
+  "materials": [
+    "stone",
+    "wood",
+    "iron",
+    "water",
+    "rope"
+  ],
+  "vertices": 1952,
+  "triangles": 976,
+  "validation": {
+    "index_range": true,
+    "degenerate_index_triangles": 0,
+    "render_test": "not_run",
+    "ue5_import": "not_run"
+  },
+  "lod_status": "LOD0_only",
+  "collision_status": "not_authored",
+  "art_quality": "blockout_not_accepted"
+}
