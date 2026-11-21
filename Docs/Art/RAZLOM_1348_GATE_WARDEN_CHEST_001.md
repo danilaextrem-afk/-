@@ -33,12 +33,12 @@ python Tools/Art/build_uv_pbr.py Content/Art/HeroProps/SM_GateWardenChest_Base_1
 python Tools/Art/build_uv_pbr.py Content/Art/HeroProps/SM_GateWardenChest_Lid_1348_v1.obj --out build/art/chest-lid --size 512
 python -m unittest discover -s Tools/Art -p 'test_build_uv_pbr.py' -v
 ```
-The output TGA textures are generated **when the command executes**, not already committed assets. Import Normal with sRGB **off**, ORM sRGB **off** (R=AO, G=Roughness, B=Metallic); BaseColor sRGB **on**. The generator's normal map is **procedural height texture**, not high-poly sculpt-baked normal detail. Verify tangent-space orientation and green channel in UE5. Assign the textures explicitly in an actual Unreal material, not from MTL alone.
+**Nine 256×256 TGA texture drafts are already committed** under `Content/Art/HeroProps/PBR_Draft/`: three for the key, three for the chest base, three for the lid. Running the command makes alternative procedural drafts using different noise formulas, not byte-identical replicas of these binaries. See `Docs/Art/PBR_DRAFT_HANDOFF_20261121.md`. Import Normal with sRGB **off**, ORM sRGB **off** (R=AO, G=Roughness, B=Metallic); BaseColor sRGB **on**. The generator's normal map is **procedural height texture**, not high-poly sculpt-baked normal detail. Verify tangent-space orientation and green channel in UE5. Assign the textures explicitly in an actual Unreal material, not from MTL alone.
 
 ## Checks / outstanding gates
 
 **Confirmed in the art session via GitHub file reread:** complete source tri counts preserved on split (7,540+6,020=13,560), both UV OBJ files have valid `v/vt/vn` references and UV values in [0,1], collision proxy sources authored. Four generator unit tests passed on a tiny synthetic object in the local Python environment. UV/PBR generator was not run on the complete game assets during this session.
 
-**Not confirmed:** production UV seams/texel density, final texture atlases/bakes, quality floor vs approved Black Bell v3, hinge animation, in-engine collision, Unreal Editor import, Nanite/LODs, FPS, packaged Windows EXE or final art approval. Asset status remains `geometry_wip`.
+**Not confirmed:** production UV seams/texel density, final 2K/4K hand-authored texture atlases/bakes (the committed 256px maps are drafts), quality floor vs approved Black Bell v3, hinge animation, in-engine collision, Unreal Editor import, Nanite/LODs, FPS, packaged Windows EXE or final art approval. Asset status is `materials_wip` (drafts only), **not `accepted`**.
 
 **Ownership:** Art agent changes `Content/Art/`, `Tools/Art/`, `Docs/Art/`. Astra 2 performs UE5 integration/QA via issue #14. Astra 1 wires gameplay inventory/interaction using asset IDs, without editing art files.
