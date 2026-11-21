@@ -55,6 +55,18 @@ void AEntranceGameMode::InitGame(const FString& MapName, const FString& Options,
     // Visibility traces can hit the shade while its overlap with the capsule triggers recoil.
     Shade->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
     Mesh(Cylinder, {855,-82,82}, {50,50,164}, TEXT("Tenant"));
+    Mesh(Block, {1183,-82,102.5}, {5,90,205}, TEXT("VoiceDoor"));
+    Mesh(Sphere, {1177,-48,100}, {6,8,8}, TEXT("VoiceDoorHandle"), false);
+    auto* Mark = Mesh(Block, {1185,10,135}, {3,28,24}, TEXT("VeilMark"));
+    Mark->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+    // Raised strokes catch the grazing phone light. Collision stays on the backing only.
+    for (int32 Side : {-1, 1})
+    {
+        auto* Stroke = Mesh(Block, {1182, 10.0 + Side * 5.0, 135}, {2,2,19}, NAME_None, false);
+        Stroke->SetActorRotation(FRotator(0, 0, Side * 30.f));
+        Stroke->AttachToActor(Mark, FAttachmentTransformRules::KeepWorldTransform);
+        Stroke->Tags.Add(TEXT("VeilStroke"));
+    }
     for (int32 X = -350; X <= 1150; X += 75)
         Mesh(Cylinder, {double(X),430,165}, {48,48,330}, TEXT("Epoch1348"), false);
 

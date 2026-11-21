@@ -5,8 +5,11 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/SaveGame.h"
+#include "VoiceInvestigation.h"
 #include "EntranceEpisode.generated.h"
 
+class UAudioComponent;
+class USpotLightComponent;
 class UStaticMesh;
 class UCameraComponent;
 class URazlomTimeGlimpseComponent;
@@ -19,7 +22,8 @@ class RAZLOM_API UEntranceSave : public USaveGame
 {
     GENERATED_BODY()
 public:
-    UPROPERTY(SaveGame) int32 Version = 1;
+    UPROPERTY(SaveGame) int32 Version = 2;
+    UPROPERTY(SaveGame) uint8 VoiceCheckpoint = 0;
     UPROPERTY(SaveGame) EEntranceStep Step = EEntranceStep::Neighbor;
 };
 
@@ -40,9 +44,21 @@ private:
     void Right(float Value);
     void Interact();
     void Leave();
+    void ToggleLight();
+    void InvestigateVoice();
+    void PlayDoorKnock();
+    void StopDoorKnock();
+    bool EntranceResolved() const;
+    EVoiceStage VoiceStage = EVoiceStage::Listen;
+    FTimerHandle KnockEnd;
+    UPROPERTY() TObjectPtr<USpotLightComponent> PhoneLight;
+    UPROPERTY() TObjectPtr<UAudioComponent> Knock;
+    UPROPERTY() TObjectPtr<AActor> VoiceDoor;
     void Strike();
+    AActor* FocusedActor(float Range) const;
     bool Facing(FName Tag, float Range) const;
     bool Commit(EEntranceStep Next);
+    bool WriteCheckpoint(EEntranceStep Next, EVoiceStage NextVoice);
     void UpdateScene();
     UFUNCTION() void EndVision(FName Id);
 
