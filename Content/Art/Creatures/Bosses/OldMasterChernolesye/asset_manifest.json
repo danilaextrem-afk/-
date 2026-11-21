@@ -1,0 +1,72 @@
+{
+  "asset_id": "razlom.boss.b02.old_master_chernolesye",
+  "canonical_boss": "B2 — Старый Хозяин Чернолесья",
+  "epoch": 1348,
+  "version": "0.1.0",
+  "status": "materials_wip",
+  "type": "original_static_procedural_sculpt_blockout",
+  "owner": "art/hourly-bosses-equipment",
+  "units": "centimeters",
+  "up_axis": "Z",
+  "geometry": "old_master.obj",
+  "material_file": "old_master.mtl",
+  "pbr_source_maps": [
+    "bark_basecolor.ppm",
+    "bark_normal.ppm",
+    "bark_roughness.ppm",
+    "bark_metallic.ppm",
+    "bark_ao.ppm"
+  ],
+  "mesh_stats": {
+    "vertices": 1496,
+    "triangles": 2012,
+    "material_groups": 38
+  },
+  "license": "original_project_owned",
+  "lod": {
+    "lod0": "old_master.obj",
+    "lod1": "not_created",
+    "nanite": "not_tested"
+  },
+  "rig": {
+    "status": "guide_only",
+    "bones": [
+      "root",
+      "pelvis",
+      "spine_01",
+      "spine_02",
+      "head",
+      "arm_l",
+      "arm_r",
+      "leg_l",
+      "leg_r",
+      "branch_l",
+      "branch_r"
+    ],
+    "skinning": "not_done"
+  },
+  "phase_design": [
+    {
+      "phase": 1,
+      "name": "Древесные печати",
+      "changes": "Светящиеся печати на груди и корнях; ломать печати"
+    },
+    {
+      "phase": 2,
+      "name": "Лес поднимается",
+      "changes": "Корни и руки перестраивают арену, угроза по площади"
+    },
+    {
+      "phase": 3,
+      "name": "Сердцевина Чернолесья",
+      "changes": "Открытая сердцевина, атаки древесными ветвями"
+    }
+  ],
+  "limitations": [
+    "Not rigged or animated",
+    "Only 32x32 draft source maps, not baked high-resolution PBR",
+    "No UV seam review, collision, LOD1 or UE5 import",
+    "Not approved at accepted Black Bell v3 art level",
+    "No in-engine render or FPS verification"
+  ]
+}

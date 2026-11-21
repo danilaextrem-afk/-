@@ -1,0 +1,12 @@
+# Preview material assignments; maps are authored ASCII PPM, converted to PNG/TGA by pipeline before UE5
+newmtl Bark
+Kd 0.15 0.11 0.07
+Ks 0.07 0.06 0.05
+Ns 18
+map_Kd bark_basecolor.ppm
+map_Bump bark_normal.ppm
+
+newmtl Ember
+Kd 0.5 0.13 0.04
+Ke 1.0 0.2 0.03
+Ns 80
