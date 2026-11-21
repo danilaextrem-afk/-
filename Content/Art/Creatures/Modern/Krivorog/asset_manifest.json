@@ -1,0 +1,21 @@
+{
+  "asset_id": "RZ_MODERN_MONSTER_KRIVOROG_011",
+  "version": "0.1.0",
+  "epoch": 2026,
+  "license": "original",
+  "status": "geometry_wip",
+  "units": "cm",
+  "up_axis": "Z",
+  "mesh": "Krivorog.obj",
+  "source": "generate.mjs",
+  "vertices": 706,
+  "triangles": 1032,
+  "uv0": true,
+  "rig": "not created",
+  "lod": "not created",
+  "pbr": "MTL parameters only; textures pending",
+  "render": "not performed",
+  "ue5_import": "not tested",
+  "quality_floor": "below approved BlackBell v3",
+  "notes": "Distinct unequal horns, two legs, arms and claws. Procedural draft has open tube ends and no deformation-ready topology; NOT production ready."
+}
