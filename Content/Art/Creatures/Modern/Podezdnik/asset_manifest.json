@@ -1,0 +1,20 @@
+{
+  "asset_id": "razlom.creature.modern.podezdnik",
+  "version": "0.1.0",
+  "epoch": 2026,
+  "category": "occult humanoid",
+  "name": "Подъездник",
+  "mesh": "SM_Podezdnik_2026_v01.obj",
+  "source": "generate_podezdnik.py",
+  "materials": "podezdnik.mtl",
+  "vertices": 2439,
+  "triangles": 3924,
+  "uv": true,
+  "texture_format": "P3 PPM draft",
+  "height_cm": 278,
+  "rig": "not authored",
+  "lod": "not authored",
+  "ue5_tested": false,
+  "status": "materials_wip",
+  "license": "original project asset"
+}

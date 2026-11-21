@@ -1,0 +1,24 @@
+newmtl soot_cloth
+Kd 0.09 0.1 0.11
+Pr 0.85
+Pm 0
+
+newmtl pale_skin
+Kd 0.32 0.3 0.29
+Pr 0.85
+Pm 0
+
+newmtl void
+Kd 0.015 0.014 0.02
+Pr 0.85
+Pm 0
+
+newmtl bone
+Kd 0.44 0.41 0.36
+Pr 0.85
+Pm 0
+
+newmtl oxidized_iron
+Kd 0.13 0.15 0.16
+Pr 0.85
+Pm 1
