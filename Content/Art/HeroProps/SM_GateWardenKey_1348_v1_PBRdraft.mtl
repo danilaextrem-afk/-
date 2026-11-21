@@ -1,0 +1,29 @@
+# RAZLOM: forged hero key UVdraft legacy MTL. The Normal/ORM TGA maps must be assigned by the UE5 material graph.
+
+newmtl bronze
+Ka 0.1 0.1 0.1
+Kd 1 1 1
+Ks 0.02 0.02 0.02
+illum 2
+map_Kd PBR_Draft/T_GateWardenKey_1348_v1_BaseColor.tga
+
+newmtl iron
+Ka 0.1 0.1 0.1
+Kd 1 1 1
+Ks 0.02 0.02 0.02
+illum 2
+map_Kd PBR_Draft/T_GateWardenKey_1348_v1_BaseColor.tga
+
+newmtl oxide
+Ka 0.1 0.1 0.1
+Kd 1 1 1
+Ks 0.02 0.02 0.02
+illum 2
+map_Kd PBR_Draft/T_GateWardenKey_1348_v1_BaseColor.tga
+
+newmtl steel
+Ka 0.1 0.1 0.1
+Kd 1 1 1
+Ks 0.02 0.02 0.02
+illum 2
+map_Kd PBR_Draft/T_GateWardenKey_1348_v1_BaseColor.tga
