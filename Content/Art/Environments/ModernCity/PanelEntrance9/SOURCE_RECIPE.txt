@@ -1,0 +1,1 @@
+Original parametric geometry source recipe: 520cm concrete facade, double door, transom glass, canopy, 4 steps, handrails, intercom and grime. Mesh built as 6-quad boxes and 8-side extruded rods with independent planar UV faces. 1432 vertices; 716 triangles. All coordinates centimeters Z-up. Geometry and UV in OBJ are editable sources. PBR incomplete; not production accepted.
