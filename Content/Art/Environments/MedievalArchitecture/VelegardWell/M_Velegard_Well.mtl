@@ -1,0 +1,91 @@
+# Draft PBR-inspired metal/roughness factors; no baked textures yet.
+newmtl Stone
+Kd .35 .34 .31
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 100
+Pr 0.9
+Pm 0
+illum 2
+
+newmtl StoneDark
+Kd .23 .23 .22
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 80
+Pr 0.92
+Pm 0
+illum 2
+
+newmtl Moss
+Kd .10 .16 .06
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 60
+Pr 0.94
+Pm 0
+illum 2
+
+newmtl Wood
+Kd .30 .17 .09
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 250
+Pr 0.75
+Pm 0
+illum 2
+
+newmtl WoodDark
+Kd .15 .09 .05
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 190
+Pr 0.81
+Pm 0
+illum 2
+
+newmtl Shingle
+Kd .20 .12 .075
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 210
+Pr 0.79
+Pm 0
+illum 2
+
+newmtl Iron
+Kd .16 .18 .19
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 600
+Pr 0.4
+Pm 0.88
+illum 2
+
+newmtl Brass
+Kd .48 .31 .13
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 700
+Pr 0.3
+Pm 0.78
+illum 2
+
+newmtl Rope
+Kd .45 .34 .20
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 150
+Pr 0.85
+Pm 0
+illum 2
+
+newmtl Water
+Kd .05 .15 .20
+Ka 0 0 0
+Ks 0.14 0.14 0.14
+Ns 810
+Pr 0.19
+Pm 0.03
+illum 2
+

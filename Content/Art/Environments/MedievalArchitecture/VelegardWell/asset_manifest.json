@@ -1,0 +1,52 @@
+{
+  "asset_id": "ENV_1348_VELEGARD_WELL_001",
+  "revision": "0.1.0",
+  "owner": "GPT2 Environments",
+  "status": "DRAFT_GEOMETRY_UV_NOT_UE5_TESTED",
+  "type": "world prop",
+  "units": "meters",
+  "z_up": true,
+  "source": "Tools/Art/generate_velegard_well.mjs",
+  "lod0": {
+    "triangles": 11102,
+    "vertices": 33306
+  },
+  "lod1": {
+    "triangles": 4678,
+    "vertices": 14034
+  },
+  "materials": [
+    "StoneDark",
+    "Moss",
+    "Stone",
+    "Water",
+    "Wood",
+    "Iron",
+    "Brass",
+    "WoodDark",
+    "Shingle",
+    "Rope"
+  ],
+  "features": [
+    "stone masonry courses",
+    "capstones",
+    "interior water",
+    "four timber supports",
+    "pitched roof with independent shingles",
+    "seven-bell gable crest",
+    "rope winding",
+    "winch and crank",
+    "stave bucket and iron hoops"
+  ],
+  "checks": {
+    "finite_mesh": true,
+    "uv": true,
+    "normals": true,
+    "lod_reduction": true,
+    "engine_import": false,
+    "pbr_texture_maps": false,
+    "collisions": false,
+    "art_approval": false
+  },
+  "notes": "Material parameters are preliminary; cinematic PBR textures, physics/collision and UE5 render inspection outstanding."
+}
