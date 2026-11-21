@@ -43,12 +43,19 @@ class Mesh:
     for k in range(sides):self.quad(old[k],old[k+1],row[k+1],row[k],material)
    old=row
  def sphere(self,pos,r,mat,ns=12,nt=7):
+  north=self.v((pos[0],pos[1],pos[2]+r),(.5,0))
   old=None
-  for j in range(nt+1):
-   p=PI*j/nt;row=[self.v((pos[0]+r*math.cos(TAU*k/ns)*math.sin(p),pos[1]+r*math.sin(TAU*k/ns)*math.sin(p),pos[2]+r*math.cos(p)),(k/ns,j/nt)) for k in range(ns+1)]
-   if old:
+  for j in range(1,nt):
+   p=PI*j/nt
+   row=[self.v((pos[0]+r*math.cos(TAU*k/ns)*math.sin(p),pos[1]+r*math.sin(TAU*k/ns)*math.sin(p),pos[2]+r*math.cos(p)),(k/ns,j/nt)) for k in range(ns+1)]
+   if old is None:
+    for k in range(ns):self.tri(north,row[k+1],row[k],mat)
+   else:
     for k in range(ns):self.quad(old[k],old[k+1],row[k+1],row[k],mat)
    old=row
+  south=self.v((pos[0],pos[1],pos[2]-r),(.5,1))
+  if old:
+   for k in range(ns):self.tri(old[k],old[k+1],south,mat)
  def medal(self,theta,z,r,mat):
   axis=np.array((math.cos(theta),math.sin(theta),0.));tangent=np.array((-math.sin(theta),math.cos(theta),0.))
   center=axis*(R(z)+2)+np.array((0.,0.,z));rows=[]
