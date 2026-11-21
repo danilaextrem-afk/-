@@ -1,0 +1,20 @@
+{
+  "asset_id": "razlom.equipment.veil_order_ritual_blade",
+  "version": "0.1.0",
+  "vertices": 1281,
+  "triangles": 2224,
+  "uvs": 1281,
+  "material_slots": [
+    "steel",
+    "blackiron",
+    "bronze",
+    "leather"
+  ],
+  "unit": "cm",
+  "up_axis": "+Z",
+  "long_axis": "+Y",
+  "status": "materials_wip",
+  "lod": "not authored",
+  "ue5_import": "not tested",
+  "quality_floor": "BlackBell v3 art-approved, comparison pending"
+}
