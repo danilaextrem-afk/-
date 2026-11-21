@@ -42,6 +42,12 @@ func _ready() -> void:
 	for world in [forest,city]:
 		block(world,Vector3(0,-0.6,-55),Vector3(180,1,230),"40533d" if world == forest else "717675")
 		block(world,Vector3(0,-0.08,-55),Vector3(12,0.16,160),"85664a" if world == forest else "434952")
+	var cube := BoxMesh.new()
+	cube.size = Vector3.ONE
+	var masonry := StandardMaterial3D.new()
+	masonry.vertex_color_use_as_albedo = true
+	var windows := masonry.duplicate() as StandardMaterial3D
+	windows.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	for i in range(18):
 		var z := -7.0*i
 		for side in [-1,1]:
@@ -49,10 +55,11 @@ func _ready() -> void:
 			block(forest,Vector3(x,2,z),Vector3(1,4,1),"554132")
 			block(forest,Vector3(x,5,z),Vector3(4,5+i%3,4),"284637")
 			if i%3 == 0:
-				block(city,Vector3(side*15,6,z),Vector3(12,12,15),"888482")
-				for floor_no in range(4):
-					for window_no in range(4):
-						block(city,Vector3(side*8.94,2+floor_no*2.6,z-5+3*window_no),Vector3(0.1,1.3,1.5),"d6c897")
+				var house := preload("res://Source/panel_house.gd").new()
+				city.add_child(house)
+				house.position = Vector3(side*15,0,z)
+				house.rotation.y = -side*PI/2
+				house.build(i + (1 if side > 0 else 0),cube,masonry,windows)
 		block(city,Vector3(0,0.02,z),Vector3(0.14,0.04,3),"e7ddb2")
 	for side in [-1,1]:
 		block(forest,Vector3(side*6,5,-107),Vector3(6,10,7),"726d64")
