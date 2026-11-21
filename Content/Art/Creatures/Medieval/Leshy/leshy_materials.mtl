@@ -1,0 +1,14 @@
+newmtl bark
+Kd 0.20 0.13 0.075
+Ns 8
+map_Kd bark_albedo.ppm
+map_Bump bark_normal.ppm
+
+newmtl moss
+Kd 0.12 0.22 0.075
+Ns 4
+map_Kd moss_albedo.ppm
+
+newmtl amber
+Kd 0.9 0.25 0.02
+Ke 0.8 0.2 0.01

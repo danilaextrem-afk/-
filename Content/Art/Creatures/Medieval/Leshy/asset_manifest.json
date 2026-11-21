@@ -1,0 +1,21 @@
+{
+  "asset_id": "razlom.creature.medieval.leshy",
+  "name": "Леший",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "units": "cm",
+  "axis": "+Z",
+  "geometry": "SM_Leshy_1348_v01.obj",
+  "materials": "leshy_materials.mtl",
+  "mesh_parts": 100,
+  "vertices": 7158,
+  "triangles": 12722,
+  "UV": true,
+  "texture_resolution": "32x32 preliminary PPM",
+  "rig": "pending",
+  "LOD": "pending",
+  "UE5_import": "unverified",
+  "art_quality": "technical sculpt; below owner-approved Black Bell v3; not final",
+  "license": "original"
+}
