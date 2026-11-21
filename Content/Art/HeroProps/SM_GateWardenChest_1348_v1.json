@@ -1,0 +1,42 @@
+{
+  "asset_id": "RAZLOM-1348-GATE-WARDEN-CHEST-HERO-001",
+  "asset_name": "Watchman's Ornate Oak-and-Iron Chest",
+  "asset_version": 1,
+  "epoch": 1348,
+  "type": "static_mesh",
+  "purpose": "In-world chest for first forged key, investigation at village gates; interactive lid not yet rigged or separated",
+  "authoring": "Original procedural handcrafted geometry, no external packs or scans",
+  "license": "Original authored for Razlom",
+  "units": "metres",
+  "up_axis": "+Z",
+  "files": {
+    "mesh": "Content/Art/HeroProps/SM_GateWardenChest_1348_v1.obj",
+    "preview_materials": "Content/Art/HeroProps/SM_GateWardenChest_1348_v1.mtl"
+  },
+  "mesh": {
+    "vertices": 7112,
+    "triangles": 13560,
+    "groups": 81,
+    "material_slots": [
+      "oak",
+      "oak_dark",
+      "grain",
+      "iron",
+      "steel",
+      "recess"
+    ],
+    "uv": false,
+    "explicit_normals": false
+  },
+  "status": "geometry_wip",
+  "acceptance": {
+    "static_geometry": "faces non-degenerate at export; run independent GitHub-file reread next",
+    "pbr": "missing",
+    "ue5_import": "not_run",
+    "animated_lid": "not_implemented",
+    "collision": "not_verified",
+    "owner_art_approval": "pending; minimum benchmark is accepted Black Bell v3",
+    "gpu_render": "not_run"
+  },
+  "notes": "Static showcase model only; separate pivot-based lid will require planned submesh export. Do not mark fully interactive or asset-accepted."
+}
