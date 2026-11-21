@@ -39,8 +39,13 @@ def validate_obj(path):
 
 def main():
     d=json.loads(MANIFEST.read_text(encoding="utf-8"))
+    artifacts = d["artifacts"]
+    if not isinstance(artifacts, list) or not artifacts:
+        raise SystemExit("Asset manifest must contain a nonempty artifacts list")
+    if len(artifacts) != d["number_of_assets"]:
+        raise SystemExit(f"Expected {d['number_of_assets']} assets, found {len(artifacts)}")
     failures=0
-    for asset in d["artifacts"]:
+    for asset in artifacts:
         path=ROOT/asset["file"]
         try:
             stats=validate_obj(path)
