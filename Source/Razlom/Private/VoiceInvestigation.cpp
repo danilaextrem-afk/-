@@ -65,7 +65,7 @@ void AEntranceCharacter::InvestigateVoice()
     const EVoiceStage Next = VoiceInvestigation::Inspect(VoiceStage, Helped, Focus, PhoneLight->IsVisible());
     if (Focus == EVoiceFocus::Door && VoiceStage != EVoiceStage::Recorded)
         PlayDoorKnock();
-    if (Next == VoiceStage || !WriteCheckpoint(Step, Next)) return;
+    if (Next == VoiceStage || !WriteCheckpoint(Step, Next, ArchiveStage)) return;
     switch (Next)
     {
     case EVoiceStage::Identify:

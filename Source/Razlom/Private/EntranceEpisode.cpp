@@ -94,9 +94,12 @@ void AEntranceCharacter::BeginPlay()
     if (UGameplayStatics::DoesSaveGameExist(Slot, 0))
     {
         const auto* Data = Cast<UEntranceSave>(UGameplayStatics::LoadGameFromSlot(Slot, 0));
-        if (Data && Data->Step <= EEntranceStep::Left &&
-            VoiceInvestigation::ValidCheckpoint(Data->Version, Data->Step >= EEntranceStep::Helped, Data->VoiceCheckpoint))
+        if (Data && Data->Step <= EEntranceStep::Ilya &&
+            ArchiveInvestigation::ValidCheckpoint(Data->Version,
+                Data->Step == EEntranceStep::Helped || Data->Step == EEntranceStep::Left,
+                Data->Step == EEntranceStep::Helped, Data->VoiceCheckpoint, Data->ArchiveCheckpoint))
         {
+            ArchiveStage = static_cast<EArchiveStage>(Data->ArchiveCheckpoint);
             Step = Data->Step;
             VoiceStage = static_cast<EVoiceStage>(Data->VoiceCheckpoint);
         }
@@ -106,6 +109,8 @@ void AEntranceCharacter::BeginPlay()
             Message = TEXT("Сохранение не удалось прочитать. Исходный слот сохранён.");
         }
     }
+    if (Step == EEntranceStep::Phone || Step == EEntranceStep::Sender || Step == EEntranceStep::Ilya)
+        SetActorLocation(FVector(-1180, -75, 94), false, nullptr, ETeleportType::TeleportPhysics);
     Vision->OnGlimpseEnded.AddDynamic(this, &AEntranceCharacter::EndVision);
     UpdateScene();
 }
@@ -151,13 +156,14 @@ bool AEntranceCharacter::Facing(FName Tag, float Range) const
 
 bool AEntranceCharacter::Commit(EEntranceStep Next)
 {
-    return WriteCheckpoint(Next, VoiceStage);
+    return WriteCheckpoint(Next, VoiceStage, ArchiveStage);
 }
 
-bool AEntranceCharacter::WriteCheckpoint(EEntranceStep Next, EVoiceStage NextVoice)
+bool AEntranceCharacter::WriteCheckpoint(EEntranceStep Next, EVoiceStage NextVoice, EArchiveStage NextArchive)
 {
     if (bSaveBlocked) return false;
     auto* Data = CastChecked<UEntranceSave>(UGameplayStatics::CreateSaveGameObject(UEntranceSave::StaticClass()));
+    Data->ArchiveCheckpoint = static_cast<uint8>(NextArchive);
     Data->Step = Next;
     Data->VoiceCheckpoint = static_cast<uint8>(NextVoice);
     if (!UGameplayStatics::SaveGameToSlot(Data, Slot, 0))
@@ -165,6 +171,7 @@ bool AEntranceCharacter::WriteCheckpoint(EEntranceStep Next, EVoiceStage NextVoi
         Message = TEXT("Не удалось записать контрольную точку. Повторите действие.");
         return false;
     }
+    ArchiveStage = NextArchive;
     Step = Next;
     VoiceStage = NextVoice;
     UpdateScene();
@@ -199,8 +206,19 @@ void AEntranceCharacter::UpdateScene()
 
 void AEntranceCharacter::Interact()
 {
-    if (EntranceResolved()) { InvestigateVoice(); return; }
-    if (Step == EEntranceStep::Neighbor && Facing(TEXT("Neighbor"), 240) && Commit(EEntranceStep::Evidence))
+    if (EntranceResolved())
+    {
+        if (VoiceStage == EVoiceStage::Recorded) InvestigateArchive(false);
+        else InvestigateVoice();
+        return;
+    }
+    if (Step == EEntranceStep::Phone && Facing(TEXT("Phone"), 210) && Commit(EEntranceStep::Sender))
+        Message = TEXT("На записи горят крыши. Человек в кольчуге оборачивается. У него лицо Кирилла.");
+    else if (Step == EEntranceStep::Sender && Facing(TEXT("Phone"), 210) && Commit(EEntranceStep::Ilya))
+        Message = TEXT("Отправитель — Илья. Файл переслан в 02:17, в поле «Камера» прочерк.");
+    else if (Step == EEntranceStep::Ilya && Facing(TEXT("Ilya"), 240) && Commit(EEntranceStep::Neighbor))
+        Message = TEXT("Илья: «Я в это время спал. У девятого подъезда женщина ждёт. Сама увидела тебя на записи».");
+    else if (Step == EEntranceStep::Neighbor && Facing(TEXT("Neighbor"), 240) && Commit(EEntranceStep::Evidence))
         Message = TEXT("Соседка: «Он оставил ключ на подоконнике. Я слышала, как он стучал из пустой квартиры».");
     else if (Step == EEntranceStep::Evidence && Facing(TEXT("Evidence"), 190) && Commit(EEntranceStep::Shadow))
     {
@@ -219,6 +237,7 @@ void AEntranceCharacter::EndVision(FName Id)
 
 void AEntranceCharacter::Leave()
 {
+    if (VoiceStage == EVoiceStage::Recorded) { InvestigateArchive(true); return; }
     if (Step == EEntranceStep::Tenant && Facing(TEXT("Tenant"), 240) && Commit(EEntranceStep::Left))
         Message = TEXT("Кирилл отступает от двери. Стук прекращается.");
 }
@@ -251,6 +270,9 @@ FString AEntranceCharacter::Objective() const
 {
     switch (Step)
     {
+    case EEntranceStep::Phone: return TEXT("Сообщение с героем · Прочитайте сообщение на телефоне у верстака [E]");
+    case EEntranceStep::Sender: return TEXT("Откройте сведения о записи на телефоне [E]");
+    case EEntranceStep::Ilya: return TEXT("Расспросите Илью у выхода из мастерской [E]");
     case EEntranceStep::Neighbor: return TEXT("Подойдите к соседке у входа и поговорите [E]");
     case EEntranceStep::Evidence: return TEXT("Осмотрите ключ на подоконнике [E]");
     case EEntranceStep::Shadow: return Vision->IsGlimpseActive() ? TEXT("Русь, 1348") : TEXT("Подпустите тень и отбейтесь [ЛКМ]");
@@ -264,7 +286,7 @@ FString AEntranceCharacter::Objective() const
         ? TEXT("Спросите спасённого жильца, кто говорил [E]")
         : TEXT("Вернитесь к соседке и проверьте услышанное [E]");
     case EVoiceStage::Reveal: return TEXT("Включите фонарь [F]. Осмотрите скол справа от дальней двери [E]");
-    default: return TEXT("Первый знак Завесы записан. Расследование завершено.");
+    default: return ArchiveObjective();
     }
 }
 

@@ -17,7 +17,9 @@ bool FEntranceSmoke::RunTest(const FString& Parameters)
     if (!TestNotNull(TEXT("Game world"), World)) return false;
     auto* Hero = Cast<AEntranceCharacter>(UGameplayStatics::GetPlayerPawn(World, 0));
     if (!TestNotNull(TEXT("Possessed Kirill"), Hero)) return false;
-    for (FName Tag : {FName(TEXT("Neighbor")), FName(TEXT("Evidence")), FName(TEXT("Shadow")), FName(TEXT("Tenant")), FName(TEXT("VoiceDoor")), FName(TEXT("VeilMark"))})
+    for (FName Tag : {FName(TEXT("Phone")), FName(TEXT("Ilya")), FName(TEXT("Neighbor")), FName(TEXT("Evidence")),
+        FName(TEXT("Shadow")), FName(TEXT("Tenant")), FName(TEXT("VoiceDoor")), FName(TEXT("VeilMark")),
+        FName(TEXT("Marina")), FName(TEXT("ArchivePlan")), FName(TEXT("ArchivePhoto"))})
     {
         TArray<AActor*> Actors;
         UGameplayStatics::GetAllActorsWithTag(World, Tag, Actors);
@@ -27,12 +29,14 @@ bool FEntranceSmoke::RunTest(const FString& Parameters)
     {
         auto* Save = NewObject<UEntranceSave>();
         Save->Step = Ending;
-        Save->VoiceCheckpoint = static_cast<uint8>(EVoiceStage::Reveal);
+        Save->VoiceCheckpoint = static_cast<uint8>(EVoiceStage::Recorded);
+        Save->ArchiveCheckpoint = static_cast<uint8>(EArchiveStage::Private);
         TArray<uint8> Bytes;
         if (!TestTrue(TEXT("Serialize witness checkpoint"), UGameplayStatics::SaveGameToMemory(Save, Bytes))) return false;
         const auto* Restored = Cast<UEntranceSave>(UGameplayStatics::LoadGameFromMemory(Bytes));
         if (!TestNotNull(TEXT("Restore witness checkpoint"), Restored)) return false;
         TestTrue(TEXT("Tenant choice retained"), Restored->Step == Ending);
+        TestEqual(TEXT("Archive choice retained"), Restored->ArchiveCheckpoint, Save->ArchiveCheckpoint);
         TestEqual(TEXT("Voice checkpoint retained"), Restored->VoiceCheckpoint, Save->VoiceCheckpoint);
     }
     auto* Vision = Hero->FindComponentByClass<URazlomTimeGlimpseComponent>();

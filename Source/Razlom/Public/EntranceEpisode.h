@@ -5,7 +5,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/SaveGame.h"
-#include "VoiceInvestigation.h"
+#include "ArchiveInvestigation.h"
 #include "EntranceEpisode.generated.h"
 
 class UAudioComponent;
@@ -15,14 +15,15 @@ class UCameraComponent;
 class URazlomTimeGlimpseComponent;
 
 UENUM()
-enum class EEntranceStep : uint8 { Neighbor, Evidence, Shadow, Tenant, Helped, Left };
+enum class EEntranceStep : uint8 { Neighbor, Evidence, Shadow, Tenant, Helped, Left, Phone, Sender, Ilya };
 
 UCLASS()
 class RAZLOM_API UEntranceSave : public USaveGame
 {
     GENERATED_BODY()
 public:
-    UPROPERTY(SaveGame) int32 Version = 2;
+    UPROPERTY(SaveGame) int32 Version = 3;
+    UPROPERTY(SaveGame) uint8 ArchiveCheckpoint = 0;
     UPROPERTY(SaveGame) uint8 VoiceCheckpoint = 0;
     UPROPERTY(SaveGame) EEntranceStep Step = EEntranceStep::Neighbor;
 };
@@ -46,6 +47,9 @@ private:
     void Leave();
     void ToggleLight();
     void InvestigateVoice();
+    void InvestigateArchive(bool Withhold);
+    FString ArchiveObjective() const;
+    EArchiveStage ArchiveStage = EArchiveStage::Meet;
     void PlayDoorKnock();
     void StopDoorKnock();
     bool EntranceResolved() const;
@@ -58,14 +62,14 @@ private:
     AActor* FocusedActor(float Range) const;
     bool Facing(FName Tag, float Range) const;
     bool Commit(EEntranceStep Next);
-    bool WriteCheckpoint(EEntranceStep Next, EVoiceStage NextVoice);
+    bool WriteCheckpoint(EEntranceStep Next, EVoiceStage NextVoice, EArchiveStage NextArchive);
     void UpdateScene();
     UFUNCTION() void EndVision(FName Id);
 
     UPROPERTY() TObjectPtr<UCameraComponent> Camera;
     UPROPERTY() TObjectPtr<URazlomTimeGlimpseComponent> Vision;
     UPROPERTY() TObjectPtr<AActor> Shadow;
-    EEntranceStep Step = EEntranceStep::Neighbor;
+    EEntranceStep Step = EEntranceStep::Phone;
     FVector ShadowOrigin = FVector::ZeroVector;
     bool bSaveBlocked = false;
 };
