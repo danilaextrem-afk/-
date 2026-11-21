@@ -1,0 +1,19 @@
+newmtl skin
+Kd 0.17 0.12 0.12
+Ns 22
+Pr 0.88
+Pm 0.0
+map_Kd skin_basecolor.ppm
+map_Pr skin_roughness.ppm
+map_Pm skin_metallic.ppm
+
+newmtl horn
+Kd 0.21 0.18 0.13
+Pr 0.74
+Pm 0.0
+map_Kd horn_basecolor.ppm
+
+newmtl scar
+Kd 0.07 0.045 0.045
+Pr 0.92
+Pm 0.0
