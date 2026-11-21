@@ -1,0 +1,60 @@
+name: RAZLOM free cloud compute (Windows QA + Blender CPU render)
+
+on:
+  push:
+    paths:
+      - Tools/cloud_runner_probe.py
+      - Tools/blender_cloud_preview.py
+      - .github/workflows/free-cloud-compute.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-probe:
+    name: Free Windows runner — source checks & hardware report
+    runs-on: windows-2025
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check RAZLOM UE5 source scaffold
+        shell: pwsh
+        run: python Tests/ue5_scaffold_check.py
+      - name: Inspect cloud machine, UE5 & GPU availability
+        shell: pwsh
+        run: python Tools/cloud_runner_probe.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RAZLOM-Windows-cloud-hardware-report
+          path: build/cloud_probe/runner_report.json
+          retention-days: 7
+
+  blender-cpu:
+    name: Free Linux runner — render actual OBJ (not UE5)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install free Blender CPU renderer
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y blender
+      - name: Inspect cloud machine
+        run: python3 Tools/cloud_runner_probe.py
+      - name: Import actual hero mesh and render studio test
+        run: |
+          blender -b -t 4 --python Tools/blender_cloud_preview.py -- \
+            --mesh Content/Art/HeroProps/SM_BlackBell_Hero_v3.obj \
+            --output build/cloud_preview/blackbell-v3-actual-geometry-blender.png \
+            --width 1280 --height 720 --samples 12
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RAZLOM-Blender-actual-OBJ-preview
+          path: |
+            build/cloud_preview/*.png
+            build/cloud_probe/runner_report.json
+          retention-days: 7
