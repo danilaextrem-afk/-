@@ -19,6 +19,9 @@ const HINTS := [
 	"На столе разложена старая карта. Сопоставь отметку у часовни с зарисовкой."
 
 ]
+const WALK_RADIUS := 0.36
+var yard_obstacles: Array[Rect2] = []
+var landing_obstacles: Array[Rect2] = []
 var stage := Stage.ILYA
 var evidence := ""
 var avatar := Node3D.new()
@@ -42,6 +45,46 @@ var survivor := Node3D.new()
 var notice := ""
 var sign_mark := Node3D.new()
 
+func obstacle(layer: Node3D, center: Vector3, size: Vector3) -> void:
+	var extent := Vector2(size.x, size.z)
+	var bounds := Rect2(Vector2(center.x, center.z) - extent * .5, extent).grow(WALK_RADIUS)
+	if layer == outside:
+		yard_obstacles.append(bounds)
+	else:
+		landing_obstacles.append(bounds)
+
+func solid_box(layer: Node3D, center: Vector3, size: Vector3, color: String) -> void:
+	box(layer, center, size, color)
+	obstacle(layer, center, size)
+
+func build_bench(center: Vector3) -> void:
+	var bench := Node3D.new()
+	outside.add_child(bench)
+	bench.position = center
+	for end in [-.9, .9]:
+		for side in [-.22, .22]:
+			box(bench,Vector3(end,.22,side),Vector3(.08,.44,.08),"484e50")
+		box(bench,Vector3(end,.65,-.23),Vector3(.08,.70,.08),"484e50")
+	for slat in [-.18,0,.18]:
+		box(bench,Vector3(0,.47,slat),Vector3(2.2,.07,.15),"89735c")
+	for height in [.75,.94]:
+		box(bench,Vector3(0,height,-.24),Vector3(2.2,.14,.06),"79634e")
+	obstacle(outside,center,Vector3(2.2,1,.56))
+
+# Sweep one horizontal axis at a time so contact allows sliding along a face.
+func walk_axis(point: Vector2, axis: int, distance: float, bounds: Array[Rect2]) -> Vector2:
+	var across := 1 - axis
+	var destination := point[axis] + distance
+	for area in bounds:
+		if point[across] <= area.position[across] or point[across] >= area.end[across]:
+			continue
+		if distance > 0 and point[axis] <= area.position[axis]:
+			destination = minf(destination, area.position[axis])
+		elif distance < 0 and point[axis] >= area.end[axis]:
+			destination = maxf(destination, area.end[axis])
+	point[axis] = destination
+	return point
+
 func make_world() -> void:
 	for node in [outside,inside,avatar,marker]:
 		add_child(node)
@@ -53,9 +96,9 @@ func make_world() -> void:
 				box(outside,Vector3(side*6.95,1.6+floor_id*2.4,-col*3.3),Vector3(.09,1.2,1.3),"d9bd86")
 	label(outside,Vector3(0,3,-7),"АВТОСЕРВИС")
 	person(outside,TARGETS[0],"556c7d")
-	box(outside,TARGETS[1]+Vector3.UP*.8,Vector3(2,1.6,1),"635047")
+	solid_box(outside,TARGETS[1]+Vector3.UP*.8,Vector3(2,1.6,1),"635047")
 	box(outside,TARGETS[1]+Vector3.UP*1.8,Vector3(.7,.45,.35),"25323c")
-	box(outside,TARGETS[2]+Vector3.UP*1.6,Vector3(.18,3.2,.18),"4d5661")
+	solid_box(outside,TARGETS[2]+Vector3.UP*1.6,Vector3(.18,3.2,.18),"4d5661")
 	label(outside,TARGETS[2]+Vector3.UP*3.3,"ДВ-03")
 	person(outside,TARGETS[3],"8e534d")
 	box(outside,Vector3(0,2,-31),Vector3(8,4,1),"7d7267")
@@ -67,7 +110,7 @@ func make_world() -> void:
 	for i in range(5):
 		box(inside,Vector3(-3+i*.6,1.4,-7),Vector3(.53,.75,.3),"737e86")
 	for door_x in [-3,3]:
-		box(inside,Vector3(door_x,1.4,-16.8),Vector3(1.75,2.8,.32),"675451")
+		solid_box(inside,Vector3(door_x,1.4,-16.8),Vector3(1.75,2.8,.32),"675451")
 	inside.add_child(sign_mark)
 	sign_mark.position = Vector3(-3,1.45,-16.58)
 	var ring := TorusMesh.new()
@@ -80,11 +123,12 @@ func make_world() -> void:
 	box(sign_mark,Vector3(0,0,.02),Vector3(.045,.75,.05),"d5bf97").rotation.z = -.45
 	inside.add_child(knock)
 	knock.position = TARGETS[Stage.LISTEN] + Vector3.UP
-	box(inside,knock.position,Vector3(.22,2.7,.22),"8b7158")
+	solid_box(inside,knock.position,Vector3(.22,2.7,.22),"8b7158")
 	outside.add_child(survivor)
 	person(survivor,Vector3(-1,0,-20),"4f6454")
+	build_bench(Vector3(3.7,0,-21.4))
 	person(outside,TARGETS[Stage.MARINA],"99663d")
-	box(outside,TARGETS[Stage.ARCHIVE]+Vector3.UP*.76,Vector3(2,.14,1.1),"765943")
+	solid_box(outside,TARGETS[Stage.ARCHIVE]+Vector3.UP*.76,Vector3(2,.14,1.1),"765943")
 	box(outside,TARGETS[Stage.ARCHIVE]+Vector3.UP*.85,Vector3(1.4,.025,.8),"dcc69f")
 	outside.add_child(archive_sheet)
 	archive_sheet.position = TARGETS[Stage.ARCHIVE]+Vector3.UP*.875
@@ -241,7 +285,11 @@ func _physics_process(delta: float) -> void:
 	var direction := Input.get_vector("ui_left","ui_right","ui_up","ui_down")
 	direction += Vector2(float(keys.ui_right.button_pressed)-float(keys.ui_left.button_pressed),float(keys.ui_down.button_pressed)-float(keys.ui_up.button_pressed))
 	direction = direction.limit_length()
-	avatar.position += Vector3(direction.x,0,direction.y)*delta*4.6
+	var bounds := landing_obstacles if inside.visible else yard_obstacles
+	var point := Vector2(avatar.position.x, avatar.position.z)
+	point = walk_axis(point, 0, direction.x * delta * 4.6, bounds)
+	point = walk_axis(point, 1, direction.y * delta * 4.6, bounds)
+	avatar.position = Vector3(point.x, avatar.position.y, point.y)
 	avatar.position.x = clampf(avatar.position.x,-5,5)
 	avatar.position.z = clampf(avatar.position.z,-19 if inside.visible else -30,1)
 	if stage == Stage.LISTEN:
