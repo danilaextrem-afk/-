@@ -1,0 +1,40 @@
+{
+  "asset_id": "RZ_PROP_STAIRWELL_CAGE_LAMP_2026",
+  "version": "0.1.0",
+  "epoch": 2026,
+  "category": "investigation interior prop",
+  "license": "original project-created asset",
+  "mesh": "StairwellCageLamp.obj",
+  "source": "generate.js",
+  "materials": "StairwellCageLamp.mtl",
+  "mesh_stats": {
+    "vertices": 1964,
+    "triangles": 2636
+  },
+  "material_slots": [
+    "black_metal",
+    "ceramic",
+    "enamel",
+    "enamel_inside",
+    "glass",
+    "filament",
+    "rust"
+  ],
+  "uv": true,
+  "texture_resolution": [
+    16,
+    16
+  ],
+  "pbr_maps": [
+    "basecolor",
+    "roughness",
+    "metallic",
+    "normal"
+  ],
+  "lod": "LOD0 only; LOD1 pending",
+  "rig": "not applicable (static fixture)",
+  "status": "geometry_wip",
+  "validation": "geometry generated procedurally; UE5 import and rendered inspection not performed",
+  "quality_floor": "Owner-accepted Black Bell v3; not yet met",
+  "note": "Normal maps flat placeholder, maps are low resolution draft, lighting emissive requires UE5 setup"
+}
