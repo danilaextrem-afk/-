@@ -1,0 +1,2 @@
+# B3 mask v0.1
+Procedural face accessory, not complete boss. In-memory validation: 1424 vertices, 1424 triangles; non-repeating face indices: true. UV coordinates generated for all vertices. No external OBJ parser, real mesh render, PBR texture maps, rig, LOD, UE5 import or artistic acceptance yet. Material scalar drafts only. Crown spikes and hollow ocular rings require anatomical integration and topology review. The mesh contains intersecting components and is not watertight.

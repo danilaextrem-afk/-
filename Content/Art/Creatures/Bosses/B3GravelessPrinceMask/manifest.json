@@ -1,0 +1,27 @@
+{
+  "asset_id": "RZ_BOSS_B3_GRAVELESS_PRINCE_DEATH_MASK",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "boss": "B3 Князь Без Могилы",
+  "scope": "phase 1 ceremonial face accessory; NOT complete boss",
+  "status": "geometry_wip",
+  "license": "original procedural project-owned",
+  "mesh": "B3DeathMask.obj",
+  "source": "generate.mjs",
+  "vertices": 1424,
+  "triangles": 1424,
+  "uv": "OBJ vt; per-face indexed",
+  "materials": [
+    "bone",
+    "iron",
+    "gold",
+    "void"
+  ],
+  "pbr": "MTL roughness/metallic scalar draft; texture maps absent",
+  "lod": "not created",
+  "rig": "attachment bone/head socket proposed, not implemented",
+  "collision": "not created",
+  "render": "not tested",
+  "ue5": "not tested",
+  "art_quality": "below bell v3"
+}

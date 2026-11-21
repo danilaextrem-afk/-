@@ -1,0 +1,19 @@
+newmtl bone
+Kd 0.53 0.48 0.37
+Pr 0.87
+Pm 0
+
+newmtl iron
+Kd 0.10 0.11 0.13
+Pr 0.59
+Pm 1
+
+newmtl gold
+Kd 0.47 0.30 0.10
+Pr 0.38
+Pm 1
+
+newmtl void
+Kd 0.012 0.008 0.02
+Pr 0.95
+Pm 0
