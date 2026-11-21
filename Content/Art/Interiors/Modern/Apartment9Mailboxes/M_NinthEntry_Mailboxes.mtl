@@ -1,0 +1,88 @@
+# Draft MTL; final texture maps still required
+newmtl SteelDark
+Kd .10 .11 .11
+Ks 0.10 0.10 0.10
+Ns 400
+Pr 0.6
+Pm 0.85
+illum 2
+
+newmtl Enamel
+Kd .39 .46 .43
+Ks 0.10 0.10 0.10
+Ns 530
+Pr 0.47
+Pm 0.15
+illum 2
+
+newmtl EnamelFaded
+Kd .26 .33 .30
+Ks 0.10 0.10 0.10
+Ns 280
+Pr 0.72
+Pm 0.12
+illum 2
+
+newmtl Iron
+Kd .20 .20 .21
+Ks 0.10 0.10 0.10
+Ns 570
+Pr 0.43
+Pm 0.78
+illum 2
+
+newmtl Brass
+Kd .48 .36 .14
+Ks 0.10 0.10 0.10
+Ns 680
+Pr 0.32
+Pm 0.81
+illum 2
+
+newmtl Number
+Kd .78 .77 .62
+Ks 0.10 0.10 0.10
+Ns 520
+Pr 0.48
+Pm 0.44
+illum 2
+
+newmtl Glass
+Kd .55 .61 .56
+Ks 0.10 0.10 0.10
+Ns 870
+Pr 0.13
+Pm 0.02
+illum 2
+
+newmtl SlotBlack
+Kd .015 .019 .024
+Ks 0.10 0.10 0.10
+Ns 140
+Pr 0.86
+Pm 0
+illum 2
+
+newmtl Paper
+Kd .75 .71 .59
+Ks 0.10 0.10 0.10
+Ns 60
+Pr 0.94
+Pm 0
+illum 2
+
+newmtl Rust
+Kd .43 .18 .075
+Ks 0.10 0.10 0.10
+Ns 110
+Pr 0.89
+Pm 0.06
+illum 2
+
+newmtl PrintedInk
+Kd .14 .18 .17
+Ks 0.10 0.10 0.10
+Ns 50
+Pr 0.95
+Pm 0
+illum 2
