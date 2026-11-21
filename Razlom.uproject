@@ -1,0 +1,13 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.5",
+  "Category": "Games",
+  "Description": "RAZLOM: CHERNY ZVON — PC only, native Unreal Engine 5 foundation",
+  "Modules": [
+    {
+      "Name": "Razlom",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

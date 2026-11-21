@@ -1,0 +1,8 @@
+{
+  "base": "SM_BlackBell_Hero_v2.obj",
+  "asset": "SM_BlackBell_Hero_v3.obj",
+  "new_vertices": 19993,
+  "new_triangles": 36744,
+  "total_vertices": 129655,
+  "status": "Original augmented OBJ: UE5 import, visual fidelity and AAA quality unverified"
+}

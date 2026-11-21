@@ -1,0 +1,25 @@
+name: Validate RAZLOM UE5 foundation contracts (not an Unreal build)
+on:
+  push:
+    paths:
+      - Razlom.uproject
+      - Source/Razlom/**
+      - Source/Razlom.Target.cs
+      - Source/RazlomEditor.Target.cs
+      - Tools/ue5_prepare_import.py
+      - Tests/ue5_scaffold_check.py
+      - .github/workflows/validate-ue5-scaffold.yml
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate native UE5 project source contracts
+        run: python Tests/ue5_scaffold_check.py
