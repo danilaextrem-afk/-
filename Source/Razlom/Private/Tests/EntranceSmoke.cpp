@@ -19,7 +19,7 @@ bool FEntranceSmoke::RunTest(const FString& Parameters)
     if (!TestNotNull(TEXT("Possessed Kirill"), Hero)) return false;
     for (FName Tag : {FName(TEXT("Phone")), FName(TEXT("Ilya")), FName(TEXT("Neighbor")), FName(TEXT("Evidence")),
         FName(TEXT("Shadow")), FName(TEXT("Tenant")), FName(TEXT("VoiceDoor")), FName(TEXT("VeilMark")),
-        FName(TEXT("Marina")), FName(TEXT("ArchivePlan")), FName(TEXT("ArchivePhoto"))})
+        FName(TEXT("Marina")), FName(TEXT("ArchivePlan")), FName(TEXT("ArchivePhoto")), FName(TEXT("EntranceNineFacade"))})
     {
         TArray<AActor*> Actors;
         UGameplayStatics::GetAllActorsWithTag(World, Tag, Actors);

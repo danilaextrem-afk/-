@@ -3,6 +3,7 @@
   "EngineAssociation": "5.5",
   "Category": "Games",
   "Description": "RAZLOM: CHERNY ZVON — PC only, native Unreal Engine 5 foundation",
+  "Plugins": [{"Name": "PythonScriptPlugin", "Enabled": true, "TargetAllowList": ["Editor"]}],
   "Modules": [
     {
       "Name": "Razlom",
