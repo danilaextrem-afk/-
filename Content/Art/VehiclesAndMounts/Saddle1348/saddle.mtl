@@ -1,0 +1,12 @@
+newmtl leather
+Kd 0.24 0.105 0.045
+Ns 20
+newmtl strap
+Kd 0.13 0.06 0.025
+Ns 18
+newmtl wood
+Kd 0.19 0.10 0.045
+Ns 14
+newmtl iron
+Kd 0.18 0.19 0.20
+Ns 120

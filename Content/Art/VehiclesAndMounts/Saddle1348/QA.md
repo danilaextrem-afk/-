@@ -1,0 +1,2 @@
+# Saddle 1348 — QA
+Generated OBJ geometry: LOD0 320 vertices / 384 triangles, LOD1 240 vertices / 264 triangles. Both have 0 invalid face indices in generation. Source code included. UV assigned to each vertex. **Not UE5-ready**: MTL is only preview material, no PBR maps, no collision, no Blender mesh render, no manifold test. Need art quality review vs bell v3. Saddle dimensions and horse fit require verification.
