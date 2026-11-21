@@ -14,17 +14,34 @@ var brake: Button
 var rear := false
 var recording := SubViewportContainer.new()
 var flame_nodes: Array[MeshInstance3D] = []
-var traffic := Node3D.new()
+var traffic := preload("res://Source/road_sedan.gd").new()
 var trip_time := 0.0
 
 func build_location() -> void:
+	var wet := ShaderMaterial.new()
+	wet.shader = preload("res://Content/Materials/wet_asphalt.gdshader")
+	pavement.material_override = wet
+	daylight.light_color = Color("#9aaece")
+	daylight.light_energy = .24
 	var night := WorldEnvironment.new()
 	var sky := Environment.new()
-	sky.background_mode = Environment.BG_COLOR
+	var dusk := ProceduralSkyMaterial.new()
+	dusk.sky_top_color = Color("#101a30")
+	dusk.sky_horizon_color = Color("#687784")
+	dusk.ground_horizon_color = dusk.sky_horizon_color
+	dusk.ground_bottom_color = Color("#252a32")
+	dusk.sun_angle_max = 0.0
+	sky.sky = Sky.new()
+	sky.sky.sky_material = dusk
+	sky.background_mode = Environment.BG_SKY
 	sky.background_color = Color("#182339")
 	sky.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	sky.ambient_light_color = Color("#b1bad6")
-	sky.ambient_light_energy = 0.5
+	sky.ambient_light_energy = .32
+	sky.fog_enabled = true
+	sky.fog_light_color = Color("#344052")
+	sky.fog_density = .008
+	sky.fog_sky_affect = .4
 	night.environment = sky
 	add_child(night)
 	for i in range(7):
@@ -34,23 +51,53 @@ func build_location() -> void:
 		var glow := fixture.mesh.surface_get_material(0) as StandardMaterial3D
 		glow.emission_enabled = true
 		glow.emission = Color("#ffe1a2")
+		var lamp := OmniLight3D.new()
+		city.add_child(lamp)
+		lamp.position = Vector3(5.9,4.95,z)
+		lamp.light_color = Color("#ffd4a2")
+		lamp.light_energy = 4.4
+		lamp.omni_range = 11
+		lamp.omni_attenuation = 1.2
+	for side in [-1,1]:
+		var headlight := SpotLight3D.new()
+		car.add_child(headlight)
+		headlight.position = Vector3(side*.60,.68,-2.16)
+		headlight.rotation_degrees.x = -8
+		headlight.light_color = Color("#fff0c8")
+		headlight.light_energy = 5.5
+		headlight.spot_range = 20
+		headlight.spot_angle = 26
+		headlight.spot_attenuation = 1.4
+		headlight.spot_angle_attenuation = 1.8
+	for side in [-1,1]:
+		block(city,Vector3(side*7.45,.015,-55),Vector3(2.8,.18,160),"777977")
+		block(city,Vector3(side*6.05,.035,-55),Vector3(.14,.22,160),"939089")
+		for i in 40:
+			block(city,Vector3(side*7.45,.108,20-4*i),Vector3(2.8,.012,.032),"4e5051")
 	city.add_child(figure)
 	block(figure,Vector3(0,1.0,0),Vector3(.48,1.6,.28),"202027")
 	block(figure,Vector3(0,1.98,0),Vector3(.32,.38,.32),"36303b")
+	traffic.paint_color = Color("#8f5948")
+	traffic.rotation.y = PI
+	traffic.position = Vector3(-3.1,0,-130)
 	city.add_child(traffic)
-	block(traffic,Vector3(0,.55,0),Vector3(1.7,.8,3.4),"775546")
-	block(traffic,Vector3(0,1.1,0),Vector3(1.45,.55,1.65),"899ca5")
-	for x in [-.6,.6]:
-		block(traffic,Vector3(x,.56,1.72),Vector3(.33,.16,.05),"ffe7ae")
-	block(city,Vector3(5.4,2,-5),Vector3(.16,4,.16),"4b5258")
+	for i in 3:
+		var parked := preload("res://Source/road_sedan.gd").new()
+		parked.paint_color = [Color("#a99e87"),Color("#53605a"),Color("#7f514c")][i]
+		parked.rotation.y = PI-.025*i
+		parked.position = Vector3(-4.9,0,-12-31*i)
+		city.add_child(parked)
+	block(city,Vector3(7.45,2,-11),Vector3(.16,4,.16),"4b5258")
 	var sign := Label3D.new()
 	sign.text = "АВТОСЕРВИС\nИЛЬЯ"
-	sign.font_size = 72
+	sign.font_size = 44
 	sign.pixel_size = 0.009
-	sign.position = Vector3(4.5,3.6,-5)
+	sign.position = Vector3(7.45,3.4,-10.89)
+	block(city,Vector3(7.45,3.4,-11),Vector3(2.95,1.1,.17),"29373e")
 	city.add_child(sign)
 
 func add_controls(row: HBoxContainer) -> void:
+	set_rear(false)
 	build_recording(row.get_parent())
 	brake = button(row,"Тормоз ↓")
 	button(row,"Зеркало [M]").pressed.connect(look_back)
@@ -60,8 +107,8 @@ func add_controls(row: HBoxContainer) -> void:
 
 func set_rear(value: bool) -> void:
 	rear = value
-	camera.position = Vector3(0,2.0,-1.7) if rear else Vector3(0,4.5,7.4)
-	camera.rotation = Vector3(-0.08,PI,0) if rear else Vector3(-0.32,0,0)
+	camera.position = Vector3(0,2.0,-1.7) if rear else Vector3(.45,3.05,6.75)
+	camera.rotation = Vector3(-0.08,PI,0) if rear else Vector3(-.215,0,0)
 
 func look_back() -> void:
 	if phase in [Phase.DRIVE,Phase.ROADSIDE]:
@@ -161,6 +208,7 @@ func _physics_process(delta: float) -> void:
 	if horse.visible:
 		horse.pose(speed*delta)
 	trip_time += delta
+	traffic.roll(8*delta)
 	traffic.position = Vector3(-3.1,0,-130+fmod(trip_time*8,155))
 	var distance := -mount.position.z
 	if phase == Phase.DRIVE and distance >= 17:

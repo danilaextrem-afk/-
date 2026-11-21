@@ -12,6 +12,8 @@ var city := Node3D.new()
 var mount := Node3D.new()
 var horse := preload("res://Source/road_horse.gd").new()
 var car := preload("res://Source/road_sedan.gd").new()
+var daylight := DirectionalLight3D.new()
+var pavement: MeshInstance3D
 var camera := Camera3D.new()
 var caption := Label.new()
 var left: Button
@@ -33,6 +35,7 @@ func block(parent: Node3D, pos: Vector3, size: Vector3, color: String) -> MeshIn
 func button(row: HBoxContainer, label: String) -> Button:
 	var b := Button.new()
 	b.text = label
+	b.add_theme_font_size_override("font_size",23)
 	b.custom_minimum_size = Vector2(172,86)
 	row.add_child(b)
 	return b
@@ -46,7 +49,8 @@ func _ready() -> void:
 	mount.add_child(car)
 	for world in [forest,city]:
 		block(world,Vector3(0,-0.6,-55),Vector3(180,1,230),"40533d" if world == forest else "717675")
-		block(world,Vector3(0,-0.08,-55),Vector3(12,0.16,160),"85664a" if world == forest else "434952")
+		var surface := block(world,Vector3(0,-0.08,-55),Vector3(12,0.16,160),"85664a" if world == forest else "434952")
+		if world == city: pavement = surface
 	var cube := BoxMesh.new()
 	cube.size = Vector3.ONE
 	var masonry := StandardMaterial3D.new()
@@ -73,9 +77,8 @@ func _ready() -> void:
 	mount.add_child(camera)
 	camera.position = Vector3(0,4.5,7.4)
 	camera.rotation.x = -0.32
-	var sun := DirectionalLight3D.new()
-	add_child(sun)
-	sun.rotation_degrees = Vector3(-55,-25,0)
+	add_child(daylight)
+	daylight.rotation_degrees = Vector3(-55,-25,0)
 	var ui := CanvasLayer.new()
 	add_child(ui)
 	ui.add_child(caption)
@@ -91,9 +94,9 @@ func _ready() -> void:
 	ui.add_child(row)
 	row.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	row.position += Vector2(42,-110)
-	left = button(row,"◀")
+	left = button(row,"Влево")
 	ride = button(row,"Ехать ▲")
-	right = button(row,"▶")
+	right = button(row,"Вправо")
 	action = button(row,"Осмотреть знак")
 	action.pressed.connect(interact)
 	button(row,"Журнал").pressed.connect(toggle_journal)

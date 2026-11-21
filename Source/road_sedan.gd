@@ -1,5 +1,6 @@
 extends Node3D
 
+var paint_color := Color("#597991")
 var wheels: Array[Node3D] = []
 
 func finish(color: Color, metal: float, roughness: float) -> StandardMaterial3D:
@@ -54,7 +55,7 @@ func disc(parent: Node3D, radius: float, width: float, mat: Material, offset: fl
 	attach(parent,mesh,mat,Vector3(offset,0,0)).rotation.z = PI/2
 
 func _ready() -> void:
-	var paint := finish(Color("#476278"),.48,.32)
+	var paint := finish(paint_color,.32,.28)
 	var glass := finish(Color("#303e49"),.30,.16)
 	var rubber := finish(Color("#24272b"),.0,.94)
 	var alloy := finish(Color("#899399"),.62,.35)
@@ -88,7 +89,17 @@ func _ready() -> void:
 		for side in [-1,1]:
 			trim(Vector3(side*.60,.68, -2.111 if end < 0 else 2.041),Vector3(.34,.115,.04),lens)
 	trim(Vector3(0,.57,-2.12),Vector3(.70,.17,.045),rubber)
-	trim(Vector3(0,.61,2.055),Vector3(.46,.13,.025),alloy)
+	trim(Vector3(0,.61,2.055),Vector3(.46,.13,.025),finish(Color("#dbd8cb"),.08,.47))
+	trim(Vector3(0,.43,2.04),Vector3(1.62,.095,.105),rubber)
+	trim(Vector3(0,.79,2.05),Vector3(1.25,.022,.035),alloy)
+	var registration := Label3D.new()
+	registration.text = "К 204 ВМ"
+	registration.pixel_size = .0016
+	registration.font_size = 46
+	registration.modulate = Color("#151923")
+	registration.outline_size = 0
+	registration.position = Vector3(0,.611,2.074)
+	add_child(registration)
 
 func roll(distance: float) -> void:
 	for wheel in wheels:
