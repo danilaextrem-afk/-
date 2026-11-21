@@ -1,0 +1,23 @@
+{
+  "asset_id": "RZ_ENV_MODERN_PANEL_ENTRANCE_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "units": "meters",
+  "up": "Z",
+  "lod0": {
+    "vertices": 248,
+    "uv": 744,
+    "triangles": 372,
+    "valid": true
+  },
+  "lod1": {
+    "vertices": 96,
+    "uv": 288,
+    "triangles": 144,
+    "valid": true
+  },
+  "collision": "not_authored",
+  "pbr": "MTL approximations only; no baked maps",
+  "ue5_verified": false,
+  "art_floor_met": false
+}
