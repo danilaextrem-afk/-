@@ -118,7 +118,8 @@ func _ready() -> void:
 	step = maxi(0,state.get("crossing",0))
 	tenant = state.get("tenant","")
 	evidence = state.get("evidence","")
-	if step >= village.Stage.SMITH_ESCAPED: hero.position = village.FORGE+Vector3.BACK*3
+	if step >= village.Stage.SPARED_ESCAPED: hero.position = village.ELDER+Vector3.BACK*2
+	elif step >= village.Stage.SMITH_ESCAPED: hero.position = village.FORGE+Vector3.BACK*3
 	if step == Step.MIRA: hero.position = GUIDE+Vector3.BACK*2
 	if step == Step.CAMP:
 		hero.position = FIRE+Vector3.BACK*2
@@ -130,6 +131,7 @@ func target_near(pos: Vector3) -> bool:
 	return hero.position.distance_to(pos) < 2.6
 
 func available() -> String:
+	if step >= village.Stage.SPARED_ESCAPED and target_near(village.ELDER): return "Выехать с Мирой в рощу"
 	if ghoul.fighting(): return ""
 	if step in [village.Stage.BLADE_ESCAPED,village.Stage.BLADE_CLEARED]:
 		if ghoul.phase == ghoul.Phase.LOST: return "Попробовать снова"
@@ -188,6 +190,16 @@ func enter(next: int, spawn: Vector3) -> void:
 func interact() -> void:
 	if available().is_empty(): return
 	if village.visible:
+		if step >= village.Stage.SPARED_ESCAPED:
+			if Slot.store_checkpoint(11,evidence,slot_path,true,tenant,step+4) != OK:
+				message = "Не удалось сохранить выезд."
+				draw_state()
+				return
+			var saved := Slot.resume(slot_path)
+			saved["slot_path"] = slot_path
+			get_tree().set_meta("grove_entry",saved)
+			get_tree().change_scene_to_file("res://Content/Grove.tscn")
+			return
 		if step in [village.Stage.BLADE_ESCAPED,village.Stage.BLADE_CLEARED]:
 			ghoul.begin(hero.position+Vector3(0,0,4))
 			refresh_action()
