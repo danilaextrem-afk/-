@@ -42,4 +42,6 @@ func run() -> void:
 		check(current_scene.step == blade+2 and not current_scene.ghoul.visible and current_scene.village.witness.visible == (blade==13),"resume preserves outcome")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("Forge: ", "PASS" if failed.is_empty() else str(failed))
+	current_scene.queue_free()
+	await create_timer(.35).timeout
 	quit(int(not failed.is_empty()))

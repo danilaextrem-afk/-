@@ -12,6 +12,7 @@ var step: int = Step.YARD
 var village := preload("res://Source/village.gd").new()
 var ghoul := preload("res://Source/forge_ghoul.gd").new()
 var strike_button: Button
+var verdict_button: Button
 var guard_button: Button
 var sword := Node3D.new()
 var tenant := ""
@@ -108,6 +109,8 @@ func _ready() -> void:
 	strike_button.pressed.connect(strike)
 	guard_button = control(row,"Блок [Q]")
 	guard_button.pressed.connect(ghoul.guard)
+	verdict_button = control(row,"Отдать ткача на казнь [R]")
+	verdict_button.pressed.connect(condemn)
 	var state: Dictionary = get_tree().get_meta("crossing_entry",{})
 	if get_tree().has_meta("crossing_entry"):
 		get_tree().remove_meta("crossing_entry")
@@ -166,6 +169,7 @@ func draw_state() -> void:
 	refresh_action()
 
 func refresh_action() -> void:
+	verdict_button.visible = step in [village.Stage.HEARING_ESCAPED,village.Stage.HEARING_CLEARED] and target_near(village.ELDER)
 	strike_button.visible = ghoul.fighting()
 	guard_button.visible = ghoul.fighting()
 	var prompt := available()
@@ -203,6 +207,10 @@ func interact() -> void:
 		Step.MIRA: enter(Step.CAMP,hero.position)
 		Step.CAMP: enter(village.Stage.ELDER,Vector3.ZERO)
 
+func condemn() -> void:
+	if step in [village.Stage.HEARING_ESCAPED,village.Stage.HEARING_CLEARED] and target_near(village.ELDER):
+		enter(step+4,hero.position)
+
 func strike() -> void:
 	ghoul.strike(hero.position)
 	if ghoul.phase == ghoul.Phase.WON and step in [village.Stage.BLADE_ESCAPED,village.Stage.BLADE_CLEARED]:
@@ -215,6 +223,7 @@ func _unhandled_key_input(key: InputEvent) -> void:
 			KEY_E: interact()
 			KEY_SPACE: strike()
 			KEY_Q: ghoul.guard()
+			KEY_R: condemn()
 
 func _physics_process(delta: float) -> void:
 	var move := Input.get_vector("ui_left","ui_right","ui_up","ui_down")
