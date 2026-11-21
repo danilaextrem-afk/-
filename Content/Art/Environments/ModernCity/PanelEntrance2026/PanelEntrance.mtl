@@ -1,0 +1,35 @@
+newmtl concrete
+Kd 0.43 0.44 0.43
+Pr 0.88
+Pm 0
+illum 2
+
+newmtl steel
+Kd 0.16 0.18 0.2
+Pr 0.4
+Pm 0.8
+illum 2
+
+newmtl paint
+Kd 0.13 0.25 0.29
+Pr 0.56
+Pm 0.2
+illum 2
+
+newmtl glass
+Kd 0.2 0.3 0.33
+Pr 0.12
+Pm 0
+illum 2
+
+newmtl plastic
+Kd 0.06 0.07 0.08
+Pr 0.7
+Pm 0
+illum 2
+
+newmtl grout
+Kd 0.1 0.1 0.1
+Pr 0.95
+Pm 0
+illum 2
