@@ -17,7 +17,10 @@
     "base_uvdraft": "Content/Art/HeroProps/SM_GateWardenChest_Base_1348_v1_UVdraft.obj",
     "lid_uvdraft": "Content/Art/HeroProps/SM_GateWardenChest_Lid_1348_v1_UVdraft.obj",
     "base_convex_proxy": "Content/Art/HeroProps/COL_GateWardenChest_Base_1348_v1.obj",
-    "lid_convex_proxy": "Content/Art/HeroProps/COL_GateWardenChest_Lid_1348_v1.obj"
+    "lid_convex_proxy": "Content/Art/HeroProps/COL_GateWardenChest_Lid_1348_v1.obj",
+    "pbrdraft_bundle": "Content/Art/HeroProps/PBR_Draft/material_bundle_v1.json",
+    "base_uvdraft_preview_mtl": "Content/Art/HeroProps/SM_GateWardenChest_Base_1348_v1_PBRdraft.mtl",
+    "lid_uvdraft_preview_mtl": "Content/Art/HeroProps/SM_GateWardenChest_Lid_1348_v1_PBRdraft.mtl"
   },
   "mesh": {
     "vertices": 7112,
@@ -34,10 +37,10 @@
     "uv": false,
     "explicit_normals": false
   },
-  "status": "geometry_wip",
+  "status": "materials_wip",
   "acceptance": {
     "static_geometry": "re-read base and lid original OBJ; 7540 and 6020 triangles respectively; zero bad references; UV draft re-read refs 0 errors",
-    "pbr": "only legacy MTL in repo; UV/PBR baker added and tested on sample; full texture atlases not committed",
+    "pbr": "TGA drafts committed at 256px, all 6 textures re-read as base64; TGA dimensions and byte lengths verified. NOT production bakes.",
     "ue5_import": "not_run",
     "animated_lid": "geometry/pivot prepared; animation not implemented or tested",
     "collision": "not_verified",
@@ -94,5 +97,24 @@
     "base": "8 vertices, 12 triangles, convex box, source coords metres",
     "lid": "8 vertices, 12 triangles, convex box relative to lid pivot in metres",
     "bound_in_ue5": false
+  },
+  "materials": {
+    "state": "six 256px TGA procedural draft PBR maps physically committed; not final",
+    "base": [
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Base_1348_v1_BaseColor.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Base_1348_v1_Normal.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Base_1348_v1_ORM.tga"
+    ],
+    "lid": [
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Lid_1348_v1_BaseColor.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Lid_1348_v1_Normal.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Lid_1348_v1_ORM.tga"
+    ],
+    "warnings": [
+      "UV atlas is planar draft, may stretch",
+      "no high-poly normal bake",
+      "normal green must be visually verified in UE5",
+      "not final 4K"
+    ]
   }
 }
