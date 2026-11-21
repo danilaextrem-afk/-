@@ -6,8 +6,9 @@ func _initialize() -> void:
 
 func capture() -> void:
 	var args := OS.get_cmdline_user_args()
-	if args.size() != 1 or DisplayServer.get_name() == "headless":
-		push_error("Provide a graphical driver and one output PNG path")
+	var braking_frame := args.size() == 2 and args[1] == "brake"
+	if (args.size() != 1 and not braking_frame) or DisplayServer.get_name() == "headless":
+		push_error("Provide a graphical driver and one output PNG path, optionally followed by brake")
 		quit(1)
 		return
 	var road = preload("res://Content/NightRoad.tscn").instantiate()
@@ -20,6 +21,10 @@ func capture() -> void:
 		if i == 65: Input.action_release("ui_right")
 		road._physics_process(1.0/60)
 	Input.action_release("ui_up")
+	if braking_frame:
+		Input.action_press("ui_down")
+		road._physics_process(1.0/60)
+		Input.action_release("ui_down")
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	var frame := root.get_texture().get_image()

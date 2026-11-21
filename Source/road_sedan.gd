@@ -1,6 +1,9 @@
 extends Node3D
 
 var paint_color := Color("#597991")
+var tail_lens: StandardMaterial3D
+var high_stop: MeshInstance3D
+var braking := false
 var wheels: Array[Node3D] = []
 
 func finish(color: Color, metal: float, roughness: float) -> StandardMaterial3D:
@@ -23,18 +26,23 @@ func shell(stations: Array, top_ratio: float, mat: Material) -> void:
 	var rings: Array = []
 	for s: Vector4 in stations:
 		var w := s.y
-		rings.append([Vector3(-w*.92,s.z,s.x),Vector3(-w,s.z+.08,s.x),
-			Vector3(-w*top_ratio,s.w,s.x),Vector3(w*top_ratio,s.w,s.x),
-			Vector3(w,s.z+.08,s.x),Vector3(w*.92,s.z,s.x)])
+		var shoulder := w*top_ratio
+		rings.append([
+			Vector3(-w*.88,s.z,s.x),Vector3(-w*.98,s.z+.055,s.x),
+			Vector3(-w,s.z+.13,s.x),Vector3(-shoulder,s.w-.055,s.x),
+			Vector3(-shoulder*.95,s.w-.012,s.x),Vector3(-shoulder*.76,s.w+.012,s.x),
+			Vector3(0,s.w+.036,s.x),Vector3(shoulder*.76,s.w+.012,s.x),
+			Vector3(shoulder*.95,s.w-.012,s.x),Vector3(shoulder,s.w-.055,s.x),
+			Vector3(w,s.z+.13,s.x),Vector3(w*.98,s.z+.055,s.x),Vector3(w*.88,s.z,s.x)])
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	surface.set_smooth_group(-1)
 	for i in range(rings.size()-1):
-		for j in 6:
-			var k := (j+1)%6
+		for j in rings[i].size():
+			var k: int = (j+1)%rings[i].size()
 			for point in [rings[i][j],rings[i][k],rings[i+1][j],rings[i][k],rings[i+1][k],rings[i+1][j]]:
 				surface.add_vertex(point)
-	for j in range(1,5):
+	for j in range(1,rings[0].size()-1):
 		for point in [rings[0][0],rings[0][j+1],rings[0][j],rings[-1][0],rings[-1][j],rings[-1][j+1]]:
 			surface.add_vertex(point)
 	surface.generate_normals()
@@ -60,12 +68,20 @@ func _ready() -> void:
 	var rubber := finish(Color("#24272b"),.0,.94)
 	var alloy := finish(Color("#899399"),.62,.35)
 	shell([Vector4(-2.10,.79,.37,.73),Vector4(-1.74,.92,.33,.85),
-		Vector4(-.80,.94,.34,.99),Vector4(.75,.94,.34,1.01),
-		Vector4(1.60,.90,.34,.95),Vector4(2.03,.83,.38,.85)],.96,paint)
+		Vector4(-1.20,.94,.33,.91),Vector4(-.80,.94,.34,.99),Vector4(.75,.94,.34,1.01),
+		Vector4(1.22,.925,.34,.98),Vector4(1.60,.90,.34,.95),Vector4(1.92,.87,.36,.91),Vector4(2.03,.83,.38,.85)],.96,paint)
 	shell([Vector4(-.93,.84,.88,1.01),Vector4(-.31,.81,.94,1.45),
 		Vector4(.59,.82,.95,1.46),Vector4(1.32,.83,.90,1.04)],.83,glass)
-	trim(Vector3(0,1.46,.14),Vector3(1.36,.045,.93),paint)
+	trim(Vector3(0,1.484,.14),Vector3(1.13,.03,.86),paint)
+	var heater := finish(Color("#6b574e"),.12,.51)
+	for row in 6:
+		var fraction := (row+1)/8.0
+		var z := lerpf(.59,1.32,fraction)
+		var y := lerpf(1.46,1.04,fraction)+.042
+		trim(Vector3(0,y,z),Vector3(1.02,.008,.015),heater)
 	for side in [-1,1]:
+		var pillar := trim(Vector3(side*.674,1.29,.956),Vector3(.11,.085,.85),paint)
+		pillar.rotation.x = .52
 		trim(Vector3(side*.76,1.21,.17),Vector3(.07,.49,.085),rubber).rotation.z = side*.26
 		trim(Vector3(side*.97,1.04,-.57),Vector3(.21,.14,.24),paint)
 		for z in [-.16,.69]:
@@ -86,8 +102,15 @@ func _ready() -> void:
 		var lens := finish(Color("#ffdfad") if end < 0 else Color("#df3a30"),.05,.26)
 		lens.emission_enabled = true
 		lens.emission = lens.albedo_color
+		if end > 0:
+			tail_lens = lens
+			tail_lens.emission_energy_multiplier = .45
 		for side in [-1,1]:
 			trim(Vector3(side*.60,.68, -2.111 if end < 0 else 2.041),Vector3(.34,.115,.04),lens)
+	high_stop = trim(Vector3(0,1.102,1.28),Vector3(.40,.045,.055),tail_lens)
+	high_stop.hide()
+	for side in [-1,1]:
+		trim(Vector3(side*.78,.695,2.035),Vector3(.055,.145,.12),tail_lens)
 	trim(Vector3(0,.57,-2.12),Vector3(.70,.17,.045),rubber)
 	trim(Vector3(0,.61,2.055),Vector3(.46,.13,.025),finish(Color("#dbd8cb"),.08,.47))
 	trim(Vector3(0,.43,2.04),Vector3(1.62,.095,.105),rubber)
@@ -104,3 +127,9 @@ func _ready() -> void:
 func roll(distance: float) -> void:
 	for wheel in wheels:
 		wheel.rotate_x(-distance/.34)
+
+func set_braking(active: bool) -> void:
+	if active == braking: return
+	braking = active
+	tail_lens.emission_energy_multiplier = 3.0 if active else .45
+	high_stop.visible = active

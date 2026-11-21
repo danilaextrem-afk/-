@@ -123,6 +123,7 @@ func look_back() -> void:
 func restart() -> void:
 	phase = Phase.GARAGE
 	speed = 0
+	car.set_braking(false)
 	horse.pose(0)
 	mount.position = Vector3.ZERO
 	sightings = 0
@@ -200,6 +201,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var gas := ride.button_pressed or Input.is_action_pressed("ui_up")
 	var braking := brake.button_pressed or Input.is_action_pressed("ui_down")
+	car.set_braking(braking)
 	speed = move_toward(speed,14 if gas and not braking else 0,delta*(18 if braking else 4))
 	var steer := Input.get_axis("ui_left","ui_right") + float(right.button_pressed) - float(left.button_pressed)
 	mount.position.x = clampf(mount.position.x + clampf(steer,-1,1)*minf(speed,5)*delta,-4.4,4.4)
@@ -234,6 +236,7 @@ func _physics_process(delta: float) -> void:
 			if evidence.is_empty():
 				evidence = "Кирилл проехал мимо. Происхождение силуэта неизвестно."
 			speed = 0
+			car.set_braking(false)
 			set_rear(false)
 			phase = Phase.MESSAGE
 			update_view()
