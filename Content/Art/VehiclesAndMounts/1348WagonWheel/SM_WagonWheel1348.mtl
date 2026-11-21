@@ -1,0 +1,13 @@
+newmtl wood
+Kd 0.27 0.16 0.08
+Ks 0.035 0.035 0.035
+Ns 18
+Pr 0.83
+Pm 0.0
+
+newmtl iron
+Kd 0.14 0.15 0.16
+Ks 0.4 0.4 0.4
+Ns 70
+Pr 0.58
+Pm 1.0
