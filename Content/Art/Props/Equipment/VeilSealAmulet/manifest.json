@@ -1,0 +1,27 @@
+{
+  "asset_id": "RZ_EQ_VEIL_SEAL_AMULET",
+  "version": "0.1.0",
+  "epoch": "1348/2026",
+  "category": "equipment",
+  "status": "materials_wip",
+  "license": "Original project-owned procedural geometry",
+  "source": "generate.mjs",
+  "mesh": "VeilSealAmulet.obj",
+  "units": "meters",
+  "vertices": 10820,
+  "triangles": 19248,
+  "material_groups": {
+    "aged_bronze": 8064,
+    "black_iron": 5520,
+    "oxidized_silver": 5088,
+    "red_enamel": 576
+  },
+  "uv": "OBJ vt, per-face matching indices",
+  "lod": "LOD0 only; LOD1 pending",
+  "rig": "not applicable (static prop)",
+  "pbr": "draft procedural PPM maps; no normal/AO yet",
+  "collision": "pending UE5",
+  "ue5_import": "not tested",
+  "render": "not tested",
+  "art_quality": "below approved bell v3; not accepted"
+}

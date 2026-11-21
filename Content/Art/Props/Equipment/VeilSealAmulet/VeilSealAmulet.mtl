@@ -1,0 +1,16 @@
+newmtl aged_bronze
+Kd 0.38 0.22 0.09
+Ks 0.55 0.48 0.28
+Ns 70
+newmtl black_iron
+Kd 0.065 0.065 0.07
+Ks 0.25 0.25 0.25
+Ns 65
+newmtl oxidized_silver
+Kd 0.45 0.46 0.43
+Ks 0.65 0.65 0.65
+Ns 130
+newmtl red_enamel
+Kd 0.24 0.015 0.02
+Ks 0.5 0.1 0.1
+Ns 110
