@@ -67,4 +67,6 @@ func run() -> void:
 	check(district.finished and Slot.resume(slot).finished and district.tenant == "rescued" and "угольным" in district.logbook.text,"finish archive and keep witness note")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(slot))
 	print("District campaign: ", "PASS" if failures.is_empty() else str(failures))
+	current_scene.queue_free()
+	await create_timer(0.35).timeout
 	quit(int(not failures.is_empty()))

@@ -1,6 +1,9 @@
 extends Node3D
 
 const Glimpse = preload("res://Source/time_glimpse.gd")
+const FOREST_SOUND := preload("res://Content/Audio/forest_1348.tres")
+const CITY_SOUND := preload("res://Content/Audio/traffic_2026.tres")
+var ambience := AudioStreamPlayer.new()
 var journal := Label.new()
 var action: Button
 var clock := Glimpse.new()
@@ -35,6 +38,8 @@ func button(row: HBoxContainer, label: String) -> Button:
 	return b
 
 func _ready() -> void:
+	add_child(ambience)
+	ambience.volume_db = -9.0
 	for root in [forest, city, mount]:
 		add_child(root)
 	mount.add_child(horse)
@@ -113,3 +118,9 @@ func interact() -> void:
 
 func toggle_journal() -> void:
 	journal.visible = not journal.visible
+
+func sync_road_sound() -> void:
+	var layer := FOREST_SOUND if forest.visible else CITY_SOUND
+	if ambience.stream != layer:
+		ambience.stream = layer
+		ambience.play()

@@ -26,4 +26,5 @@ func run() -> void:
 		ok = ok and houses == 12 and batches == 24 and parts > 1200
 		print(scene,": houses=",houses,", render nodes=",batches,", instances=",parts)
 		road.free()
+	await create_timer(0.35).timeout
 	quit(int(not ok))

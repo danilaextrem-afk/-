@@ -43,4 +43,5 @@ func run() -> void:
 			failures.append("restart")
 		road.free()
 	print("Prologue routes: ", "PASS" if failures.is_empty() else str(failures))
+	await create_timer(0.35).timeout
 	quit(int(not failures.is_empty()))

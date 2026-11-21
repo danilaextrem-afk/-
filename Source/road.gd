@@ -26,6 +26,7 @@ func update_view() -> void:
 	horse.visible = not active
 	city.visible = active
 	car.visible = active
+	sync_road_sound()
 	if active:
 		caption.text = "2026 · Москва\n" + str(event.journal_clue)
 	else:

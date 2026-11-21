@@ -63,4 +63,5 @@ func run() -> void:
 		check(scene.sword.visible and scene.village.witness.visible != escape and scene.evidence == "улика","persistent outcome")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("Village routes: ", "PASS" if errors.is_empty() else str(errors))
+	await create_timer(0.35).timeout
 	quit(int(not errors.is_empty()))

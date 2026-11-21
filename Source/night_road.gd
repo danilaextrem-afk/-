@@ -114,6 +114,7 @@ func update_view() -> void:
 	horse.visible = forest.visible
 	city.visible = not forest.visible
 	car.visible = city.visible
+	sync_road_sound()
 	figure.visible = phase == Phase.ROADSIDE and sightings > 0 and evidence.is_empty()
 	recording.visible = phase == Phase.END
 	action.visible = false

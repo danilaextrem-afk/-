@@ -75,4 +75,6 @@ func run() -> void:
 		check(Slot.resume(path).crossing == scene.Step.CAMP,"guide and camp")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("Crossing routes: ", "PASS" if errors.is_empty() else str(errors))
+	current_scene.queue_free()
+	await create_timer(0.35).timeout
 	quit(int(not errors.is_empty()))
