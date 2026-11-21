@@ -1,0 +1,16 @@
+# Material references
+newmtl AgedBronze
+Kd 0.2588 0.2039 0.1451
+map_Kd T_AgedBronze_BaseColor.ppm
+newmtl PolishedBronze
+Kd 0.5725 0.4431 0.2471
+map_Kd T_PolishedBronze_BaseColor.ppm
+newmtl OxidizedBronze
+Kd 0.1333 0.2941 0.2667
+map_Kd T_OxidizedBronze_BaseColor.ppm
+newmtl DarkIron
+Kd 0.1490 0.1608 0.1686
+map_Kd T_DarkIron_BaseColor.ppm
+newmtl Leather
+Kd 0.2824 0.1686 0.1137
+map_Kd T_Leather_BaseColor.ppm
