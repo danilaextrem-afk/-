@@ -1,0 +1,16 @@
+{
+  "asset_id": "razlom.mount.saddle.ratibor.1348",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "vertices": 5980,
+  "triangles": 10848,
+  "uv": true,
+  "materials": 5,
+  "format": "OBJ+MTL",
+  "units": "cm",
+  "status": "geometry_wip",
+  "pbr_maps": false,
+  "lod": "LOD0",
+  "ue5_verified": false,
+  "art_approved": false
+}

@@ -1,0 +1,16 @@
+newmtl wood
+Kd .20 .12 .06
+Ns 12
+newmtl leather
+Kd .11 .07 .045
+Ns 18
+newmtl flap
+Kd .32 .16 .07
+Ns 15
+newmtl strap
+Kd .24 .12 .05
+Ns 14
+newmtl iron
+Kd .15 .16 .17
+Ks .4 .4 .4
+Ns 90
