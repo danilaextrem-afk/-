@@ -1,0 +1,19 @@
+newmtl steel
+Kd 0.6510 0.6784 0.6980
+Ks 0.2 0.2 0.2
+Ns 30
+
+newmtl blackiron
+Kd 0.2039 0.2196 0.2353
+Ks 0.2 0.2 0.2
+Ns 30
+
+newmtl bronze
+Kd 0.4431 0.3098 0.1686
+Ks 0.2 0.2 0.2
+Ns 30
+
+newmtl leather
+Kd 0.2431 0.1412 0.1020
+Ks 0.2 0.2 0.2
+Ns 30
