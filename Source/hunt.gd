@@ -102,17 +102,26 @@ func near(point: Vector3) -> bool:
 	return hero.position.distance_to(point) < 2
 
 func refresh() -> void:
-	var hints := ["Мира: «Слева от тропы след. Посмотри, куда зверь волочил лапу».","След уходит под камни. Справа у сундука возьми серебряные звенья.","Круг готов. Подойди к каменному лазу и вымани волколака.","Веди волколака через серебряный круг к броду.","Круг сомкнулся. Волколак остался у камней, тропа к селению свободна."]
+	var hints := ["Мира: «Слева от тропы след. Посмотри, куда зверь волочил лапу».","След уходит под камни. Справа у сундука возьми серебряные звенья.","Круг готов. Подойди к каменному лазу и вымани волколака.","Веди волколака через серебряный круг к броду.","Круг сомкнулся. Волколак остался у камней, Мира ждёт у начала тропы, пора вернуться в селение."]
 	hud.text = "Охотничий договор · Русь, 1348\n" + str(hints[phase])
 	if not note.is_empty(): hud.text += "\n"+note
 	ward.visible = phase >= Phase.LURE
 	beast.visible = phase >= Phase.CHASE
 	if phase == Phase.DONE: beast.position = WARD
-	action.visible = (phase == Phase.TRACK and near(PAW)) or (phase == Phase.SILVER and near(KIT)) or (phase == Phase.LURE and near(DEN))
-	action.text = ["Осмотреть след [E]","Подготовить серебро [E]","Выманить зверя [E]","",""][phase]
+	action.visible = (phase == Phase.DONE and near(Vector3(2,0,-1)) and not entry.is_empty()) or (phase == Phase.TRACK and near(PAW)) or (phase == Phase.SILVER and near(KIT)) or (phase == Phase.LURE and near(DEN))
+	action.text = ["Осмотреть след [E]","Подготовить серебро [E]","Выманить зверя [E]","","Вернуться с Мирой [E]"][phase]
 
 func interact() -> void:
-	if phase == Phase.TRACK and near(PAW): advance(Phase.SILVER)
+	if phase == Phase.DONE and near(Vector3(2,0,-1)) and not entry.is_empty():
+		if Slot.store_checkpoint(11,entry.evidence,entry.slot_path,true,entry.tenant,entry.crossing,phase,0) != OK:
+			note = "Не удалось сохранить возвращение."
+			refresh()
+			return
+		var saved := Slot.resume(entry.slot_path)
+		saved["slot_path"] = entry.slot_path
+		get_tree().set_meta("guard_entry",saved)
+		get_tree().change_scene_to_file("res://Content/PrinceGuard.tscn")
+	elif phase == Phase.TRACK and near(PAW): advance(Phase.SILVER)
 	elif phase == Phase.SILVER and near(KIT): advance(Phase.LURE)
 	elif phase == Phase.LURE and near(DEN):
 		beast.position = DEN + Vector3.FORWARD*2

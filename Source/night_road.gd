@@ -276,6 +276,10 @@ func resume_district() -> void:
 	if saved.is_empty():
 		return
 	saved["slot_path"] = slot_path
+	if saved.guard >= 0:
+		get_tree().set_meta("guard_entry",saved)
+		get_tree().change_scene_to_file("res://Content/PrinceGuard.tscn")
+		return
 	if saved.hunt >= 0:
 		get_tree().set_meta("hunt_entry",saved)
 		get_tree().change_scene_to_file("res://Content/Hunt.tscn")
