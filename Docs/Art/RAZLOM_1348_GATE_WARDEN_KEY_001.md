@@ -1,15 +1,21 @@
-# Gate Warden's Key / 1348 — art handoff
+# RAZLOM 1348: Gate Warden forged key — actual asset handoff
 
-Asset ID: `RAZLOM-1348-GATE-WARDEN-KEY-HERO-001`.
+**ID**: `RAZLOM-1348-GATE-WARDEN-KEY-HERO-001`.
+**Artist-owned source**: `Content/Art/HeroProps/SM_GateWardenKey_1348_v1.obj`.
+**Geometry**: original wrought-iron hero key (forged bow, hammered rosettes, central sigil, chased shaft, ancient bit); **9,032 vertices / 17,272 triangles**. Four material regions: bronze, iron, oxide, steel.
 
-This is an **actual original 3D mesh** of an ornate key in a separate art branch, not a screenshot or AI concept image. The model depicts an eight-riveted quatrefoil bow, central sigil, forged shaft, engraved collars, chased serpentine motifs, cut-bit teeth and antique metal inlay. The proportions are deliberately a little monumental for a clue/inspect close-up.
+**First-pass render asset**: `SM_GateWardenKey_1348_v1_UVdraft.obj`, same 9,032 source vertices and 17,272 triangles, 9,032 projected UVs. Important: this file has **no explicit vertex normals**. UE must build normals and tangents; facet quality / UV seams must be checked.
 
-**Files**: `Content/Art/HeroProps/SM_GateWardenKey_1348_v1.obj`, corresponding `.mtl`, and JSON manifest. OBJ: 9,032 vertices / 17,416 faces (triangles); 0.12345 m wide × 0.0228 m thick × 0.25745 m tall. Source uses +Z up and SI metres. In Unreal, confirm conversion to 100 cm per metre; do not blindly import at scale 1.
+**Real committed PBR draft maps** (256×256 binary TGA):
+- `PBR_Draft/T_GateWardenKey_1348_v1_BaseColor.tga` (sRGB ON)
+- `PBR_Draft/T_GateWardenKey_1348_v1_Normal.tga` (sRGB OFF, procedural bump, not sculpt bake)
+- `PBR_Draft/T_GateWardenKey_1348_v1_ORM.tga` (linear; R AO, G Roughness, B Metallic)
+- `SM_GateWardenKey_1348_v1_PBRdraft.mtl` binds **BaseColor only** for generic OBJ viewers; UE5 requires an actual material graph for Normal/ORM.
 
-**Important limitations**: The MTL is only preview material slots; no UV unwrap, texture-backed PBR or import proof yet. `geometry_wip`, **not accepted**, no real Blender/UE5 screenshot. Sculpt proportions, appearance, topology, mesh normals, performance and close-up photorealism still require actual visual review. Count this as an incremental asset prototype, not as meeting the owner's Black Bell v3 artistic minimum.
+**Checks actually done:** Original OBJ re-read from GitHub; 0 invalid face indices, 0 zero-area triangles, 0 non-finite vertices. The exported UVdraft OBJ re-read: all indices valid, UV values in [0,1] and triangle count unchanged. Three TGA blobs re-read and sizes checked. Four UV/PBR generator unit tests passed locally on a small synthetic model.
 
-**For Astra 1**: Use asset ID as optional interaction/inventory item after the watchman-key mission, no changes required to gameplay code by the artist.
+**Not done:** UE5 import, real in-engine render/screenshot, artistic approval, actual 4K PBR sculpt bake, topological smoothing, collision, Nanite/LOD, Windows packaged EXE, FPS. `materials_wip` only; model should not be called production-ready or meet owner's Black Bell v3 quality floor yet.
 
-**For Astra 2**: Check triangulation, shading, face orientation, unit scale, duplicate/intersecting teeth, collision simplification and import warnings. Do not report a successful UE5 import without actual editor logs. Request final PBR and revised geometry from art before production sign-off.
+**Coordination:** Astra №1 registers the stable ID in future Act II story data when needed; Astra №2 checks size (source OBJ metres vs UE centimetres), materials and shading via issue #14. Do not change another agent's files without PR review.
 
-**Next art pass**: audited face winding / degenerate checks, first real UV/PBR set, improved bevel and scratches, close-up rendered approval and low-cost UE5 collision proxy.
+For full atlas/tangent caveats see `Docs/Art/PBR_DRAFT_HANDOFF_20261121.md`.
