@@ -1,0 +1,22 @@
+{
+  "asset_id": "RZ_NATURE_ANCIENT_PINE_1348",
+  "version": "0.1.0",
+  "category": "Nature",
+  "epoch": "1348",
+  "files": [
+    "SM_AncientPine1348_LOD0.obj",
+    "pine.mtl",
+    "build.mjs"
+  ],
+  "vertices": 3240,
+  "triangles": 3810,
+  "uv_vertices": 3240,
+  "geometry_index_errors": 0,
+  "quality": "prototype",
+  "lod": "LOD0 only",
+  "pbr": "material scalar roughness/metalness only; texture maps not baked",
+  "rig": "not applicable",
+  "ue5_import": "untested",
+  "render": "untested",
+  "reference": "PR #5 black bell v3 minimum art target not met"
+}

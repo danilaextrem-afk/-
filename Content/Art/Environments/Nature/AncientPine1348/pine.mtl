@@ -1,0 +1,9 @@
+newmtl bark
+Kd 0.22 0.12 0.065
+Pr 0.88
+Pm 0.0
+
+newmtl needles
+Kd 0.065 0.13 0.075
+Pr 0.78
+Pm 0.0
