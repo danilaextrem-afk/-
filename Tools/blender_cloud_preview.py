@@ -94,6 +94,11 @@ scene=bpy.context.scene
 scene.render.engine="CYCLES"
 scene.cycles.device="CPU"
 scene.cycles.samples=args.samples
+# Ubuntu's packaged Blender can be built without OpenImageDenoiser.
+# Disable denoising explicitly for portable CPU render farm jobs.
+scene.cycles.use_denoising=False
+for view_layer in scene.view_layers:
+    view_layer.cycles.use_denoising=False
 scene.render.resolution_x=args.width
 scene.render.resolution_y=args.height
 scene.render.resolution_percentage=100
