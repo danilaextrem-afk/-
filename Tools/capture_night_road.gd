@@ -7,8 +7,9 @@ func _initialize() -> void:
 func capture() -> void:
 	var args := OS.get_cmdline_user_args()
 	var braking_frame := args.size() == 2 and args[1] == "brake"
-	if (args.size() != 1 and not braking_frame) or DisplayServer.get_name() == "headless":
-		push_error("Provide a graphical driver and one output PNG path, optionally followed by brake")
+	var roadside_frame := args.size() == 2 and args[1] == "roadside"
+	if (args.size() != 1 and not braking_frame and not roadside_frame) or DisplayServer.get_name() == "headless":
+		push_error("Provide a graphical driver and one output PNG path, optionally followed by brake or roadside")
 		quit(1)
 		return
 	var road = preload("res://Content/NightRoad.tscn").instantiate()
@@ -17,10 +18,16 @@ func capture() -> void:
 	road.action.pressed.emit()
 	Input.action_press("ui_up")
 	Input.action_press("ui_right")
-	for i in 120:
+	for i in (900 if roadside_frame else 120):
 		if i == 65: Input.action_release("ui_right")
 		road._physics_process(1.0/60)
+		if roadside_frame and road.figure.visible and road.mount.position.z < -82:
+			break
 	Input.action_release("ui_up")
+	if roadside_frame and not road.figure.is_visible_in_tree():
+		push_error("Roadside encounter did not start")
+		quit(1)
+		return
 	if braking_frame:
 		Input.action_press("ui_down")
 		road._physics_process(1.0/60)

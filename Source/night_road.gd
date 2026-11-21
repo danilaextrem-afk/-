@@ -9,7 +9,7 @@ var slot_path := Slot.PATH
 var speed := 0.0
 var sightings := 0
 var evidence := ""
-var figure := Node3D.new()
+var figure := preload("res://Source/roadside_stranger.gd").new()
 var brake: Button
 var rear := false
 var recording := SubViewportContainer.new()
@@ -75,8 +75,6 @@ func build_location() -> void:
 		for i in 40:
 			block(city,Vector3(side*7.45,.108,20-4*i),Vector3(2.8,.012,.032),"4e5051")
 	city.add_child(figure)
-	block(figure,Vector3(0,1.0,0),Vector3(.48,1.6,.28),"202027")
-	block(figure,Vector3(0,1.98,0),Vector3(.32,.38,.32),"36303b")
 	traffic.paint_color = Color("#8f5948")
 	traffic.rotation.y = PI
 	traffic.position = Vector3(-3.1,0,-130)
@@ -163,7 +161,7 @@ func update_view() -> void:
 	city.visible = not forest.visible
 	car.visible = city.visible
 	sync_road_sound()
-	figure.visible = phase == Phase.ROADSIDE and sightings > 0 and evidence.is_empty()
+	figure.visible = phase == Phase.ROADSIDE and sightings > 0 and evidence.is_empty() and -mount.position.z <= SIGHTINGS[sightings-1]+9
 	recording.visible = phase == Phase.END
 	action.visible = false
 	match phase:
@@ -226,7 +224,7 @@ func _physics_process(delta: float) -> void:
 	if phase == Phase.ROADSIDE:
 		if evidence.is_empty() and sightings < SIGHTINGS.size() and distance >= SIGHTINGS[sightings]-10:
 			sightings += 1
-			figure.position = Vector3(4.9,0,-SIGHTINGS[sightings-1])
+			figure.position = Vector3(6.48,.11,-SIGHTINGS[sightings-1])
 			update_view()
 		if sightings > 0 and distance > SIGHTINGS[sightings-1]+9:
 			figure.hide()

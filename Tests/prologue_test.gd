@@ -13,6 +13,7 @@ func run() -> void:
 		Input.action_press("ui_up")
 		var forest_frames := 0
 		var used := false
+		var checked_disappearance := false
 		for frame in 4000:
 			road._physics_process(1.0/60)
 			if road.horse.visible:
@@ -28,10 +29,15 @@ func run() -> void:
 						road.action.pressed.emit()
 						Input.action_release("ui_down")
 						used = true
+			if choice == "drive" and not checked_disappearance and -road.mount.position.z > 129 and road.phase == road.Phase.ROADSIDE:
+				road.look_back()
+				if road.figure.visible: failures.append("mirror restored an expired sighting")
+				checked_disappearance = true
 			if road.phase == road.Phase.MESSAGE:
 				break
 		Input.action_release("ui_up")
 		Input.action_release("ui_down")
+		if choice == "drive" and not checked_disappearance: failures.append("expired sighting not exercised")
 		var expected := {"stop":"следов","mirror":"отражения","drive":"мимо"}
 		if not (road.sightings == 3 and abs(forest_frames-240)<=1 and road.mount.get_instance_id()==actor_id and expected[choice] in road.evidence and road.phase == road.Phase.MESSAGE):
 			failures.append([choice,forest_frames,road.evidence,road.phase])
