@@ -61,7 +61,10 @@ func _physics_process(delta: float) -> void:
 	if ride.button_pressed or Input.is_action_pressed("ui_up"):
 		var through_gate := quest.stage >= Investigation.Stage.PASS_GATE and absf(mount.position.x) <= 2.5
 		var road_end := -113.0 if through_gate else -102.0
+		var previous_z := mount.position.z
 		mount.position.z = maxf(road_end, mount.position.z - delta*9)
+		if car.visible:
+			car.roll(previous_z - mount.position.z)
 	var active := clock.remaining > 0
 	clock.advance(delta)
 	if not triggered and mount.position.z <= -20:

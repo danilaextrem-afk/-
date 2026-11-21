@@ -42,10 +42,6 @@ func build_location() -> void:
 	block(traffic,Vector3(0,1.1,0),Vector3(1.45,.55,1.65),"899ca5")
 	for x in [-.6,.6]:
 		block(traffic,Vector3(x,.56,1.72),Vector3(.33,.16,.05),"ffe7ae")
-		block(car,Vector3(x,.72,1.83),Vector3(.42,.14,.06),"dd432a")
-	for side in [-1,1]:
-		for axle in [-1,1]:
-			block(car,Vector3(side*.94,.37,axle*1.12),Vector3(.24,.58,.59),"23252a")
 	block(city,Vector3(5.4,2,-5),Vector3(.16,4,.16),"4b5258")
 	var sign := Label3D.new()
 	sign.text = "АВТОСЕРВИС\nИЛЬЯ"
@@ -159,6 +155,7 @@ func _physics_process(delta: float) -> void:
 	var steer := Input.get_axis("ui_left","ui_right") + float(right.button_pressed) - float(left.button_pressed)
 	mount.position.x = clampf(mount.position.x + clampf(steer,-1,1)*minf(speed,5)*delta,-4.4,4.4)
 	mount.position.z -= speed*delta
+	car.roll(speed*delta)
 	trip_time += delta
 	traffic.position = Vector3(-3.1,0,-130+fmod(trip_time*8,155))
 	var distance := -mount.position.z
