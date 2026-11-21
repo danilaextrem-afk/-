@@ -1,0 +1,33 @@
+{
+  "asset_id": "razlom.environment.medieval.velegard_gatehouse.1348",
+  "name": "Velegard Gatehouse",
+  "epoch": 1348,
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "units": "centimeters",
+  "up_axis": "+Z",
+  "uv": true,
+  "geometry": {
+    "lod0": {
+      "vertices": 4662,
+      "triangles": 1554
+    },
+    "lod1": {
+      "vertices": 1278,
+      "triangles": 426
+    }
+  },
+  "material_groups": [
+    "stone",
+    "timber",
+    "shingle",
+    "oak",
+    "iron"
+  ],
+  "texture_format": "ASCII PPM source, draft basecolor/roughness/metallic; conversion required for UE5",
+  "rig": "not applicable: static architecture",
+  "collision": "not authored",
+  "ue5_import": "not tested",
+  "visual_quality": "not accepted against Black Bell v3",
+  "original_asset": true
+}
