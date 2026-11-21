@@ -1,0 +1,38 @@
+{
+  "asset_id": "RZ_VEH_1348_WAGON_WHEEL_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "status": "geometry_wip",
+  "license": "Original generated asset",
+  "purpose": "Modular wagon wheel; wheel axle along Y",
+  "units": "centimeters",
+  "z_up": true,
+  "diameter_cm": 150,
+  "vertices": 1248,
+  "triangles": 2448,
+  "uv0": true,
+  "material_slots": [
+    "wood",
+    "iron"
+  ],
+  "pbr": "scalar roughness/metallic provisional in MTL; texture maps not yet authored",
+  "lod": [
+    "LOD0 only"
+  ],
+  "rig": "none; static wheel rotating around Y",
+  "source": "generate.mjs",
+  "mesh": "SM_WagonWheel1348_LOD0.obj",
+  "validation": {
+    "triangle_index_range": "passed in-memory",
+    "degenerate_index_triangles": 0,
+    "external_mesh_reload": "not run",
+    "blender_render": "not run",
+    "ue5_import": "not run"
+  },
+  "limitations": [
+    "No baked normal/AO or 2K textures",
+    "No LOD1",
+    "No UE5 validation",
+    "Procedural silhouette is blockout and below BlackBell v3 visual floor"
+  ]
+}
