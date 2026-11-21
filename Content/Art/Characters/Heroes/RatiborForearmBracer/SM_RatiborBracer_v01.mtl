@@ -1,0 +1,12 @@
+newmtl Leather
+Kd 0.19 0.095 0.048
+Ks 0.02 0.02 0.02
+Ns 18
+newmtl Iron
+Kd 0.16 0.18 0.19
+Ks 0.36 0.36 0.36
+Ns 75
+newmtl Bronze
+Kd 0.28 0.18 0.09
+Ks 0.42 0.29 0.15
+Ns 95
