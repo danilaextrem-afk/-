@@ -1,6 +1,6 @@
 # Draft atlas UVs and triangulated face normals from original Razlom authored geometry
 # Prototype only: planar projection seams; no photorealistic or UE5 shading certification
-mtllib SM_GateWardenChest_1348_v1.mtl
+mtllib SM_GateWardenChest_Lid_1348_v1_PBRdraft.mtl
 v -0.41600 -0.42100 0.00042
 v -0.30300 -0.42100 0.00042
 v -0.30300 -0.40000 0.01831
