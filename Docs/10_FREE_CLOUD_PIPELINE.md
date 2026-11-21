@@ -24,3 +24,12 @@
 Ссылки на официальную документацию:
 - https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job
 - https://dev.epicgames.com/documentation/unreal-engine/hardware-and-software-specifications-for-unreal-engine
+
+
+## Первый реальный прогон — GitHub Actions #44932491179
+- Windows runner: **success**, исходный UE5 scaffold прошёл статическую проверку, отчёт `RAZLOM-Windows-cloud-hardware-report` сохранён.
+- Linux/Blender 4.0.2: **success**, импорт текущего v3 OBJ и рендер Cycles CPU 1280×720; PNG в артефакте `RAZLOM-Blender-actual-OBJ-preview`.
+- Первое выполнение Blender завершилось ошибкой отсутствующего OpenImageDenoiser в штатной Ubuntu-сборке, затем код исправлен `scene.cycles.use_denoising=False`, второй запуск прошёл.
+- Подтверждено отсутствие установленного `UnrealEditor` и недоступность `nvidia-smi` на стандартных runner'ах; **UE5/GPU НЕ настроен**.
+- Проверка: https://github.com/danilaextrem-afk/-/actions/runs/44932491179
+- Артефакты живут 7 дней, затем удаляются по правилам workflow. Это не постоянный Desktop.
