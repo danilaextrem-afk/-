@@ -1,0 +1,29 @@
+# RAZLOM / original preview palette only. Legacy MTL is NOT PBR.
+# Final UE5 BaseColor, Normal, ORM, UV atlas, LOD and collisions pending.
+newmtl iron
+Ka 0.018 0.021 0.023
+Kd 0.095 0.106 0.112
+Ks 0.33 0.34 0.35
+Ns 130.0
+illum 2
+
+newmtl steel
+Ka 0.065 0.063 0.060
+Kd 0.345 0.355 0.357
+Ks 0.65 0.67 0.67
+Ns 250.0
+illum 2
+
+newmtl bronze
+Ka 0.040 0.032 0.018
+Kd 0.37 0.255 0.13
+Ks 0.53 0.43 0.20
+Ns 170.0
+illum 2
+
+newmtl oxide
+Ka 0.008 0.010 0.011
+Kd 0.034 0.046 0.051
+Ks 0.07 0.08 0.075
+Ns 30.0
+illum 2
