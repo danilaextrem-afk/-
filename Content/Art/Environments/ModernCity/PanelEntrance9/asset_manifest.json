@@ -1,0 +1,26 @@
+{
+  "asset_id": "razlom.modern.panel_entrance_9.2026",
+  "version": "0.1",
+  "era": 2026,
+  "category": "ModernCity",
+  "file": "PanelEntrance9.obj",
+  "units": "cm",
+  "up_axis": "+Z",
+  "vertices": 1432,
+  "triangles": 716,
+  "uv": true,
+  "material_groups": [
+    "concrete",
+    "frame",
+    "door",
+    "glass",
+    "metal",
+    "stain"
+  ],
+  "pbr_maps": "draft PPM basecolor only; roughness/metallic/normal pending",
+  "lod": "not authored",
+  "collision": "not authored",
+  "ue5_import": "not tested",
+  "render": "not tested",
+  "status": "geometry_wip"
+}
