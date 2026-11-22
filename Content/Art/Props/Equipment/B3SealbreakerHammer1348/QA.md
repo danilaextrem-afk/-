@@ -1,0 +1,3 @@
+# QA report
+
+Two OBJ meshes were generated in this run and uploaded. In-process validation checked finite coordinates, triangle index bounds, distinct indices within each triangle, and one UV per vertex. LOD0: 600 vertices / 812 triangles. LOD1: 280 vertices / 388 triangles. Five material assignments; scalar PBR values in MTL only. An independent Python variant generated different LOD0 counts and does not validate the uploaded generator. The checked-in Node generator has not been executed independently. No render, UV overlap analysis, manifoldness check, collision mesh, texture maps, or UE5 import. Status geometry_wip.

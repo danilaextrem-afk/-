@@ -1,0 +1,28 @@
+{
+  "asset_id": "RZ_EQ_B3_SEALBREAKER_HAMMER_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "canon": "Interpretive seal-breaking tool associated with B3; not specified as boss weapon",
+  "source": "generate.cjs",
+  "files": [
+    "B3_Sealbreaker_Hammer_LOD0.obj",
+    "B3_Sealbreaker_Hammer_LOD1.obj",
+    "B3_Sealbreaker_Hammer.mtl"
+  ],
+  "lods": {
+    "LOD0": {
+      "vertices": 600,
+      "triangles": 812
+    },
+    "LOD1": {
+      "vertices": 280,
+      "triangles": 388
+    }
+  },
+  "geometry_checks": "in-process vertex index, finite coordinates, distinct triangle indices",
+  "uv": "OBJ UV per vertex",
+  "pbr": "MTL scalar material parameters; no texture maps",
+  "render_tested": false,
+  "ue5_tested": false,
+  "collision": "not created"
+}
