@@ -1,0 +1,1 @@
+Original procedural handset, 2026 Moscow. LOD0 276 triangles, LOD1 180. All faces are cuboid quads triangulated, no degenerate faces by construction. UV0 present but overlapping; material values preliminary, not complete PBR. No render/UE5 test. Not art-approved.
