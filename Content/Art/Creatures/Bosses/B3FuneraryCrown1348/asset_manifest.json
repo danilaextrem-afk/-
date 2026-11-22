@@ -1,0 +1,30 @@
+{
+  "asset_id": "RZ_BOSS_B3_FUNERARY_CROWN_1348_001",
+  "version": "0.1.0",
+  "boss": "B3 Князь Без Могилы",
+  "epoch": 1348,
+  "source": "generate.mjs",
+  "lods": {
+    "lod0": {
+      "vertices": 1056,
+      "triangles": 1888,
+      "uv": 1056
+    },
+    "lod1": {
+      "vertices": 376,
+      "triangles": 640,
+      "uv": 376
+    }
+  },
+  "pbr_materials": [
+    "aged_bronze",
+    "blackened_iron",
+    "bone_inlay",
+    "blood_garnet"
+  ],
+  "texture_source": "pbr_sources.svg",
+  "units": "meters",
+  "status": "geometry_wip",
+  "rig": "head_socket attachment proposed, not tested",
+  "quality_floor": "PR #7 bell v3; not met"
+}

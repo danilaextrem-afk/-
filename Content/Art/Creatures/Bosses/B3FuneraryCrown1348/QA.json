@@ -1,0 +1,21 @@
+{
+  "lod0": {
+    "vertices": 1056,
+    "triangles": 1888,
+    "uv": 1056
+  },
+  "lod1": {
+    "vertices": 376,
+    "triangles": 640,
+    "uv": 376
+  },
+  "indexBoundsValid": true,
+  "status": "geometry_wip",
+  "limitations": [
+    "Not a complete B3 character",
+    "No rig or UE5 import test",
+    "SVG PBR source maps require raster baking for engine import",
+    "No independently rendered image",
+    "Open strip boundaries and intersecting submeshes; not certified manifold"
+  ]
+}

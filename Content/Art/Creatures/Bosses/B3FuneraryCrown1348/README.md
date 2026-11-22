@@ -1,0 +1,2 @@
+# B3 funerary crown (WIP)
+Original crown ornament for Князь Без Могилы, not a full boss model. Ring bands, funerary bone finials and blood-garnet settings. Z-up, meters, UV per vertex. Rebuild via `node generate.mjs`. PBR values are material design targets, not baked texture maps. Geometry bounds/index test in QA.json; no Blender/UE5 render or engine test. Phase transitions and attachment pending.
