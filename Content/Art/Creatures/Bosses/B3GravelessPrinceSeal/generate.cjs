@@ -1,0 +1,13 @@
+// Original parametric B3 seal; Node.js 18+. No external assets.
+const fs=require('fs');
+const N=48, V=[], UV=[], F=[], groups=[];
+function vert(x,y,z,u,v){V.push([x,y,z]);UV.push([u,v]);return V.length}
+function tri(a,b,c,m){F.push([a,b,c,m])}
+function ring(r,z,phase=0){return Array.from({length:N},(_,i)=>{let a=2*Math.PI*i/N+phase;return vert(r*Math.cos(a),r*Math.sin(a),z,0.5+0.48*r/0.65*Math.cos(a),0.5+0.48*r/0.65*Math.sin(a))})}
+function band(ro,ri,z0,z1,m){let a=ring(ro,z0),b=ring(ro,z1),c=ring(ri,z0),d=ring(ri,z1);for(let i=0;i<N;i++){let j=(i+1)%N;[[a[i],a[j],b[j]],[a[i],b[j],b[i]],[c[j],c[i],d[i]],[c[j],d[i],d[j]],[b[i],b[j],d[j]],[b[i],d[j],d[i]],[a[j],a[i],c[i]],[a[j],c[i],c[j]]].forEach(t=>tri(...t,m))}}
+function prism(poly,z0,z1,m){let a=poly.map(([x,y])=>vert(x,y,z0,(x+0.65)/1.3,(y+0.65)/1.3)),b=poly.map(([x,y])=>vert(x,y,z1,(x+0.65)/1.3,(y+0.65)/1.3));for(let i=1;i<poly.length-1;i++){tri(a[0],a[i+1],a[i],m);tri(b[0],b[i],b[i+1],m)}for(let i=0;i<poly.length;i++){let j=(i+1)%poly.length;tri(a[i],a[j],b[j],m);tri(a[i],b[j],b[i],m)}}
+band(0.59,0.43,-0.065,0.065,'aged_iron');band(0.43,0.03,-0.035,0.025,'blackened_silver');
+for(let k=0;k<7;k++){let a=2*Math.PI*k/7+Math.PI/2, p=[[0.42,-0.075],[0.62,-0.052],[0.73,0],[0.62,0.052],[0.42,0.075]].map(([x,y])=>[x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)]);prism(p,-0.04,0.04,'aged_iron')}
+for(let k=0;k<3;k++){let a=2*Math.PI*k/3+Math.PI/2;let p=[[0.07,-0.045],[0.32,-0.045],[0.39,0],[0.32,0.045],[0.07,0.045]].map(([x,y])=>[x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)]);prism(p,0.03,0.075,'bone_inlay')}
+prism([[-0.09,-0.13],[0.09,-0.13],[0.09,0.13],[-0.09,0.13]],0.025,0.09,'bone_inlay');
+const mats=['aged_iron','blackened_silver','bone_inlay'];let obj=['# B3 Graveless Prince funerary seal v0.1','o B3_FunerarySeal'];V.forEach(p=>obj.push('v '+p.map(x=>x.toFixed(6)).join(' ')));UV.forEach(p=>obj.push('vt '+p.map(x=>x.toFixed(6)).join(' ')));let last='';for(const [a,b,c,m] of F){if(last!==m){obj.push('usemtl '+m);last=m}obj.push('f '+[a,b,c].map(i=>i+'/'+i).join(' '))}const mtl=['newmtl aged_iron','Kd 0.16 0.13 0.12','Ks 0.30 0.28 0.27','Ns 65','newmtl blackened_silver','Kd 0.23 0.24 0.25','Ks 0.50 0.50 0.50','Ns 90','newmtl bone_inlay','Kd 0.66 0.58 0.44','Ks 0.12 0.11 0.10','Ns 22'].join('\n')+'\n';obj.splice(2,0,'mtllib B3_FunerarySeal.mtl');fs.writeFileSync('B3_FunerarySeal.obj',obj.join('\n')+'\n');fs.writeFileSync('B3_FunerarySeal.mtl',mtl);console.log(JSON.stringify({vertices:V.length,triangles:F.length,uv:UV.length,invalid:F.filter(f=>f.slice(0,3).some(i=>i<1||i>V.length)).length}));
