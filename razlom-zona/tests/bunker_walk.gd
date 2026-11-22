@@ -36,6 +36,8 @@ func run() -> void:
     game = load("res://scenes/main.tscn").instantiate()
     root.add_child(game)
     player = game.player
+    for enemy in game.enemies:
+        enemy.queue_free()
     if not require(player.position.distance_to(old_pos) < 0.01 and game.inventory.medkit == 1, "Save restore failed"):
         return
     await process_frame
