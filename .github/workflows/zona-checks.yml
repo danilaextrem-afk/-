@@ -1,0 +1,20 @@
+name: ZONA gameplay checks
+on:
+  push:
+    paths: ['razlom-zona/**', '.github/workflows/zona-checks.yml']
+  pull_request:
+    paths: ['razlom-zona/**', '.github/workflows/zona-checks.yml']
+permissions:
+  contents: read
+jobs:
+  bunker:
+    runs-on: ubuntu-latest
+    container: barichello/godot-ci:4.4.1
+    defaults:
+      run:
+        working-directory: razlom-zona
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tests/test_project.py
+      - run: godot --headless --import
+      - run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/bunker_walk.gd
