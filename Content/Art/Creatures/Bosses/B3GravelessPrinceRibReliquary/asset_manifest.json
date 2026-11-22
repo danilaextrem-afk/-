@@ -1,0 +1,42 @@
+{
+  "asset_id": "RZ_BOSS_B3_RIB_RELIQUARY_1348_001",
+  "version": "0.1.0",
+  "boss": "B3 Князь Без Могилы",
+  "category": "boss wearable chest reliquary",
+  "epoch": 1348,
+  "units": "meters",
+  "up_axis": "Z",
+  "phase_notes": {
+    "phase_1": "sealed black heart, iron ribs",
+    "phase_2": "exposed heart after seals destroyed; material swap and gameplay logic not implemented"
+  },
+  "lod0": {
+    "vertices": 1894,
+    "triangles": 3186,
+    "uv": 1894,
+    "materials": [
+      "oxidized_iron",
+      "bone",
+      "silver",
+      "seal_black"
+    ],
+    "invalidFaces": 0
+  },
+  "lod1": {
+    "vertices": 771,
+    "triangles": 1018,
+    "uv": 771,
+    "materials": [
+      "oxidized_iron",
+      "bone",
+      "silver",
+      "seal_black"
+    ],
+    "invalidFaces": 0
+  },
+  "rig": "not rigged; intended to attach to B3 chest bone",
+  "collision": "not generated",
+  "texture_status": "material parameter only; no baked PBR texture maps",
+  "validation": "OBJ indices verified in JS generator; no Blender/UE5 import or mesh render",
+  "quality": "WIP below accepted bell v3"
+}
