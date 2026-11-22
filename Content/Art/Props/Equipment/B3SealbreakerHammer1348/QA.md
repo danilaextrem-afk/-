@@ -1,0 +1,1 @@
+Source generator and MTL saved. Locally an independent Python implementation generated 780/388 triangles (LOD0/LOD1), but this JS generator is a separate implementation and has NOT been independently executed or compared. No UE5 import, actual render, texture maps or collision validation.
