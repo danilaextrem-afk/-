@@ -1,0 +1,39 @@
+{
+  "asset_id": "RZ_ENV_NATURE_BLACKWOOD_TWISTED_OAK_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "license": "original project work",
+  "units": "meters",
+  "axis": "Z-up",
+  "materials": {
+    "bark": {
+      "baseColor": [
+        0.14,
+        0.095,
+        0.065
+      ],
+      "metallic": 0,
+      "roughness": 0.94
+    },
+    "root": {
+      "baseColor": [
+        0.105,
+        0.075,
+        0.052
+      ],
+      "metallic": 0,
+      "roughness": 0.98
+    }
+  },
+  "lods": {
+    "LOD0": {
+      "vertices": 908,
+      "triangles": 832
+    },
+    "LOD1": {
+      "vertices": 336,
+      "triangles": 294
+    }
+  },
+  "notes": "PBR numeric parameters only; no texture maps. No UE5 or render validation."
+}
