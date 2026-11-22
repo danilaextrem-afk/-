@@ -1,0 +1,23 @@
+{
+  "asset_id": "ZONA_ENV_GATE_APPROACH_001",
+  "version": "0.1.0",
+  "dimensions_m": [
+    5.43,
+    0.84,
+    8
+  ],
+  "triangles": 516,
+  "parts": 43,
+  "atlas": "128x64",
+  "license": "original CC0",
+  "status": "geometry_wip / not approved",
+  "local_artifacts": [
+    "gate_approach.glb",
+    "generate.py",
+    "atlas.png",
+    "geometry_view_1.png",
+    "geometry_view_2.png"
+  ],
+  "github_binary_uploaded": false,
+  "qa": "GLB local roundtrip passed; Godot and Android not tested"
+}
