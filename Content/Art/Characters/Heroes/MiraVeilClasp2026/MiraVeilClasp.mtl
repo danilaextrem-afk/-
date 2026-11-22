@@ -1,0 +1,19 @@
+newmtl aged_silver
+Kd 0.43 0.42 0.38
+Ks 0.60 0.60 0.60
+Ns 170
+
+newmtl oxidized_recess
+Kd 0.08 0.11 0.10
+Ks 0.22 0.24 0.23
+Ns 50
+
+newmtl dark_enamel
+Kd 0.025 0.035 0.048
+Ks 0.18 0.19 0.22
+Ns 120
+
+newmtl cloth_pin
+Kd 0.27 0.26 0.25
+Ks 0.35 0.34 0.33
+Ns 90

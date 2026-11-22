@@ -1,0 +1,50 @@
+{
+  "asset_id": "RZ_HERO_MIRA_VEIL_CLASP_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 2026,
+  "character": "Мира",
+  "intended_use": "Costume brooch / cloak fastening, visual accessory; not an interactive quest item",
+  "original": true,
+  "license": "Original project-authored geometry, no third-party pack",
+  "units": "metres",
+  "axis": "Z-up",
+  "lod0": {
+    "vertices": 3811,
+    "triangles": 6156,
+    "uv": 3811,
+    "invalid_faces": 0
+  },
+  "lod1": {
+    "vertices": 1276,
+    "triangles": 1868,
+    "uv": 1276,
+    "invalid_faces": 0
+  },
+  "source": "generate.mjs",
+  "material_file": "MiraVeilClasp.mtl",
+  "pbr_parameters": {
+    "aged_silver": {
+      "metallic": 0.82,
+      "roughness": 0.38
+    },
+    "oxidized_recess": {
+      "metallic": 0.55,
+      "roughness": 0.73
+    },
+    "dark_enamel": {
+      "metallic": 0.05,
+      "roughness": 0.24
+    },
+    "cloth_pin": {
+      "metallic": 0.7,
+      "roughness": 0.52
+    }
+  },
+  "texture_maps": "not authored; MTL viewport preview only",
+  "rig": "static accessory; no skin weights or attachment socket",
+  "collision": "not authored",
+  "render": "not executed",
+  "ue5": "not tested",
+  "art_floor": "PR #7; black bell v3 PR #5; not met"
+}
