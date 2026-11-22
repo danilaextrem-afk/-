@@ -1,0 +1,3 @@
+# QA — archive key 1348
+
+Generated procedural mesh, not an image. LOD0 925 vertices / 1296 triangles; LOD1 215 vertices / 240 triangles. UV for every vertex. Closed ring and six-face boxes, but connectedness/manifoldness and shading not independently validated. PBR numeric parameters only, no texture maps. No Blender render, collision, UE5 import or art acceptance. Status: materials_wip (provisional).
