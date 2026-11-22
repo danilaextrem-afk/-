@@ -1,0 +1,23 @@
+{
+  "steel": {
+    "baseColor": [
+      0.23,
+      0.25,
+      0.27,
+      1
+    ],
+    "metallic": 0.85,
+    "roughness": 0.4
+  },
+  "bronze": {
+    "baseColor": [
+      0.4,
+      0.25,
+      0.1,
+      1
+    ],
+    "metallic": 0.78,
+    "roughness": 0.46
+  },
+  "note": "Numeric PBR parameters only; texture maps not yet authored."
+}
