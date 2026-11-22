@@ -1,0 +1,20 @@
+{
+  "charcoal": {
+    "baseColor": [
+      0.035,
+      0.036,
+      0.042
+    ],
+    "metallic": 0,
+    "roughness": 0.92
+  },
+  "bone": {
+    "baseColor": [
+      0.2,
+      0.18,
+      0.16
+    ],
+    "metallic": 0,
+    "roughness": 0.79
+  }
+}
