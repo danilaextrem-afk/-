@@ -1,0 +1,16 @@
+{
+  "asset_id": "RZ_PROP_VELEGARD_WARD_KEY_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "license": "Original project-owned",
+  "category": "interactive investigation key",
+  "units": "meters",
+  "source": "generate.cjs",
+  "lod": [
+    "LOD0.obj",
+    "LOD1.obj"
+  ],
+  "pbr": "pbr_material.json",
+  "status": "materials_wip",
+  "ue5_tested": false
+}
