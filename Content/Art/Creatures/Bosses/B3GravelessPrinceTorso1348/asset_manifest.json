@@ -1,0 +1,41 @@
+{
+  "asset_id": "RZ_BOSS_B3_GRAVELESS_PRINCE_TORSO_1348_001",
+  "version": "0.1.0",
+  "canon": "B3 Князь Без Могилы — неупокоенный князь, мёртвая дружина, истинное имя и печати",
+  "status": "geometry_wip",
+  "lods": [
+    {
+      "file": "torso_LOD0.obj",
+      "vertices": 516,
+      "triangles": 1008
+    },
+    {
+      "file": "torso_LOD1.obj",
+      "vertices": 264,
+      "triangles": 504
+    }
+  ],
+  "materials": {
+    "iron_black": {
+      "baseColor": [
+        0.045,
+        0.048,
+        0.055
+      ],
+      "metallic": 0.78,
+      "roughness": 0.69
+    },
+    "iron_oxidized": {
+      "baseColor": [
+        0.13,
+        0.09,
+        0.075
+      ],
+      "metallic": 0.68,
+      "roughness": 0.82
+    }
+  },
+  "rig": "not_created",
+  "collision": "not_created",
+  "ue5_tested": false
+}
