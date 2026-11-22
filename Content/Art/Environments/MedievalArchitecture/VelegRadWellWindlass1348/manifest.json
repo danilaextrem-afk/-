@@ -1,0 +1,25 @@
+{
+  "asset_id": "RZ_ENV_VELEGRAD_WELL_WINDLASS_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "units": "metres",
+  "up": "Z",
+  "lod0": {
+    "vertices": 816,
+    "triangles": 1384
+  },
+  "lod1": {
+    "vertices": 368,
+    "triangles": 584
+  },
+  "materials": [
+    "stone",
+    "wood",
+    "iron",
+    "rope"
+  ],
+  "pbr_maps": false,
+  "collision": false,
+  "ue5_verified": false
+}
