@@ -1,0 +1,23 @@
+{
+  "method": "in-process generator execution",
+  "lod0": {
+    "vertices": 412,
+    "triangles": 760,
+    "uv": 412,
+    "degenerate": 0
+  },
+  "lod1": {
+    "vertices": 160,
+    "triangles": 276,
+    "uv": 160,
+    "degenerate": 0
+  },
+  "checks": {
+    "vertex_uv_counts_match": true,
+    "nondegenerate": true,
+    "rendered": false,
+    "ue5_imported": false,
+    "independent_generator_run": false
+  },
+  "limitations": "No real mesh render, UV overlap check, watertight check, PBR texture maps, or UE5 import."
+}
