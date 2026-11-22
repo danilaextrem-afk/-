@@ -1,0 +1,52 @@
+{
+  "asset_id": "RZ_VEH_VELEGRAD_WAGON_HITCH_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "path": "Content/Art/VehiclesAndMounts/VelegRadWagonHitch1348",
+  "units": "meters",
+  "up_axis": "Z",
+  "lod0": {
+    "vertices": 340,
+    "triangles": 640
+  },
+  "lod1": {
+    "vertices": 180,
+    "triangles": 320
+  },
+  "materials": {
+    "wood": {
+      "base_color": [
+        0.24,
+        0.12,
+        0.055
+      ],
+      "metallic": 0,
+      "roughness": 0.88
+    },
+    "iron": {
+      "base_color": [
+        0.17,
+        0.18,
+        0.17
+      ],
+      "metallic": 0.8,
+      "roughness": 0.56
+    },
+    "leather": {
+      "base_color": [
+        0.11,
+        0.065,
+        0.035
+      ],
+      "metallic": 0,
+      "roughness": 0.91
+    }
+  },
+  "qa": {
+    "lod0_invalid": 0,
+    "lod0_degenerate": 0,
+    "lod1_invalid": 0,
+    "lod1_degenerate": 0
+  },
+  "notes": "Procedural geometry and scalar PBR only; no PBR texture maps, UV atlas overlaps, no real UE5 import, no renderer verification, no collision. Not art-floor ready."
+}
