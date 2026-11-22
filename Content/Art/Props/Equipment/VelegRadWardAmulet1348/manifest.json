@@ -1,0 +1,34 @@
+{
+  "asset_id": "RZ_EQ_WARD_AMULET_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "license": "original",
+  "status": "geometry_wip",
+  "source": "generate.cjs",
+  "lod": {
+    "LOD0": {
+      "vertices": 984,
+      "triangles": 1924,
+      "uv": 984,
+      "degenerate_triangles": 0
+    },
+    "LOD1": {
+      "vertices": 424,
+      "triangles": 804,
+      "uv": 424,
+      "degenerate_triangles": 0
+    }
+  },
+  "pbr": {
+    "base_color": [
+      0.29,
+      0.21,
+      0.12
+    ],
+    "metallic": 0.85,
+    "roughness": 0.56,
+    "normal_map": null,
+    "ao_map": null
+  },
+  "qa": "computed triangle areas and UV counts; UE5 untested"
+}
