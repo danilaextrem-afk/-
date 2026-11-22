@@ -1,0 +1,43 @@
+# Original placeholder palette, final UE5 maps not included
+newmtl Timber_Log
+Ka 0.03 0.03 0.03
+Kd 0.35 0.22 0.12
+Ks 0.03 0.03 0.03
+Ns 25
+illum 2
+newmtl Timber_Endgrain
+Ka 0.03 0.03 0.03
+Kd 0.28 0.18 0.092
+Ks 0.03 0.03 0.03
+Ns 25
+illum 2
+newmtl Timber_Plank
+Ka 0.03 0.03 0.03
+Kd 0.39 0.23 0.12
+Ks 0.03 0.03 0.03
+Ns 25
+illum 2
+newmtl Timber_Trim
+Ka 0.03 0.03 0.03
+Kd 0.3 0.17 0.075
+Ks 0.03 0.03 0.03
+Ns 25
+illum 2
+newmtl Chinking_Dark
+Ka 0.03 0.03 0.03
+Kd 0.09 0.071 0.053
+Ks 0.03 0.03 0.03
+Ns 25
+illum 2
+newmtl Iron_Forged
+Ka 0.03 0.03 0.03
+Kd 0.14 0.143 0.147
+Ks 0.03 0.03 0.03
+Ns 25
+illum 2
+newmtl Shingle_Wood
+Ka 0.03 0.03 0.03
+Kd 0.27 0.21 0.145
+Ks 0.03 0.03 0.03
+Ns 25
+illum 2

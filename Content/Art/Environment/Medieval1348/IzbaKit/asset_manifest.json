@@ -1,0 +1,418 @@
+{
+  "id": "RAZLOM_IZBA_KIT_1348",
+  "status": "geometry_wip",
+  "platform": "Windows PC UE5",
+  "modelFormat": "OBJ",
+  "units": "meters",
+  "upAxis": "Z",
+  "files": [
+    "SM_Izba_WallSolid_1348_LOD0.obj",
+    "SM_Izba_WallSolid_1348_LOD1.obj",
+    "SM_Izba_WallWindow_1348_LOD0.obj",
+    "SM_Izba_WallWindow_1348_LOD1.obj",
+    "SM_Izba_WallDoor_1348_LOD0.obj",
+    "SM_Izba_WallDoor_1348_LOD1.obj",
+    "SM_Izba_CornerPost_1348_LOD0.obj",
+    "SM_Izba_CornerPost_1348_LOD1.obj",
+    "SM_Izba_Floor4m_1348_LOD0.obj",
+    "SM_Izba_Floor4m_1348_LOD1.obj",
+    "SM_Izba_RoofHalf_1348_LOD0.obj",
+    "SM_Izba_RoofHalf_1348_LOD1.obj",
+    "SM_Izba_DoorLeaf_1348_LOD0.obj",
+    "SM_Izba_DoorLeaf_1348_LOD1.obj",
+    "SM_Izba_Table_1348_LOD0.obj",
+    "SM_Izba_Table_1348_LOD1.obj",
+    "SM_Izba_Bench_1348_LOD0.obj",
+    "SM_Izba_Bench_1348_LOD1.obj"
+  ],
+  "parts": {
+    "WallSolid": {
+      "LOD0": {
+        "triangles": 1248,
+        "bounds": {
+          "min": [
+            0,
+            -0.134,
+            0.00016
+          ],
+          "max": [
+            4,
+            0.12484,
+            2.69982
+          ]
+        },
+        "materials": [
+          "Chinking_Dark",
+          "Timber_Endgrain",
+          "Timber_Log"
+        ]
+      },
+      "LOD1": {
+        "triangles": 428,
+        "bounds": {
+          "min": [
+            0,
+            -0.129,
+            0.00329
+          ],
+          "max": [
+            4,
+            0.12483,
+            2.69669
+          ]
+        },
+        "materials": [
+          "Chinking_Dark",
+          "Timber_Endgrain",
+          "Timber_Log"
+        ]
+      }
+    },
+    "WallWindow": {
+      "LOD0": {
+        "triangles": 1800,
+        "bounds": {
+          "min": [
+            0,
+            -0.165,
+            0.00016
+          ],
+          "max": [
+            4,
+            0.165,
+            2.69982
+          ]
+        },
+        "materials": [
+          "Chinking_Dark",
+          "Timber_Endgrain",
+          "Timber_Log",
+          "Timber_Trim"
+        ]
+      },
+      "LOD1": {
+        "triangles": 676,
+        "bounds": {
+          "min": [
+            0,
+            -0.165,
+            0.00329
+          ],
+          "max": [
+            4,
+            0.165,
+            2.69669
+          ]
+        },
+        "materials": [
+          "Chinking_Dark",
+          "Timber_Endgrain",
+          "Timber_Log",
+          "Timber_Trim"
+        ]
+      }
+    },
+    "WallDoor": {
+      "LOD0": {
+        "triangles": 2208,
+        "bounds": {
+          "min": [
+            0,
+            -0.165,
+            0
+          ],
+          "max": [
+            4,
+            0.165,
+            2.69982
+          ]
+        },
+        "materials": [
+          "Chinking_Dark",
+          "Timber_Endgrain",
+          "Timber_Log",
+          "Timber_Trim"
+        ]
+      },
+      "LOD1": {
+        "triangles": 836,
+        "bounds": {
+          "min": [
+            0,
+            -0.165,
+            0
+          ],
+          "max": [
+            4,
+            0.165,
+            2.69669
+          ]
+        },
+        "materials": [
+          "Chinking_Dark",
+          "Timber_Endgrain",
+          "Timber_Log",
+          "Timber_Trim"
+        ]
+      }
+    },
+    "CornerPost": {
+      "LOD0": {
+        "triangles": 116,
+        "bounds": {
+          "min": [
+            -0.18,
+            -0.185,
+            0
+          ],
+          "max": [
+            0.18,
+            0.18,
+            2.7
+          ]
+        },
+        "materials": [
+          "Iron_Forged",
+          "Timber_Log",
+          "Timber_Trim"
+        ]
+      },
+      "LOD1": {
+        "triangles": 36,
+        "bounds": {
+          "min": [
+            -0.18,
+            -0.18,
+            0
+          ],
+          "max": [
+            0.18,
+            0.18,
+            2.7
+          ]
+        },
+        "materials": [
+          "Timber_Log",
+          "Timber_Trim"
+        ]
+      }
+    },
+    "Floor4m": {
+      "LOD0": {
+        "triangles": 984,
+        "bounds": {
+          "min": [
+            0.0045,
+            0.01,
+            -0.215
+          ],
+          "max": [
+            3.9955,
+            3.99,
+            0.002
+          ]
+        },
+        "materials": [
+          "Chinking_Dark",
+          "Timber_Plank",
+          "Timber_Trim"
+        ]
+      },
+      "LOD1": {
+        "triangles": 144,
+        "bounds": {
+          "min": [
+            0.0045,
+            0.01,
+            -0.215
+          ],
+          "max": [
+            3.9955,
+            3.99,
+            0
+          ]
+        },
+        "materials": [
+          "Timber_Plank",
+          "Timber_Trim"
+        ]
+      }
+    },
+    "RoofHalf": {
+      "LOD0": {
+        "triangles": 2388,
+        "bounds": {
+          "min": [
+            0,
+            -0.06,
+            -0.18505
+          ],
+          "max": [
+            4,
+            2.62944,
+            0.96
+          ]
+        },
+        "materials": [
+          "Shingle_Wood",
+          "Timber_Trim"
+        ]
+      },
+      "LOD1": {
+        "triangles": 720,
+        "bounds": {
+          "min": [
+            0,
+            -0.06,
+            -0.18505
+          ],
+          "max": [
+            4,
+            2.62944,
+            0.96
+          ]
+        },
+        "materials": [
+          "Shingle_Wood",
+          "Timber_Trim"
+        ]
+      }
+    },
+    "DoorLeaf": {
+      "LOD0": {
+        "triangles": 288,
+        "bounds": {
+          "min": [
+            -0.008,
+            -0.151,
+            0
+          ],
+          "max": [
+            0.9955,
+            0.099,
+            2.05
+          ]
+        },
+        "materials": [
+          "Iron_Forged",
+          "Timber_Plank",
+          "Timber_Trim"
+        ]
+      },
+      "LOD1": {
+        "triangles": 204,
+        "bounds": {
+          "min": [
+            -0.008,
+            -0.151,
+            0
+          ],
+          "max": [
+            0.9955,
+            0.09578,
+            2.05
+          ]
+        },
+        "materials": [
+          "Iron_Forged",
+          "Timber_Plank",
+          "Timber_Trim"
+        ]
+      }
+    },
+    "Table": {
+      "LOD0": {
+        "triangles": 284,
+        "bounds": {
+          "min": [
+            -0.775,
+            -0.3855,
+            0
+          ],
+          "max": [
+            0.775,
+            0.3855,
+            0.783
+          ]
+        },
+        "materials": [
+          "Timber_Endgrain",
+          "Timber_Plank",
+          "Timber_Trim"
+        ]
+      },
+      "LOD1": {
+        "triangles": 132,
+        "bounds": {
+          "min": [
+            -0.775,
+            -0.3855,
+            0
+          ],
+          "max": [
+            0.775,
+            0.3855,
+            0.77
+          ]
+        },
+        "materials": [
+          "Timber_Plank",
+          "Timber_Trim"
+        ]
+      }
+    },
+    "Bench": {
+      "LOD0": {
+        "triangles": 248,
+        "bounds": {
+          "min": [
+            -0.78,
+            -0.181,
+            0
+          ],
+          "max": [
+            0.78,
+            0.181,
+            0.507
+          ]
+        },
+        "materials": [
+          "Iron_Forged",
+          "Timber_Plank",
+          "Timber_Trim"
+        ]
+      },
+      "LOD1": {
+        "triangles": 108,
+        "bounds": {
+          "min": [
+            -0.78,
+            -0.181,
+            0
+          ],
+          "max": [
+            0.78,
+            0.181,
+            0.495
+          ]
+        },
+        "materials": [
+          "Timber_Plank",
+          "Timber_Trim"
+        ]
+      }
+    }
+  },
+  "materials": [
+    "Timber_Log",
+    "Timber_Endgrain",
+    "Timber_Plank",
+    "Timber_Trim",
+    "Chinking_Dark",
+    "Iron_Forged",
+    "Shingle_Wood"
+  ],
+  "blueprint": "assembly_4m_cabin.json",
+  "engineValidation": "not_run",
+  "PBRmaps": "not_authored"
+}

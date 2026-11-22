@@ -1,0 +1,134 @@
+{
+  "units": "meters",
+  "up": "Z",
+  "baseWallLength": 4,
+  "roofMountZ": 2.7,
+  "instances": [
+    {
+      "part": "Floor4m",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0
+    },
+    {
+      "part": "WallDoor",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0
+    },
+    {
+      "part": "WallWindow",
+      "position": [
+        4,
+        4,
+        0
+      ],
+      "yaw": 180
+    },
+    {
+      "part": "WallSolid",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "yaw": 90
+    },
+    {
+      "part": "WallSolid",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "yaw": 270
+    },
+    {
+      "part": "CornerPost",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0
+    },
+    {
+      "part": "CornerPost",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "yaw": 0
+    },
+    {
+      "part": "CornerPost",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "yaw": 0
+    },
+    {
+      "part": "CornerPost",
+      "position": [
+        4,
+        4,
+        0
+      ],
+      "yaw": 0
+    },
+    {
+      "part": "RoofHalf",
+      "position": [
+        0,
+        2,
+        2.7
+      ],
+      "yaw": 0
+    },
+    {
+      "part": "RoofHalf",
+      "position": [
+        4,
+        2,
+        2.7
+      ],
+      "yaw": 180
+    },
+    {
+      "part": "DoorLeaf",
+      "position": [
+        1.5,
+        -0.19,
+        0.06
+      ],
+      "yaw": 0
+    },
+    {
+      "part": "Table",
+      "position": [
+        2.65,
+        2.3,
+        0
+      ],
+      "yaw": 90
+    },
+    {
+      "part": "Bench",
+      "position": [
+        2,
+        3.18,
+        0
+      ],
+      "yaw": 0
+    }
+  ]
+}

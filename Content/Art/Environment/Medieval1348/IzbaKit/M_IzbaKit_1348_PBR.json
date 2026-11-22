@@ -1,0 +1,84 @@
+{
+  "workflow": "metallic_roughness",
+  "status": "material_parameters_only",
+  "textureMapsIncluded": false,
+  "materials": {
+    "Timber_Log": {
+      "baseColor": [
+        0.35,
+        0.22,
+        0.12,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.86,
+      "textureMaps": "planned, not authored"
+    },
+    "Timber_Endgrain": {
+      "baseColor": [
+        0.28,
+        0.18,
+        0.092,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.88,
+      "textureMaps": "planned, not authored"
+    },
+    "Timber_Plank": {
+      "baseColor": [
+        0.39,
+        0.23,
+        0.12,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.81,
+      "textureMaps": "planned, not authored"
+    },
+    "Timber_Trim": {
+      "baseColor": [
+        0.3,
+        0.17,
+        0.075,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.73,
+      "textureMaps": "planned, not authored"
+    },
+    "Chinking_Dark": {
+      "baseColor": [
+        0.09,
+        0.071,
+        0.053,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.96,
+      "textureMaps": "planned, not authored"
+    },
+    "Iron_Forged": {
+      "baseColor": [
+        0.14,
+        0.143,
+        0.147,
+        1
+      ],
+      "metallic": 0.87,
+      "roughness": 0.54,
+      "textureMaps": "planned, not authored"
+    },
+    "Shingle_Wood": {
+      "baseColor": [
+        0.27,
+        0.21,
+        0.145,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.88,
+      "textureMaps": "planned, not authored"
+    }
+  }
+}
