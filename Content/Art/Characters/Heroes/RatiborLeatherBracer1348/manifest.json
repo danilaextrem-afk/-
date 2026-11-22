@@ -1,0 +1,43 @@
+{
+  "asset_id": "RZ_CHAR_RATIBOR_BRACER_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "character": "Ratibor",
+  "source": "generate.cjs",
+  "meshes": {
+    "LOD0": {
+      "vertices": 1826,
+      "triangles": 2992,
+      "uv": 1826,
+      "degenerate": 200,
+      "indices_valid": true
+    },
+    "LOD1": {
+      "vertices": 480,
+      "triangles": 648,
+      "uv": 480,
+      "degenerate": 120,
+      "indices_valid": true
+    }
+  },
+  "units": "meters",
+  "material_workflow": "MTL preview; PBR scalar targets only",
+  "pbr": {
+    "leather": {
+      "metallic": 0,
+      "roughness": 0.82
+    },
+    "dark_iron": {
+      "metallic": 0.85,
+      "roughness": 0.52
+    },
+    "bronze": {
+      "metallic": 0.78,
+      "roughness": 0.4
+    }
+  },
+  "rig": "none; wearable attachment requires skeletal fit",
+  "ue5_import_verified": false,
+  "art_floor_verified": false
+}
