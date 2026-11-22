@@ -1,0 +1,46 @@
+name: Izba 1348 PBR texture generation
+on:
+  workflow_dispatch:
+    inputs:
+      resolution:
+        description: Square texture map size
+        required: true
+        default: '1024'
+        type: choice
+        options: ['512','1024','2048']
+  push:
+    paths:
+      - 'Tools/Art/generate_izba_pbr.py'
+      - 'Tools/Art/validate_izba_pbr.py'
+      - '.github/workflows/izba-1348-pbr.yml'
+  pull_request:
+    paths:
+      - 'Tools/Art/generate_izba_pbr.py'
+      - 'Tools/Art/validate_izba_pbr.py'
+      - '.github/workflows/izba-1348-pbr.yml'
+
+jobs:
+  texture_pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install offline texture pipeline dependencies
+        run: python -m pip install --disable-pip-version-check numpy Pillow
+      - name: Generate all original PBR textures
+        env:
+          PBR_SIZE: ${{ github.event.inputs.resolution || '1024' }}
+        run: python Tools/Art/generate_izba_pbr.py --size "$PBR_SIZE"
+      - name: Validate 21 generated PNG channels
+        env:
+          PBR_SIZE: ${{ github.event.inputs.resolution || '1024' }}
+        run: python Tools/Art/validate_izba_pbr.py --size "$PBR_SIZE"
+      - name: Upload reproducible texture pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: izba-1348-pbr-${{ github.event.inputs.resolution || '1024' }}
+          path: Content/Art/Environment/Medieval1348/IzbaKit/Textures/
+          retention-days: 14
