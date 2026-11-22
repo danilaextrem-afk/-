@@ -1,0 +1,46 @@
+{
+  "asset_id": "RZ_ENV_VELEGRAD_WATTLE_FENCE_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "units": "meters",
+  "axis": "Z_up",
+  "lods": [
+    {
+      "file": "LOD0.obj",
+      "vertices": 464,
+      "triangles": 696
+    },
+    {
+      "file": "LOD1.obj",
+      "vertices": 272,
+      "triangles": 408
+    }
+  ],
+  "materials": {
+    "wood_post": {
+      "baseColor": [
+        0.22,
+        0.12,
+        0.055
+      ],
+      "metallic": 0,
+      "roughness": 0.88
+    },
+    "wood_wattle": {
+      "baseColor": [
+        0.32,
+        0.2,
+        0.09
+      ],
+      "metallic": 0,
+      "roughness": 0.82
+    }
+  },
+  "limitations": [
+    "box-based stylization not final quality",
+    "no baked texture maps",
+    "no UE5 import or real renderer test",
+    "open intersecting volumes"
+  ]
+}
