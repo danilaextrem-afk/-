@@ -1,0 +1,34 @@
+{
+  "asset_id": "RZ_CHAR_RATIBOR_BRACER_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "source": "generate.cjs",
+  "lod0": {
+    "vertices": 450,
+    "triangles": 432
+  },
+  "lod1": {
+    "vertices": 156,
+    "triangles": 144
+  },
+  "pbr": {
+    "Leather": {
+      "metallic": 0,
+      "roughness": 0.78
+    },
+    "Steel": {
+      "metallic": 0.85,
+      "roughness": 0.38
+    },
+    "Bronze": {
+      "metallic": 0.75,
+      "roughness": 0.42
+    }
+  },
+  "limitations": [
+    "open-ended surface shells",
+    "no texture maps",
+    "no rig or UE5 validation"
+  ]
+}
