@@ -1,0 +1,26 @@
+{
+  "asset_id": "RZ_ENV_BLACKWOOD_STUMP_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "category": "Nature",
+  "status": "geometry_wip",
+  "mesh": "LOD0.obj",
+  "units": "meters",
+  "up_axis": "Z",
+  "uv": true,
+  "materials": {
+    "Bark": {
+      "metallic": 0,
+      "roughness": 0.91,
+      "albedo": "bark_albedo.ppm"
+    },
+    "EndGrain": {
+      "metallic": 0,
+      "roughness": 0.86,
+      "albedo": "endgrain_albedo.ppm"
+    }
+  },
+  "collision": "not_generated",
+  "lod1": "not_generated",
+  "ue5_import": "not_tested"
+}

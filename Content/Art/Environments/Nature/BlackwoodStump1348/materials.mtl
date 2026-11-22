@@ -1,0 +1,11 @@
+newmtl Bark
+Kd 0.24 0.13 0.07
+Ks 0.04 0.04 0.04
+Ns 12
+map_Kd bark_albedo.ppm
+
+newmtl EndGrain
+Kd 0.45 0.29 0.14
+Ks 0.03 0.03 0.03
+Ns 8
+map_Kd endgrain_albedo.ppm
