@@ -1,0 +1,29 @@
+{
+  "asset_id": "RZZ_ENV_FOREST_TRANSITION_001",
+  "version": "0.1.0",
+  "scope": "RAZLOM: ZONA",
+  "dimensions_m": [
+    8,
+    3.55,
+    12
+  ],
+  "triangles_local_verified": 1284,
+  "mesh_parts_local_verified": 107,
+  "degenerate_faces_local_verified": 0,
+  "local_artifacts": [
+    "forest_transition.glb",
+    "generate.py",
+    "atlas.png",
+    "geometry_view_1.png",
+    "geometry_view_2.png",
+    "collision.json"
+  ],
+  "github_binary_uploaded": false,
+  "uv": "tile-center palette sampling; detailed unwrap pending",
+  "atlas": "128x128 procedural pixel palette",
+  "material": "PBR metallic 0 roughness 1",
+  "license": "original procedural work, no external assets",
+  "godot_import": "not tested",
+  "android_performance": "not tested",
+  "status": "geometry_wip"
+}

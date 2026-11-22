@@ -1,0 +1,1 @@
+2026-11-23: Local Python trimesh export + GLB reimport PASS. 107 mesh parts; 1284 triangles; zero degenerate faces. Two projections produced from exported GLB mesh, not Godot screenshots. UV tile-center reuse, collision specification only, no Godot import, no Android test. Local source and binaries not present in this GitHub branch.
