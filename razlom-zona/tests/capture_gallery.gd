@@ -10,8 +10,14 @@ func capture() -> void:
     player.set_physics_process(false)
     var folder := ProjectSettings.globalize_path("res://captures")
     DirAccess.make_dir_recursive_absolute(folder)
-    for name in ["approach", "underground"]:
-        if name == "approach":
+    for name in ["village", "porch", "approach", "underground"]:
+        if name == "village":
+            player.position = Vector3(-39, 0.1, 2)
+            player.camera.look_at(Vector3(-18, 2.65, 2))
+        elif name == "porch":
+            player.position = Vector3(-28, 0.1, 4)
+            player.camera.look_at(Vector3(-34, 2.15, 9.4))
+        elif name == "approach":
             player.position = Vector3(24.7, 0.0, -16.7)
             player.camera.look_at(Vector3(24, 0.9, -24))
         else:

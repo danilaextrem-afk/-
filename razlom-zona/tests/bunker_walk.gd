@@ -19,6 +19,7 @@ func run() -> void:
     var player = game.player
     for enemy in game.enemies:
         enemy.queue_free()
+    player.rotation.y = 0.0
     player.position = Vector3(24, 0.2, -18)
     game._touch_down("forward")
     for frame in 285:
