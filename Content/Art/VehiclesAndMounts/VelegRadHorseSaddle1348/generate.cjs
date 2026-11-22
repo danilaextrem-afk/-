@@ -3,7 +3,7 @@ const fs=require('fs');
 function build(detail){
  const V=[],UV=[],F=[],groups=[];let mat='';
  function vert(p,u,v){V.push(p);UV.push([u,v]);return V.length;}
- function tri(a,b,c){F.push([a,b,c]);groups.push(mat);}
+ function tri(a,b,c){F.push([a+1,b+1,c+1]);groups.push(mat);}
  function strip(name,fn,n,m,width){mat=name;let start=V.length;for(let i=0;i<=n;i++){let t=i/n;for(let j=0;j<=m;j++){let s=(j/m-.5)*2;let p=fn(t,s,width);vert(p,t,j/m);}}for(let i=0;i<n;i++)for(let j=0;j<m;j++){let a=start+i*(m+1)+j,b=a+m+1;tri(a,b,a+1);tri(a+1,b,b+1);}}
  function tube(name,fn,n,sides,r){mat=name;let st=V.length;for(let i=0;i<=n;i++){let t=i/n,p=fn(t),q=fn(Math.min(1,t+0.001));let d=[q[0]-p[0],q[1]-p[1],q[2]-p[2]];let len=Math.hypot(...d)||1;d=d.map(x=>x/len);let ref=Math.abs(d[2])<.9?[0,0,1]:[1,0,0],a=[d[1]*ref[2]-d[2]*ref[1],d[2]*ref[0]-d[0]*ref[2],d[0]*ref[1]-d[1]*ref[0]],al=Math.hypot(...a);a=a.map(x=>x/al);let b=[d[1]*a[2]-d[2]*a[1],d[2]*a[0]-d[0]*a[2],d[0]*a[1]-d[1]*a[0]];for(let j=0;j<=sides;j++){let th=2*Math.PI*j/sides;vert(p.map((x,k)=>x+r*(a[k]*Math.cos(th)+b[k]*Math.sin(th))),t,j/sides);}}for(let i=0;i<n;i++)for(let j=0;j<sides;j++){let a=st+i*(sides+1)+j,b=a+sides+1;tri(a,a+1,b);tri(a+1,b+1,b);}}
  // X horse forward, Y lateral, Z upward; saddle pad and hand-shaped leather seat
