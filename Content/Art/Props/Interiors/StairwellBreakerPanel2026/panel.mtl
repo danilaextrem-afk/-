@@ -1,0 +1,19 @@
+newmtl steel
+Kd .17 .19 .20
+Ns 20
+
+newmtl paint
+Kd .48 .49 .46
+Ns 10
+
+newmtl bakelite
+Kd .08 .075 .065
+Ns 40
+
+newmtl copper
+Kd .45 .24 .12
+Ns 70
+
+newmtl warning
+Kd .8 .65 .14
+Ns 10
