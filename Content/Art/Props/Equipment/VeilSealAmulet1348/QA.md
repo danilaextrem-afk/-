@@ -1,0 +1,2 @@
+# QA — Veil Seal Amulet 1348 v0.1
+Generated from parametric mesh, not a concept image. LOD0 2417 vertices/4242 triangles; LOD1 849/1426. UV indices correspond to vertex indices. Invalid face indices: 0. Dimensions ~82mm across; hanging loop top. PBR scalar values in manifest; MTL is only preview fallback. Surface strokes are coplanar-ish decorative ribbons and require topology/intersection review. No render, texture maps, collision, UE5 import or artistic approval claimed.

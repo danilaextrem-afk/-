@@ -1,0 +1,39 @@
+{
+  "asset_id": "RZ_EQUIP_1348_VEIL_SEAL_AMULET_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "category": "equipment",
+  "status": "geometry_wip",
+  "license": "original procedural",
+  "source": "generate.mjs",
+  "lod0": {
+    "vertices": 2417,
+    "triangles": 4242,
+    "uv": 2417,
+    "invalidFaces": 0
+  },
+  "lod1": {
+    "vertices": 849,
+    "triangles": 1426,
+    "uv": 849,
+    "invalidFaces": 0
+  },
+  "pbr_parameters": {
+    "dark_iron": {
+      "metallic": 1,
+      "roughness": 0.72
+    },
+    "aged_bronze": {
+      "metallic": 1,
+      "roughness": 0.55
+    },
+    "silver_inlay": {
+      "metallic": 1,
+      "roughness": 0.35
+    }
+  },
+  "texture_maps": [],
+  "collision": "not authored",
+  "ue5_tested": false,
+  "art_floor_approved": false
+}
