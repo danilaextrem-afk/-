@@ -1,0 +1,29 @@
+{
+  "asset_id": "RZ_MOUNT_VELEGRAD_WAGON_WHEEL_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "units": "meters",
+  "source": "generate.cjs",
+  "lod0": {
+    "vertices": 520,
+    "triangles": 992,
+    "degenerate": 0,
+    "uv": 520
+  },
+  "lod1": {
+    "vertices": 392,
+    "triangles": 736,
+    "degenerate": 0,
+    "uv": 392
+  },
+  "materials": [
+    "IronRim",
+    "OakSpokes",
+    "OakHub"
+  ],
+  "rig": "static axle pivot X",
+  "collision": "not generated",
+  "ue5_verified": false,
+  "render_verified": false
+}
