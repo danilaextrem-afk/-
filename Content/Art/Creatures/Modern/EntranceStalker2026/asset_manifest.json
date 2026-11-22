@@ -1,0 +1,21 @@
+{
+  "asset_id": "RZ_CREATURE_MODERN_ENTRANCE_STALKER_001",
+  "version": "0.1.0",
+  "name": "Подъездник",
+  "era": 2026,
+  "source": "generate.mjs",
+  "lod0": {
+    "vertices": 480,
+    "triangles": 672
+  },
+  "lod1": {
+    "vertices": 240,
+    "triangles": 336
+  },
+  "uv": "per-tube overlapping islands; not lightmap-ready",
+  "pbr": "numeric material parameters only",
+  "rig": "not implemented",
+  "render": "not tested",
+  "ue5": "not tested",
+  "art_floor": "not met"
+}
