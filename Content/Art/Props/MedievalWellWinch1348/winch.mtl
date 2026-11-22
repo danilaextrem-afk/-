@@ -1,0 +1,12 @@
+newmtl oak
+Kd 0.28 0.15 0.075
+Ks 0.05 0.04 0.03
+Ns 16
+newmtl iron
+Kd 0.12 0.13 0.14
+Ks 0.40 0.40 0.40
+Ns 120
+newmtl hemp
+Kd 0.38 0.29 0.14
+Ks 0.02 0.02 0.02
+Ns 8

@@ -1,0 +1,39 @@
+{
+  "asset_id": "RZ_PROP_MEDIEVAL_WELL_WINCH_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "units": "metres",
+  "axis": "Z_up",
+  "source": "generate.mjs",
+  "lod0": {
+    "vertices": 736,
+    "triangles": 768,
+    "uv": 736,
+    "invalidFaces": 0
+  },
+  "lod1": {
+    "vertices": 272,
+    "triangles": 304,
+    "uv": 272,
+    "invalidFaces": 0
+  },
+  "materials": {
+    "oak": {
+      "metallic": 0,
+      "roughness": 0.83
+    },
+    "iron": {
+      "metallic": 0.85,
+      "roughness": 0.49
+    },
+    "hemp": {
+      "metallic": 0,
+      "roughness": 0.95
+    }
+  },
+  "collision": "not_authored",
+  "ue5_verified": false,
+  "render_verified": false,
+  "art_floor_met": false
+}
