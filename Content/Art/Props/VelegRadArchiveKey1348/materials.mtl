@@ -1,0 +1,5 @@
+newmtl aged_iron
+Kd 0.17 0.15 0.12
+Ks 0.40 0.40 0.40
+Ns 25
+illum 2
