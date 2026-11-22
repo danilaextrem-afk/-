@@ -1,0 +1,59 @@
+{
+  "asset_id": "RZ_PROP_VELEGRAD_CARVED_CHEST_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "status": "geometry_wip",
+  "units": "metres",
+  "up_axis": "Z",
+  "lod0": {
+    "triangles": 360,
+    "vertices": 720
+  },
+  "lod1": {
+    "triangles": 180,
+    "vertices": 360
+  },
+  "materials": {
+    "oak": {
+      "baseColor": [
+        0.29,
+        0.15,
+        0.075
+      ],
+      "metallic": 0,
+      "roughness": 0.78
+    },
+    "iron": {
+      "baseColor": [
+        0.13,
+        0.14,
+        0.15
+      ],
+      "metallic": 0.82,
+      "roughness": 0.46
+    },
+    "bronze": {
+      "baseColor": [
+        0.35,
+        0.21,
+        0.09
+      ],
+      "metallic": 0.7,
+      "roughness": 0.42
+    },
+    "carving": {
+      "baseColor": [
+        0.18,
+        0.085,
+        0.035
+      ],
+      "metallic": 0,
+      "roughness": 0.86
+    }
+  },
+  "limitations": [
+    "PBR parameters only; no baked textures",
+    "No independent mesh render or UE5 import",
+    "Overlapping submeshes and simplified UV"
+  ]
+}
