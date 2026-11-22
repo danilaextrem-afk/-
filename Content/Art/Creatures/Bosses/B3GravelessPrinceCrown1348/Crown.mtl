@@ -1,0 +1,12 @@
+newmtl blackened_silver
+Kd 0.12 0.13 0.14
+Ks 0.5 0.5 0.5
+Ns 180
+newmtl oxidized_iron
+Kd 0.09 0.11 0.1
+Ks 0.2 0.2 0.2
+Ns 70
+newmtl aged_bronze
+Kd 0.32 0.23 0.11
+Ks 0.4 0.3 0.15
+Ns 100

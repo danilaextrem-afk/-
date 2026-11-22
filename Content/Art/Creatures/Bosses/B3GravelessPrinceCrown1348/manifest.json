@@ -1,0 +1,32 @@
+{
+  "asset_id": "RZ_BOSS_B3_GRAVELESS_PRINCE_CROWN_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "boss": "B3 Князь Без Могилы",
+  "canonical_relation": "Ancient unburied prince; visual design proposal, not approved canon",
+  "source": "generate.cjs",
+  "lods": [
+    {
+      "file": "Crown_LOD0.obj",
+      "vertices": 508,
+      "triangles": 760,
+      "degenerate": 0
+    },
+    {
+      "file": "Crown_LOD1.obj",
+      "vertices": 348,
+      "triangles": 440,
+      "degenerate": 0
+    }
+  ],
+  "materials": [
+    "blackened_silver",
+    "oxidized_iron",
+    "aged_bronze"
+  ],
+  "units": "meters",
+  "uv": "per-vertex cylindrical/procedural",
+  "rig": "static head attachment, no skeletal weights",
+  "pbr": "material parameters only, no texture maps",
+  "ue5_tested": false
+}
