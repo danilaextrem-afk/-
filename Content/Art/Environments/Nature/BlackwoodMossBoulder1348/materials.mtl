@@ -1,0 +1,5 @@
+newmtl StoneMoss
+Kd 0.35 0.36 0.31
+Ks 0.02 0.02 0.02
+Ns 12
+map_Kd basecolor.ppm
