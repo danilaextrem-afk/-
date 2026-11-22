@@ -1,0 +1,9 @@
+newmtl ivory
+Kd .72 .70 .62
+Ns 24
+newmtl dark
+Kd .12 .12 .13
+Ns 18
+newmtl metal
+Kd .33 .35 .36
+Ns 60
