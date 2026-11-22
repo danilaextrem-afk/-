@@ -1,0 +1,46 @@
+{
+  "asset_id": "RZ_PROP_VELEGRAD_ARCHIVE_KEY_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "status": "materials_wip",
+  "source": "generate.mjs",
+  "lods": {
+    "LOD0": {
+      "vertices": 1064,
+      "uv": 1064,
+      "triangles": 1412,
+      "invalid_indices": 0,
+      "degenerate_faces": 0
+    },
+    "LOD1": {
+      "vertices": 294,
+      "uv": 294,
+      "triangles": 420,
+      "invalid_indices": 0,
+      "degenerate_faces": 0
+    }
+  },
+  "pbr": {
+    "dark_iron": {
+      "baseColor": [
+        0.17,
+        0.19,
+        0.2
+      ],
+      "metallic": 0.85,
+      "roughness": 0.62
+    },
+    "polished_edges": {
+      "baseColor": [
+        0.31,
+        0.32,
+        0.29
+      ],
+      "metallic": 0.9,
+      "roughness": 0.35
+    }
+  },
+  "collision": "UE5 proxy not tested",
+  "ue5_tested": false,
+  "art_approved": false
+}
