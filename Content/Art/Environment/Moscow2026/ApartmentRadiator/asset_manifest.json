@@ -1,0 +1,27 @@
+{
+  "asset": "moscow_apartment_radiator_2026",
+  "authoring": "original procedural",
+  "status": "geometry_wip",
+  "unit": "meter",
+  "up": "Z",
+  "lods": [
+    {
+      "file": "SM_ApartmentRadiator_2026_LOD0.obj",
+      "triangles": 12848
+    },
+    {
+      "file": "SM_ApartmentRadiator_2026_LOD1.obj",
+      "triangles": 3448
+    }
+  ],
+  "materialSlots": [
+    "Enamel_Cream",
+    "Enamel_Edge",
+    "Cast_Iron_Exposed",
+    "Rust_Oxide",
+    "Brass_Valve",
+    "Steel_Pipe"
+  ],
+  "engineValidation": "not_run",
+  "pbrTextures": "not_authored"
+}
