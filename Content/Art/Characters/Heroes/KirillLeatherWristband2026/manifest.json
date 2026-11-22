@@ -1,0 +1,21 @@
+{
+  "asset_id": "RZ_CHAR_KIRILL_WRISTBAND_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "character": "Kirill Vorontsov",
+  "epoch": 2026,
+  "unit": "meters",
+  "lod0": {
+    "vertices": 424,
+    "triangles": 624
+  },
+  "lod1": {
+    "vertices": 184,
+    "triangles": 264
+  },
+  "pbr": "pbr.json",
+  "source": "generate.cjs",
+  "rig": "not_applicable_static_accessory",
+  "collision": "not_generated",
+  "ue5_verified": false
+}
