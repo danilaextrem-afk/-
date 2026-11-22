@@ -1,0 +1,37 @@
+{
+  "asset_id": "RZ_MOUNT_VELEGRAD_FORGED_STIRRUP_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "era": 1348,
+  "units": "m",
+  "lods": [
+    {
+      "file": "stirrup_LOD0.obj",
+      "vertices": 562,
+      "triangles": 656,
+      "degenerate": 0
+    },
+    {
+      "file": "stirrup_LOD1.obj",
+      "vertices": 390,
+      "triangles": 320,
+      "degenerate": 0
+    }
+  ],
+  "materials": {
+    "iron": {
+      "metallic": 0.85,
+      "roughness": 0.48
+    },
+    "leather": {
+      "metallic": 0,
+      "roughness": 0.82
+    }
+  },
+  "limitations": [
+    "No texture maps",
+    "No Blender/UE5 render",
+    "No rig or physics",
+    "Not accepted art floor"
+  ]
+}
