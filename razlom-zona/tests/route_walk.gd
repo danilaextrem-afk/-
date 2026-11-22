@@ -60,6 +60,13 @@ func run() -> void:
     for frame in 330:
         await physics_frame
     game._touch_up("back")
+    # Verify a stable grounded return, not merely a momentary Y threshold.
+    for settle_frame in range(12):
+        await physics_frame
+    if not player.is_on_floor():
+        push_error("G-4 return left player airborne at %s" % player.position)
+        quit(1)
+        return
     if player.position.z <= -19.5 or player.position.y < -0.05:
         push_error("G-4 return to checkpoint route failed at %s" % player.position)
         quit(1)
