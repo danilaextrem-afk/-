@@ -1,0 +1,20 @@
+{
+  "asset_id": "RZ_CREATURE_MODERN_SHADOW_2026_001",
+  "version": "0.1.0",
+  "canon": "Russia 2026 occult shadow creature; not robot",
+  "source": "generate.js",
+  "lod0": {
+    "vertices": 1683,
+    "triangles": 2592,
+    "uv": 1683
+  },
+  "lod1": {
+    "vertices": 486,
+    "triangles": 576,
+    "uv": 486
+  },
+  "rig": "not_created",
+  "real_render": "not_tested",
+  "UE5": "not_tested",
+  "art_floor": "not_met"
+}
