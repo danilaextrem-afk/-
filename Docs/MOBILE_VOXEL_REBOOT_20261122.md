@@ -41,3 +41,10 @@ One 2026 urban block with a normal lived-in street and a localized anomalous ent
 - Audit existing art PRs; retain usable geometry as source WIP; no bulk destructive replacement.
 - Create separate art and engineering tasks with acceptance gates above.
 - Build a reproducible pixel/voxel style test scene and obtain genuine engine screenshots before mass production.
+
+## Owner decision update — 2026-11-22: open world, NO BOSSES, parallel production
+- **Remove bosses entirely.** No boss fights, boss arenas, boss health bars, mandatory boss encounters, or boss asset production. Existing references to 13 bosses are superseded and must be removed from active scope, prompts, bestiary, roadmap and task trackers. Historical files can retain old text only if explicitly marked obsolete.
+- **Open-world sandbox with optional storyline.** Player may explore, survive, investigate, trade/interact and engage with the world without starting or completing the main story. Story quests are opt-in; free-roam progression must not be blocked by a story boss or required linear chapter. Preserve lore, two epochs and time glimpses, but redesign gating to support non-linear exploration.
+- **Parallel development.** Gameplay, world streaming, Android performance, and assets are built concurrently via independent branches and integration checkpoints; never wait for all art to be complete before playable tests.
+- Replace boss-centered milestones with emergent encounters, AI ecology, points of interest, exploration activities, optional quests and world events. Ordinary hostile creatures may still be dangerous without becoming bosses.
+- Reconcile the previous 14-act/112-mission plan as optional narrative content, not mandatory linear progression; avoid promising full scale before validation.
