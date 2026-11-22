@@ -20,8 +20,8 @@ void fragment() {
     float crack = abs(pixel.x - (0.50 + sin(pixel.y * 11.4 + motion) * 0.09 + lightning * 0.055));
     float core = 1.0 - smoothstep(0.015, 0.20, crack);
     float shards = step(0.84, hash21(floor(pixel * vec2(19.0, 31.0) + vec2(motion, -motion * 0.5))));
-    float vertical = smoothstep(0.0, 0.11, UV.y) * smoothstep(1.0, 0.84, UV.y);
-    float width = smoothstep(0.0, 0.14, UV.x) * smoothstep(1.0, 0.86, UV.x);
+    float vertical = smoothstep(0.0, 0.11, UV.y) * (1.0 - smoothstep(0.84, 1.0, UV.y));
+    float width = smoothstep(0.0, 0.14, UV.x) * (1.0 - smoothstep(0.86, 1.0, UV.x));
     vec3 rgb = mix(cold_color.rgb, hot_color.rgb, 0.48 + 0.42 * sin(pixel.y * 21.0 + TIME * 1.3));
     float energy = (core * (1.2 + shards * 0.24) + shards * 0.12) * width * vertical;
     ALBEDO = rgb;
