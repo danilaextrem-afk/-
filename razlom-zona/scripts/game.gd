@@ -18,6 +18,7 @@ var shelter_interaction := Vector3(-11.0, 0.7, 5.65)
 var anomaly_damage_clock: float = 0.0
 var message_clock: float = 0.0
 var is_dead: bool = false
+var legacy_test_buttons: Dictionary = {}
 
 var hud: CanvasLayer
 var stats_label: Label
@@ -416,6 +417,29 @@ func _label(parent: Control, pos: Vector2, size: Vector2, font_size: int) -> Lab
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     parent.add_child(label)
     return label
+
+# Compatibility layer for existing Astra automated bunker/village walk tests.
+# These functions DO NOT create on-screen arrow buttons.
+func _touch_down(button_id: String) -> void:
+    if button_id == "use":
+        _interact()
+        return
+    if button_id == "torch":
+        player.toggle_flashlight()
+        return
+    legacy_test_buttons[button_id] = true
+    _recompute_test_input()
+
+func _touch_up(button_id: String) -> void:
+    legacy_test_buttons.erase(button_id)
+    _recompute_test_input()
+
+func _recompute_test_input() -> void:
+    var x: int = int(legacy_test_buttons.has("right")) - int(legacy_test_buttons.has("left"))
+    var y: int = int(legacy_test_buttons.has("back")) - int(legacy_test_buttons.has("forward"))
+    player.virtual_move = Vector2(x, y).limit_length()
+    player.virtual_sprint = legacy_test_buttons.has("run")
+
 
 func _refresh_hud() -> void:
     stats_label.text = "ЗДР  %d     ВЫН  %d     СВЕТ  %d%%     ✚  %d     ЛОМ  %d" % [int(player.health), int(player.stamina), int(player.battery), int(inventory["medkit"]), int(inventory["scrap"])]
