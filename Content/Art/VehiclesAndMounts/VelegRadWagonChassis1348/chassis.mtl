@@ -1,0 +1,7 @@
+newmtl oak
+Kd 0.22 0.105 0.044
+Ns 22
+
+newmtl iron
+Kd 0.13 0.145 0.15
+Ns 70
