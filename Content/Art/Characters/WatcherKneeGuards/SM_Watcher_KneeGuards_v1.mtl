@@ -1,0 +1,7 @@
+# Original Watcher Knee Guards WIP materials
+newmtl ForgedDarkIron
+Ka 0.04 0.04 0.04
+Kd 0.15 0.17 0.18
+Ks 0.32 0.34 0.35
+Ns 75
+illum 2
