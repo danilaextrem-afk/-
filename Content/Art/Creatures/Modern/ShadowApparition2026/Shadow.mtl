@@ -1,0 +1,5 @@
+newmtl ShadowSkin
+Kd 0.045 0.055 0.075
+Ks 0.08 0.08 0.10
+Ns 30
+d 1.0
