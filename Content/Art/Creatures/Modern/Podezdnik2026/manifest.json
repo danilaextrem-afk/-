@@ -1,0 +1,51 @@
+{
+  "asset_id": "RZ_CREATURE_MODERN_PODEZDNIK_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "canon": "Modern Russia 2026, occult stairwell entity; approaches when unobserved; bright direct light restricts movement",
+  "units": "meters",
+  "up_axis": "Z",
+  "lod0": {
+    "vertices": 592,
+    "uv": 592,
+    "triangles": 864
+  },
+  "lod1": {
+    "vertices": 330,
+    "uv": 330,
+    "triangles": 472
+  },
+  "pbr_scalar": {
+    "charred_skin": {
+      "base_color": [
+        0.095,
+        0.088,
+        0.092
+      ],
+      "metallic": 0,
+      "roughness": 0.9
+    },
+    "void_face": {
+      "base_color": [
+        0.013,
+        0.012,
+        0.016
+      ],
+      "metallic": 0,
+      "roughness": 1
+    },
+    "bone_claw": {
+      "base_color": [
+        0.24,
+        0.21,
+        0.18
+      ],
+      "metallic": 0,
+      "roughness": 0.75
+    }
+  },
+  "rig": "not yet authored",
+  "texture_maps": "not yet authored",
+  "ue5_tested": false,
+  "art_floor_accepted": false
+}

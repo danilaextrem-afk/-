@@ -1,0 +1,3 @@
+# Pod'ezdnik geometry QA
+
+Original procedural occult humanoid mesh, draft only. In-memory JS build: LOD0 592 vertices, 864 triangles; LOD1 330 vertices, 472 triangles. UV entries one per vertex. Independent Python/trimesh inspection of equivalent generated mesh: 592 vertices, 864 faces; bounds x ±0.634m, z 0.025–2.61m. Mesh is **not watertight**. A real mesh-derived Matplotlib render was generated locally, not committed (binary image upload unsupported by text-only GitHub connector). No actual PBR textures, rig, skin weights, UE5 import or visual art approval. OBJ has open tube ends; not a finished game creature.
