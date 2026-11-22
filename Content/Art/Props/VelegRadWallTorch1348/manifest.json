@@ -1,0 +1,33 @@
+{
+  "asset_id": "RZ_PROP_VELEGRAD_WALL_TORCH_1348_001",
+  "version": "0.1.0",
+  "name": "VelegRad wall torch with forged bracket",
+  "epoch": 1348,
+  "authoring": "original procedural",
+  "units": "meters",
+  "up_axis": "Z",
+  "status": "geometry_wip",
+  "lods": [
+    {
+      "file": "LOD0.obj",
+      "triangles": 740,
+      "vertices": 2220
+    },
+    {
+      "file": "LOD1.obj",
+      "triangles": 292,
+      "vertices": 876
+    }
+  ],
+  "materials": [
+    "blackened_iron",
+    "oak",
+    "linen",
+    "soot"
+  ],
+  "pbr_status": "scalar parameters only, no texture maps",
+  "collision": "not authored",
+  "render": "not verified",
+  "ue5_import": "not verified",
+  "source": "generate.cjs"
+}
