@@ -143,6 +143,16 @@ func _create_world() -> void:
     street.position = Vector3(-39, 0, 2)
     street.rotation.y = -PI / 2.0
     add_child(street)
+
+    # Original hero landmark added AFTER Astra's street, before the bunker.
+    # Based on the actual playable 3D world coordinates; open walk-through
+    # aperture and lightweight physical collision only on both pylons.
+    var hero_gate := preload("res://scripts/rift_gate_hero.gd").new()
+    hero_gate.name = "ZONA07_RiftCheckpoint_Hero"
+    hero_gate.position = Vector3(8.0, 0.0, 2.0)
+    hero_gate.rotation.y = -PI / 2.0
+    add_child(hero_gate)
+
     _house(Vector3(-3, 0, -20), Vector3(11, 8, 9), cement, roof, dark)
     _house(Vector3(30, 0, -6), Vector3(9, 6, 10), wood, roof, dark)
     _house(Vector3(28, 0, 22), Vector3(8, 5, 8), cement, roof, dark)
