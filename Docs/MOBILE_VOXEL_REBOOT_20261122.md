@@ -48,3 +48,11 @@ One 2026 urban block with a normal lived-in street and a localized anomalous ent
 - **Parallel development.** Gameplay, world streaming, Android performance, and assets are built concurrently via independent branches and integration checkpoints; never wait for all art to be complete before playable tests.
 - Replace boss-centered milestones with emergent encounters, AI ecology, points of interest, exploration activities, optional quests and world events. Ordinary hostile creatures may still be dangerous without becoming bosses.
 - Reconcile the previous 14-act/112-mission plan as optional narrative content, not mandatory linear progression; avoid promising full scale before validation.
+
+## Owner decision — 2026-11-22: two epochs, reduced campaign scope
+- Retain **both playable eras**: mythic Rus 1348 and Russia 2026, connected through time-glimpses and designed transition points.
+- Replace old **110–140-hour main-story** target with **approximately 40 hours (+/-)** of optional narrative content. This is a content design target, not verified playtime.
+- Remove 14 acts / 112 mandatory missions as binding production quotas; restructure into a smaller, coherent non-linear campaign with side stories and optional exploration. Do not promise exact act or mission counts before pacing tests.
+- Keep the open world at a smaller, denser scale than the old 36 km² per era concept. Map area must be set after a streaming/performance prototype, not invented in advance.
+- Bosses remain fully removed; story progression must never depend on boss fights.
+- Free-roam mode remains accessible independently of story. Assets and engineering progress in parallel.
