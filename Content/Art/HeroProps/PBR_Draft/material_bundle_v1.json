@@ -1,0 +1,73 @@
+{
+  "bundle_id": "RAZLOM-ART-PBR-DRAFT-20261121",
+  "status": "draft_256px_procedural_non_baked",
+  "texture_format": "TGA RGB24 uncompressed top-left origin",
+  "channel_packing": {
+    "BaseColor": "sRGB ON",
+    "Normal": "sRGB OFF, sample tangent normal; green handedness verify in UE5",
+    "ORM": "sRGB OFF; R=ambient occlusion, G=roughness, B=metallic"
+  },
+  "import_note": "Manual UE5 material graph assignment required; MTL only connects preview BaseColor in generic OBJ viewers. Not production bakes, limited resolution, UV seams require review.",
+  "assets": [
+    {
+      "asset": "GateWardenKey_1348_v1",
+      "files": [
+        "T_GateWardenKey_1348_v1_BaseColor.tga",
+        "T_GateWardenKey_1348_v1_Normal.tga",
+        "T_GateWardenKey_1348_v1_ORM.tga"
+      ],
+      "atlas_grid": [
+        2,
+        2
+      ],
+      "atlas_slots": [
+        "bronze",
+        "iron",
+        "oxide",
+        "steel"
+      ],
+      "uv_obj": "../SM_GateWardenKey_1348_v1_UVdraft.obj",
+      "source": "../SM_GateWardenKey_1348_v1.obj"
+    },
+    {
+      "asset": "GateWardenChest_Base_1348_v1",
+      "files": [
+        "T_GateWardenChest_Base_1348_v1_BaseColor.tga",
+        "T_GateWardenChest_Base_1348_v1_Normal.tga",
+        "T_GateWardenChest_Base_1348_v1_ORM.tga"
+      ],
+      "atlas_grid": [
+        3,
+        2
+      ],
+      "atlas_slots": [
+        "iron",
+        "oak",
+        "oak_dark",
+        "recess",
+        "steel"
+      ],
+      "uv_obj": "../SM_GateWardenChest_Base_1348_v1_UVdraft.obj",
+      "source": "../SM_GateWardenChest_Base_1348_v1.obj"
+    },
+    {
+      "asset": "GateWardenChest_Lid_1348_v1",
+      "files": [
+        "T_GateWardenChest_Lid_1348_v1_BaseColor.tga",
+        "T_GateWardenChest_Lid_1348_v1_Normal.tga",
+        "T_GateWardenChest_Lid_1348_v1_ORM.tga"
+      ],
+      "atlas_grid": [
+        2,
+        2
+      ],
+      "atlas_slots": [
+        "grain",
+        "iron",
+        "oak"
+      ],
+      "uv_obj": "../SM_GateWardenChest_Lid_1348_v1_UVdraft.obj",
+      "source": "../SM_GateWardenChest_Lid_1348_v1.obj"
+    }
+  ]
+}

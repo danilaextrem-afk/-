@@ -1,0 +1,120 @@
+{
+  "asset_id": "RAZLOM-1348-GATE-WARDEN-CHEST-HERO-001",
+  "asset_name": "Watchman's Ornate Oak-and-Iron Chest",
+  "asset_version": 1,
+  "epoch": 1348,
+  "type": "static_mesh",
+  "purpose": "In-world chest for first forged key, investigation at village gates; interactive lid not yet rigged or separated",
+  "authoring": "Original procedural handcrafted geometry, no external packs or scans",
+  "license": "Original authored for Razlom",
+  "units": "metres",
+  "up_axis": "+Z",
+  "files": {
+    "mesh": "Content/Art/HeroProps/SM_GateWardenChest_1348_v1.obj",
+    "preview_materials": "Content/Art/HeroProps/SM_GateWardenChest_1348_v1.mtl",
+    "base": "Content/Art/HeroProps/SM_GateWardenChest_Base_1348_v1.obj",
+    "lid": "Content/Art/HeroProps/SM_GateWardenChest_Lid_1348_v1.obj",
+    "base_uvdraft": "Content/Art/HeroProps/SM_GateWardenChest_Base_1348_v1_UVdraft.obj",
+    "lid_uvdraft": "Content/Art/HeroProps/SM_GateWardenChest_Lid_1348_v1_UVdraft.obj",
+    "base_convex_proxy": "Content/Art/HeroProps/COL_GateWardenChest_Base_1348_v1.obj",
+    "lid_convex_proxy": "Content/Art/HeroProps/COL_GateWardenChest_Lid_1348_v1.obj",
+    "pbrdraft_bundle": "Content/Art/HeroProps/PBR_Draft/material_bundle_v1.json",
+    "base_uvdraft_preview_mtl": "Content/Art/HeroProps/SM_GateWardenChest_Base_1348_v1_PBRdraft.mtl",
+    "lid_uvdraft_preview_mtl": "Content/Art/HeroProps/SM_GateWardenChest_Lid_1348_v1_PBRdraft.mtl"
+  },
+  "mesh": {
+    "vertices": 7112,
+    "triangles": 13560,
+    "groups": 81,
+    "material_slots": [
+      "oak",
+      "oak_dark",
+      "grain",
+      "iron",
+      "steel",
+      "recess"
+    ],
+    "uv": false,
+    "explicit_normals": false
+  },
+  "status": "materials_wip",
+  "acceptance": {
+    "static_geometry": "re-read base and lid original OBJ; 7540 and 6020 triangles respectively; zero bad references; UV draft re-read refs 0 errors",
+    "pbr": "TGA drafts committed at 256px, all 6 textures re-read as base64; TGA dimensions and byte lengths verified. NOT production bakes.",
+    "ue5_import": "not_run",
+    "animated_lid": "geometry/pivot prepared; animation not implemented or tested",
+    "collision": "not_verified",
+    "owner_art_approval": "pending; minimum benchmark is accepted Black Bell v3",
+    "gpu_render": "not_run"
+  },
+  "notes": "Pivot-separated model has actual independent base and lid OBJ geometry; collision proxies are source meshes, not automatically imported UE5 collision. UVdraft is projected atlas first-pass, not a handcrafted production unwrap. Production PBR and UE5 validation remain required.",
+  "rigging_contract": {
+    "lid_pivot_in_original_source_m": [
+      0,
+      0.211,
+      0.381
+    ],
+    "lid_obj_local_origin": "original OBJ vertex positions translated by -pivot",
+    "lid_rotation_degrees_about_local_X_open": "-95 (target only, not simulated)",
+    "lid_position_when_closed_in_original_source_m": [
+      0,
+      0.211,
+      0.381
+    ],
+    "base_obj_origin_in_original_source_m": [
+      0,
+      0,
+      0
+    ],
+    "root_scene_scale": "1 OBJ metre = 100 Unreal centimetres; verify importer conversion",
+    "lid_is_separate_actor_candidate": true,
+    "hinge_motion": "NOT implemented or tested in Unreal Engine"
+  },
+  "uv_draft": {
+    "lid": {
+      "vertices": 3144,
+      "triangles": 6020,
+      "uv": 5432,
+      "face_normals": 2405,
+      "grid": [
+        2,
+        2
+      ]
+    },
+    "base": {
+      "vertices": 3968,
+      "triangles": 7540,
+      "uv": 7087,
+      "face_normals": 2818,
+      "grid": [
+        3,
+        2
+      ]
+    },
+    "validation": "Read from GitHub: all indices in range, UV finite and in [0,1], no triangle count loss; planar projection seams possible"
+  },
+  "collision_proxy": {
+    "base": "8 vertices, 12 triangles, convex box, source coords metres",
+    "lid": "8 vertices, 12 triangles, convex box relative to lid pivot in metres",
+    "bound_in_ue5": false
+  },
+  "materials": {
+    "state": "six 256px TGA procedural draft PBR maps physically committed; not final",
+    "base": [
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Base_1348_v1_BaseColor.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Base_1348_v1_Normal.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Base_1348_v1_ORM.tga"
+    ],
+    "lid": [
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Lid_1348_v1_BaseColor.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Lid_1348_v1_Normal.tga",
+      "Content/Art/HeroProps/PBR_Draft/T_GateWardenChest_Lid_1348_v1_ORM.tga"
+    ],
+    "warnings": [
+      "UV atlas is planar draft, may stretch",
+      "no high-poly normal bake",
+      "normal green must be visually verified in UE5",
+      "not final 4K"
+    ]
+  }
+}

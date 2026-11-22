@@ -1,0 +1,11 @@
+// Original Watcher cuirass v1. Run: node Tools/Art/generate_watcher_cuirass_v1.js > Content/Art/Characters/Watcher/SM_Watcher_Cuirass_v1.obj
+// Metres, Z up, +Y front. No external packages.
+const V=[], F=[], groups=[];
+function add(name, verts, faces){const start=V.length;V.push(...verts);groups.push([name,F.length]);for(const f of faces)F.push(f.map(i=>start+i+1));}
+function box(name,c,s){const v=[];for(const dz of [-1,1])for(const dy of [-1,1])for(const dx of [-1,1])v.push([c[0]+dx*s[0]/2,c[1]+dy*s[1]/2,c[2]+dz*s[2]/2]);const f=[[0,2,1],[0,3,2],[4,5,6],[4,6,7],[0,1,5],[0,5,4],[1,2,6],[1,6,5],[2,3,7],[2,7,6],[3,0,4],[3,4,7]];add(name,v,f);}
+function rivet(name,x,y,z){const r=.011,v=[[x,y,z+r],[x,y,z-r]];for(let i=0;i<8;i++){const a=2*Math.PI*i/8;v.push([x+r*Math.cos(a),y+r*Math.sin(a),z]);}const f=[];for(let i=0;i<8;i++){let a=2+i,b=2+(i+1)%8;f.push([0,a,b],[1,b,a]);}add(name,v,f);}
+for(const [i,z,w,h] of [[0,1.61,.53,.17],[1,1.47,.58,.16],[2,1.33,.52,.16],[3,1.20,.43,.14]]){box('chest_lamella_'+i,[0,.194,z],[w,.075,h]);for(const s of [-1,1])rivet('lamella_rivet_'+i+'_'+s,s*(w/2-.035),.242,z);}
+for(const s of [-1,1]){for(let j=0;j<3;j++)box('side_strap_'+s+'_'+j,[s*.275,.095,1.24+j*.155],[.068,.23,.042]);box('reliquary_mount_'+s,[s*.17,-.12,1.52],[.065,.08,.23]);box('shoulder_buckle_'+s,[s*.215,.18,1.73],[.095,.09,.055]);for(let j=0;j<4;j++)box('etched_rib_'+s+'_'+j,[s*(.07+j*.048),.254,1.63-j*.022],[.017,.018,.115]);}
+box('central_relic_spine',[0,.252,1.49],[.045,.026,.37]);for(let j=0;j<3;j++)box('central_relic_bar_'+j,[0,.272,1.38+j*.105],[.17-j*.035,.024,.022]);
+const lo=[0,1,2].map(k=>Math.min(...V.map(v=>v[k]))),hi=[0,1,2].map(k=>Math.max(...V.map(v=>v[k])));
+const lines=['# Original RAZLOM Watcher cuirass v1, metres, Z up, +Y front','mtllib SM_Watcher_Cuirass_v1.mtl'];for(const v of V)lines.push('v '+v.map(x=>x.toFixed(6)).join(' '));for(const v of V)lines.push('vt '+((v[0]-lo[0])/(hi[0]-lo[0])).toFixed(6)+' '+((v[2]-lo[2])/(hi[2]-lo[2])).toFixed(6));lines.push('usemtl Watcher_BlackenedIron_Draft');for(let j=0;j<groups.length;j++){const [name,start]=groups[j],end=j+1<groups.length?groups[j+1][1]:F.length;lines.push('g '+name);for(let k=start;k<end;k++)lines.push('f '+F[k].map(i=>i+'/'+i).join(' '));}console.log(lines.join('\n'));

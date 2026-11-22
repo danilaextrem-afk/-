@@ -1,0 +1,23 @@
+# RAZLOM artist collision PROXY for Unreal integration (separate from render asset)
+# Solid 8-vertex convex box, 1 OBJ unit = 1 metre, Z up
+o UCX_SM_GateWardenChest_Lid_1348_v1_00
+v -0.41800 -0.41800 -0.02500
+v 0.41800 -0.41800 -0.02500
+v 0.41800 -0.00200 -0.02500
+v -0.41800 -0.00200 -0.02500
+v -0.41800 -0.41800 0.10500
+v 0.41800 -0.41800 0.10500
+v 0.41800 -0.00200 0.10500
+v -0.41800 -0.00200 0.10500
+f 1 4 3
+f 1 3 2
+f 5 6 7
+f 5 7 8
+f 1 2 6
+f 1 6 5
+f 2 3 7
+f 2 7 6
+f 3 4 8
+f 3 8 7
+f 4 1 5
+f 4 5 8

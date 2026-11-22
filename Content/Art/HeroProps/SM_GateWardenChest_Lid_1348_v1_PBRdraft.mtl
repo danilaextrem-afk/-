@@ -1,0 +1,24 @@
+# RAZLOM: single atlas shared by all material slots; UVdraft object only
+# UE5 does not wire ORM and normal from OBJ MTL automatically.
+# Actual TGA files in PBR_Draft/. No sculpt-baked normals, this is procedural draft.
+
+newmtl grain
+Ka 0.2 0.2 0.2
+Kd 1 1 1
+Ks 0.01 0.01 0.01
+illum 2
+map_Kd PBR_Draft/T_GateWardenChest_Lid_1348_v1_BaseColor.tga
+
+newmtl iron
+Ka 0.2 0.2 0.2
+Kd 1 1 1
+Ks 0.01 0.01 0.01
+illum 2
+map_Kd PBR_Draft/T_GateWardenChest_Lid_1348_v1_BaseColor.tga
+
+newmtl oak
+Ka 0.2 0.2 0.2
+Kd 1 1 1
+Ks 0.01 0.01 0.01
+illum 2
+map_Kd PBR_Draft/T_GateWardenChest_Lid_1348_v1_BaseColor.tga
