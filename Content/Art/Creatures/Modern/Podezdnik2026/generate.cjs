@@ -1,0 +1,10 @@
+// Original procedural mesh. Node 18+. Y up, meters. npm dependencies: none.
+const fs=require('fs');
+function make(radial=12){let v=[],uv=[],faces=[],parts=[];function tube(name,pts,radii,mat){let start=faces.length;for(let j=0;j<pts.length;j++){for(let i=0;i<radial;i++){let a=2*Math.PI*i/radial;v.push([pts[j][0]+radii[j]*Math.cos(a),pts[j][1],pts[j][2]+radii[j]*Math.sin(a)]);uv.push([i/radial,j/(pts.length-1)]);}}let base=v.length-radial*pts.length;for(let j=0;j<pts.length-1;j++)for(let i=0;i<radial;i++){let a=base+j*radial+i,b=base+j*radial+(i+1)%radial,c=b+radial,d=a+radial;faces.push([a,b,c],[a,c,d]);}parts.push({name,mat,start,count:faces.length-start});}
+tube('torso',[[0,1.1,0],[0,1.5,0],[0,1.9,0],[0,2.25,0]],[.19,.27,.19,.11],'charcoal');
+tube('head',[[0,2.22,0],[0,2.42,0],[0,2.64,0],[0,2.77,0]],[.095,.145,.11,.025],'charcoal');
+for(let s of [-1,1]){tube('arm_'+s,[[s*.23,2.14,0],[s*.39,1.65,.01],[s*.46,.92,-.03],[s*.49,.63,-.05]],[.11,.085,.06,.027],'charcoal');tube('leg_'+s,[[s*.12,1.15,0],[s*.16,.73,0],[s*.16,.28,.02],[s*.17,.055,.13]],[.14,.11,.075,.09],'charcoal');tube('claw_'+s,[[s*.49,.65,-.05],[s*.49,.47,-.09],[s*.49,.36,-.18]],[.045,.029,.002],'bone');}
+tube('spine',[[0,1.78,-.17],[0,2.18,-.15],[0,2.48,-.12]],[.038,.035,.006],'bone');
+let out='mtllib podezdnik.mtl\no Podezdnik2026\n';for(let p of v)out+='v '+p.join(' ')+'\n';for(let t of uv)out+='vt '+t.join(' ')+'\n';for(let part of parts){out+='g '+part.name+'\nusemtl '+part.mat+'\n';for(let f of faces.slice(part.start,part.start+part.count))out+='f '+f.map(i=>(i+1)+'/'+(i+1)).join(' ')+'\n';}
+return {out,stats:{vertices:v.length,triangles:faces.length,degenerate:faces.filter(f=>{let a=v[f[0]],b=v[f[1]],c=v[f[2]];let x=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],y=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];let z=[x[1]*y[2]-x[2]*y[1],x[2]*y[0]-x[0]*y[2],x[0]*y[1]-x[1]*y[0]];return Math.hypot(...z)<1e-9}).length}};}
+for(const [lod,n] of [['LOD0',16],['LOD1',8]]){let r=make(n);fs.writeFileSync('podezdnik_'+lod+'.obj',r.out);console.log(lod,r.stats);}
