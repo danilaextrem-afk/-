@@ -1,0 +1,18 @@
+newmtl WoolPad
+Kd 0.28 0.24 0.18
+Ns 12
+newmtl DarkLeather
+Kd 0.16 0.075 0.045
+Ns 42
+newmtl HarnessLeather
+Kd 0.21 0.11 0.065
+Ns 25
+newmtl OiledWood
+Kd 0.24 0.12 0.055
+Ns 48
+newmtl ForgedIron
+Kd 0.15 0.16 0.17
+Ns 100
+newmtl BrassStud
+Kd 0.45 0.29 0.09
+Ns 90
