@@ -1,0 +1,17 @@
+# Preview MTL only; not full PBR maps
+newmtl stone
+Kd 0.38 0.37 0.34
+Ks 0.04 0.04 0.04
+Ns 12
+newmtl wood
+Kd 0.28 0.15 0.08
+Ks 0.05 0.04 0.03
+Ns 20
+newmtl iron
+Kd 0.12 0.13 0.14
+Ks 0.32 0.33 0.35
+Ns 80
+newmtl rope
+Kd 0.52 0.42 0.27
+Ks 0.02 0.02 0.02
+Ns 8
