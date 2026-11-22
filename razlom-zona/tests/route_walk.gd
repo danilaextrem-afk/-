@@ -46,5 +46,23 @@ func run() -> void:
         push_error("Checkpoint geometry missing")
         quit(1)
         return
-    print("PASS village -> forest road -> checkpoint -> G-4 approach, physics frames ", frames)
+    # Continue in the same scene and player instance through the G-4 seam.
+    player.rotation.y = 0.0
+    game._touch_down("forward")
+    for frame in 285:
+        await physics_frame
+    game._touch_up("forward")
+    if player.position.z >= -38.5 or player.position.y >= -4.5 or not player.is_on_floor():
+        push_error("Route-to-G4 handoff/descent failed at %s" % player.position)
+        quit(1)
+        return
+    game._touch_down("back")
+    for frame in 330:
+        await physics_frame
+    game._touch_up("back")
+    if player.position.z <= -19.5 or player.position.y < -0.05:
+        push_error("G-4 return to checkpoint route failed at %s" % player.position)
+        quit(1)
+        return
+    print("PASS village -> forest -> checkpoint -> G-4 descent and return; route frames ", frames)
     quit()
