@@ -1,0 +1,28 @@
+{
+  "asset_id": "RZ_CHAR_RATIBOR_HELMET_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "category": "heroes",
+  "units": "meters",
+  "axis": "Y-up",
+  "files": [
+    "helmet_LOD0.obj",
+    "helmet_LOD1.obj",
+    "generate.cjs",
+    "materials.mtl",
+    "pbr.json",
+    "QA.md"
+  ],
+  "lod0": {
+    "vertices": 715,
+    "triangles": 1092
+  },
+  "lod1": {
+    "vertices": 309,
+    "triangles": 420
+  },
+  "rig": "none; helmet intended as rigid attachment",
+  "collision": "not authored",
+  "ue5_tested": false
+}
