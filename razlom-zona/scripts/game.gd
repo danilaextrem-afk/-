@@ -136,6 +136,9 @@ func _create_world() -> void:
     _house(Vector3(-30, 0, 22), Vector3(10, 5, 8), wood, roof, dark)
     _box("OldWarehouse", Vector3(1, 4, 29), Vector3(15, 8, 12), _material("414f50"))
     _box("WarehouseRoof", Vector3(1, 8.2, 29), Vector3(16, 0.55, 13), roof)
+    var route := preload("res://scripts/route.gd").new()
+    route.name = "VillageForestCheckpointRoute"
+    add_child(route)
     var gallery := preload("res://scripts/bunker.gd").new()
     gallery.name = "BunkerGallery"
     gallery.position = Vector3(24, 0, -20)
