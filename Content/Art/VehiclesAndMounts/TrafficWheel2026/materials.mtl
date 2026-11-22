@@ -1,0 +1,7 @@
+newmtl rubber
+Kd 0.15 0.16 0.17
+Ns 15
+
+newmtl metal
+Kd 0.44 0.45 0.47
+Ns 150

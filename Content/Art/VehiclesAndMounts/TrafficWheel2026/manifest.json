@@ -1,0 +1,20 @@
+{
+  "asset_id": "RZ_VEH_2026_TRAFFIC_WHEEL_001",
+  "version": "0.1.0",
+  "epoch": 2026,
+  "units": "meters",
+  "LOD0": {
+    "vertices": 2216,
+    "triangles": 1108
+  },
+  "LOD1": {
+    "vertices": 692,
+    "triangles": 346
+  },
+  "materials": [
+    "rubber",
+    "metal"
+  ],
+  "status": "WIP",
+  "validation": "face indices and UV ranges checked by generator; UE5 and real render not tested"
+}
