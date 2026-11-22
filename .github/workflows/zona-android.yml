@@ -1,0 +1,49 @@
+name: ZONA Android debug
+on:
+  pull_request:
+    paths:
+      - 'razlom-zona/**'
+      - '.github/workflows/zona-android.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: razlom-zona
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and matching Android debug template
+        run: |
+          release=https://github.com/godotengine/godot/releases/download/4.4.1-stable
+          curl -fLsS --retry 3 "$release/Godot_v4.4.1-stable_linux.x86_64.zip" -o "$RUNNER_TEMP/editor.zip"
+          unzip -q "$RUNNER_TEMP/editor.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/Godot_v4.4.1-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          curl -fLsS --retry 3 "$release/Godot_v4.4.1-stable_export_templates.tpz" -o "$RUNNER_TEMP/templates.zip"
+          target="$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          mkdir -p "$target"
+          unzip -j "$RUNNER_TEMP/templates.zip" 'templates/android_debug.apk' 'templates/version.txt' -d "$target"
+      - name: Import and export arm64 APK
+        run: |
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export ANDROID_HOME="$ANDROID_SDK_ROOT"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/zona-debug.keystore"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
+          keytool -genkeypair -keystore "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" -storepass android -keypass android -alias androiddebugkey -dname "CN=ZONA Debug" -keyalg RSA -validity 365
+          godot --headless --import
+          mkdir -p "$RUNNER_TEMP/apk"
+          godot --headless --export-debug "Android Debug" "$RUNNER_TEMP/apk/razlom-zona-arm64-debug.apk"
+          verifier=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$verifier" verify --verbose "$RUNNER_TEMP/apk/razlom-zona-arm64-debug.apk"
+          cd "$RUNNER_TEMP/apk"
+          sha256sum *.apk | tee SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: razlom-zona-arm64-debug
+          path: ${{ runner.temp }}/apk/
+          if-no-files-found: error
