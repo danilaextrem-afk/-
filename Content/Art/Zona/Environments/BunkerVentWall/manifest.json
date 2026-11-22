@@ -1,0 +1,32 @@
+{
+  "asset_id": "RZ_ZONA_ENV_BUNKER_VENT_WALL_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "units": "meters",
+  "dimensions_m": [
+    2,
+    3,
+    0.42
+  ],
+  "pivot": "bottom center",
+  "triangles": 324,
+  "parts": 27,
+  "atlas": "128x128 baseColor",
+  "metallic": 0.15,
+  "roughness": 0.85,
+  "collision_aabb_m": {
+    "center": [
+      0,
+      1.5,
+      0
+    ],
+    "size": [
+      2,
+      3,
+      0.42
+    ]
+  },
+  "license": "CC0 original",
+  "godot_import": "NOT TESTED",
+  "android_fps": "NOT TESTED"
+}
