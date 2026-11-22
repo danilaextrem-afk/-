@@ -60,27 +60,27 @@ func _setup_environment() -> void:
     var env := WorldEnvironment.new()
     env.environment = Environment.new()
     var sky_material := ShaderMaterial.new()
-    sky_material.shader = preload("res://assets/village/storm.gdshader")
+    sky_material.shader = preload("res://assets/anomaly/nocturne_sky.gdshader")
     sky_material.set_shader_parameter("panorama", preload("res://assets/village/storm.jpg"))
     var sky := Sky.new()
     sky.sky_material = sky_material
     env.environment.sky = sky
     env.environment.background_mode = Environment.BG_SKY
     env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.environment.ambient_light_color = Color("a99da5")
-    env.environment.ambient_light_energy = 0.78
+    env.environment.ambient_light_color = Color("607c81")
+    env.environment.ambient_light_energy = 0.43
     env.environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.environment.fog_enabled = true
-    env.environment.fog_light_color = Color("975e5e")
-    env.environment.fog_density = 0.0055
+    env.environment.fog_light_color = Color("304c54")
+    env.environment.fog_density = 0.0135
     env.environment.fog_sky_affect = 0.0
     add_child(env)
     var moon := DirectionalLight3D.new()
     moon.rotation_degrees = Vector3(-19.0, 69.0, 0.0)
-    moon.light_color = Color("ffac74")
-    moon.light_energy = 1.25
+    moon.light_color = Color("89bac4")
+    moon.light_energy = 0.53
     moon.shadow_enabled = true
-    moon.directional_shadow_max_distance = 35.0
+    moon.directional_shadow_max_distance = 24.0
     add_child(moon)
 
 func _material(hex: String, glowing: bool = false, transparent: bool = false) -> StandardMaterial3D:
@@ -164,6 +164,11 @@ func _create_world() -> void:
     gallery.name = "BunkerGallery"
     gallery.position = Vector3(24, 0, -20)
     add_child(gallery)
+    # Real 3D exterior forecourt kit, framing the same tested bunker ramp.
+    var forecourt := preload("res://scripts/bunker_forecourt_grade.gd").new()
+    forecourt.name = "ZONA07_BunkerForecourt"
+    forecourt.position = Vector3(24, 0, -20)
+    add_child(forecourt)
     _box("GalleryEnd", Vector3(24, -3.55, -40.13), Vector3(4.1, 3.2, 0.26), cement)
     _spawn_pickup("bunker_supplies", "medkit", Vector3(24, -4.10, -38.8))
     _box("WatchPlatform", Vector3(-37, 5, -30), Vector3(5, 0.7, 5), wood)
