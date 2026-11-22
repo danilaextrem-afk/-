@@ -1,0 +1,16 @@
+newmtl bronze
+Kd 0.42 0.24 0.09
+Ks 0.7 0.5 0.25
+Ns 180
+newmtl dark_iron
+Kd 0.08 0.09 0.10
+Ks 0.25 0.27 0.30
+Ns 80
+newmtl garnet
+Kd 0.25 0.015 0.04
+Ks 0.8 0.65 0.7
+Ns 250
+newmtl silver
+Kd 0.48 0.48 0.45
+Ks 0.8 0.8 0.8
+Ns 220
