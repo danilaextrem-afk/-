@@ -4,6 +4,7 @@ extends Node3D
 
 const PlayerScript = preload("res://scripts/player.gd")
 const EnemyScript = preload("res://scripts/enemy.gd")
+const MobileControlsScript = preload("res://scripts/mobile_controls.gd")
 const SAVE_PATH = "user://razlom_zona_save_v1.json"
 const WORLD_HALF_SIZE = 46.0
 
@@ -17,7 +18,7 @@ var shelter_interaction := Vector3(-11.0, 0.7, 5.65)
 var anomaly_damage_clock: float = 0.0
 var message_clock: float = 0.0
 var is_dead: bool = false
-var touch_pressed: Dictionary = {}
+var legacy_test_buttons: Dictionary = {}
 
 var hud: CanvasLayer
 var stats_label: Label
@@ -59,27 +60,27 @@ func _setup_environment() -> void:
     var env := WorldEnvironment.new()
     env.environment = Environment.new()
     var sky_material := ShaderMaterial.new()
-    sky_material.shader = preload("res://assets/village/storm.gdshader")
+    sky_material.shader = preload("res://assets/anomaly/nocturne_sky.gdshader")
     sky_material.set_shader_parameter("panorama", preload("res://assets/village/storm.jpg"))
     var sky := Sky.new()
     sky.sky_material = sky_material
     env.environment.sky = sky
     env.environment.background_mode = Environment.BG_SKY
     env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.environment.ambient_light_color = Color("a99da5")
-    env.environment.ambient_light_energy = 0.78
+    env.environment.ambient_light_color = Color("607c81")
+    env.environment.ambient_light_energy = 0.43
     env.environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.environment.fog_enabled = true
-    env.environment.fog_light_color = Color("975e5e")
-    env.environment.fog_density = 0.0055
+    env.environment.fog_light_color = Color("304c54")
+    env.environment.fog_density = 0.0135
     env.environment.fog_sky_affect = 0.0
     add_child(env)
     var moon := DirectionalLight3D.new()
     moon.rotation_degrees = Vector3(-19.0, 69.0, 0.0)
-    moon.light_color = Color("ffac74")
-    moon.light_energy = 1.25
+    moon.light_color = Color("89bac4")
+    moon.light_energy = 0.53
     moon.shadow_enabled = true
-    moon.directional_shadow_max_distance = 35.0
+    moon.directional_shadow_max_distance = 24.0
     add_child(moon)
 
 func _material(hex: String, glowing: bool = false, transparent: bool = false) -> StandardMaterial3D:
@@ -143,6 +144,16 @@ func _create_world() -> void:
     street.position = Vector3(-39, 0, 2)
     street.rotation.y = -PI / 2.0
     add_child(street)
+
+    # Original hero landmark added AFTER Astra's street, before the bunker.
+    # Based on the actual playable 3D world coordinates; open walk-through
+    # aperture and lightweight physical collision only on both pylons.
+    var hero_gate := preload("res://scripts/rift_gate_hero.gd").new()
+    hero_gate.name = "ZONA07_RiftCheckpoint_Hero"
+    hero_gate.position = Vector3(8.0, 0.0, 2.0)
+    hero_gate.rotation.y = -PI / 2.0
+    add_child(hero_gate)
+
     _house(Vector3(-3, 0, -20), Vector3(11, 8, 9), cement, roof, dark)
     _house(Vector3(30, 0, -6), Vector3(9, 6, 10), wood, roof, dark)
     _house(Vector3(28, 0, 22), Vector3(8, 5, 8), cement, roof, dark)
@@ -153,6 +164,11 @@ func _create_world() -> void:
     gallery.name = "BunkerGallery"
     gallery.position = Vector3(24, 0, -20)
     add_child(gallery)
+    # Real 3D exterior forecourt kit, framing the same tested bunker ramp.
+    var forecourt := preload("res://scripts/bunker_forecourt_grade.gd").new()
+    forecourt.name = "ZONA07_BunkerForecourt"
+    forecourt.position = Vector3(24, 0, -20)
+    add_child(forecourt)
     _box("GalleryEnd", Vector3(24, -3.55, -40.13), Vector3(4.1, 3.2, 0.26), cement)
     _spawn_pickup("bunker_supplies", "medkit", Vector3(24, -4.10, -38.8))
     _box("WatchPlatform", Vector3(-37, 5, -30), Vector3(5, 0.7, 5), wood)
@@ -279,11 +295,9 @@ func _interact() -> void:
     var target := _nearest_interactable()
     if target.is_empty():
         if inventory["medkit"] > 0 and player.health < 100:
-            inventory["medkit"] -= 1
-            player.health = minf(100.0, player.health + 45.0)
-            _show_message("Использована аптечка (+45 здоровья)", 3.0)
+            _use_medkit()
         else:
-            _show_message("Подойди к предмету, убежищу или используй аптечку", 2.0)
+            _show_message("Подойди к предмету или убежищу", 2.0)
         return
     if target["kind"] == "shelter":
         player.restore()
@@ -302,6 +316,20 @@ func _interact() -> void:
         pickups.erase(node)
         node.queue_free()
         _show_message("Найдено: %s" % kind, 2.5)
+
+func _use_medkit() -> void:
+    if is_dead or not player.alive:
+        return
+    if int(inventory["medkit"]) <= 0:
+        _show_message("Нет аптечек", 1.7)
+        return
+    if player.health >= 100.0:
+        _show_message("Здоровье уже полное", 1.7)
+        return
+    inventory["medkit"] -= 1
+    player.health = minf(100.0, player.health + 45.0)
+    _show_message("Аптечка: +45 здоровья", 2.3)
+
 
 func _check_death() -> void:
     if player.health <= 0.0 and not is_dead:
@@ -365,15 +393,22 @@ func _create_hud() -> void:
     tip_label = _label(root, Vector2(22, 50), Vector2(900, 34), 16)
     status_label = _label(root, Vector2(22, 84), Vector2(1100, 52), 18)
     touch_controls = root
-    if not DisplayServer.is_touchscreen_available():
-        return
-    _touch_button("▲", Vector2(124, -222), Vector2(68, 68), "forward")
-    _touch_button("▼", Vector2(124, -84), Vector2(68, 68), "back")
-    _touch_button("◀", Vector2(47, -153), Vector2(68, 68), "left")
-    _touch_button("▶", Vector2(201, -153), Vector2(68, 68), "right")
-    _touch_button("БЕГ", Vector2(-350, -82), Vector2(80, 60), "run", true)
-    _touch_button("ДЕЙСТВИЕ", Vector2(-252, -82), Vector2(124, 60), "use", true)
-    _touch_button("СВЕТ", Vector2(-114, -82), Vector2(95, 60), "torch", true)
+    if DisplayServer.is_touchscreen_available() or "--touch-ui" in OS.get_cmdline_user_args():
+        # Overlay reads screen touch IDs itself; camera and joystick may
+        # move independently, while sprint/torch/interaction use other fingers.
+        var overlay = MobileControlsScript.new()
+        overlay.name = "MobileControls"
+        root.add_child(overlay)
+        overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+        overlay.configure(player, self)
+        overlay.interact_requested.connect(_interact)
+        overlay.flashlight_requested.connect(player.toggle_flashlight)
+        overlay.medkit_requested.connect(_use_medkit)
+        overlay.save_requested.connect(_save_game)
+        stats_label.visible = false
+        tip_label.visible = false
+        status_label.position = Vector2(22, 134)
+        status_label.add_theme_font_size_override("font_size", 17)
 
 func _label(parent: Control, pos: Vector2, size: Vector2, font_size: int) -> Label:
     var label := Label.new()
@@ -388,47 +423,28 @@ func _label(parent: Control, pos: Vector2, size: Vector2, font_size: int) -> Lab
     parent.add_child(label)
     return label
 
-func _touch_button(caption: String, offset: Vector2, size: Vector2, button_id: String, right_anchor: bool = false) -> void:
-    var b := Button.new()
-    b.text = caption
-    b.name = button_id
-    b.custom_minimum_size = size
-    touch_controls.add_child(b)
-    if right_anchor:
-        b.anchor_left = 1.0
-        b.anchor_right = 1.0
-    else:
-        b.anchor_left = 0.0
-        b.anchor_right = 0.0
-    b.anchor_top = 1.0
-    b.anchor_bottom = 1.0
-    b.offset_left = offset.x
-    b.offset_right = offset.x + size.x
-    b.offset_top = offset.y
-    b.offset_bottom = offset.y + size.y
-    b.modulate = Color(0.77, 0.98, 0.86, 0.80)
-    b.add_theme_font_size_override("font_size", 17)
-    b.button_down.connect(func(): _touch_down(button_id))
-    b.button_up.connect(func(): _touch_up(button_id))
-
+# Compatibility layer for existing Astra automated bunker/village walk tests.
+# These functions DO NOT create on-screen arrow buttons.
 func _touch_down(button_id: String) -> void:
     if button_id == "use":
         _interact()
-    elif button_id == "torch":
+        return
+    if button_id == "torch":
         player.toggle_flashlight()
-    else:
-        touch_pressed[button_id] = true
-        _recompute_virtual_move()
+        return
+    legacy_test_buttons[button_id] = true
+    _recompute_test_input()
 
 func _touch_up(button_id: String) -> void:
-    touch_pressed.erase(button_id)
-    _recompute_virtual_move()
+    legacy_test_buttons.erase(button_id)
+    _recompute_test_input()
 
-func _recompute_virtual_move() -> void:
-    var x := int(touch_pressed.has("right")) - int(touch_pressed.has("left"))
-    var y := int(touch_pressed.has("back")) - int(touch_pressed.has("forward"))
+func _recompute_test_input() -> void:
+    var x: int = int(legacy_test_buttons.has("right")) - int(legacy_test_buttons.has("left"))
+    var y: int = int(legacy_test_buttons.has("back")) - int(legacy_test_buttons.has("forward"))
     player.virtual_move = Vector2(x, y).limit_length()
-    player.virtual_sprint = touch_pressed.has("run")
+    player.virtual_sprint = legacy_test_buttons.has("run")
+
 
 func _refresh_hud() -> void:
     stats_label.text = "ЗДР  %d     ВЫН  %d     СВЕТ  %d%%     ✚  %d     ЛОМ  %d" % [int(player.health), int(player.stamina), int(player.battery), int(inventory["medkit"]), int(inventory["scrap"])]

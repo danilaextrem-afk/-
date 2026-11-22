@@ -23,10 +23,19 @@ jobs:
           mv "$RUNNER_TEMP/Godot_v4.4.1-stable_linux.x86_64" "$RUNNER_TEMP/godot"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --import
-      - run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/bunker_walk.gd
-      - run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/village_walk.gd
+      - name: Compile Godot gameplay scripts
+        run: |
+          for script in scripts/mobile_controls.gd scripts/rift_gate_hero.gd scripts/player.gd scripts/game.gd; do
+            timeout 30s godot --headless --check-only -s "$script"
+          done
+      - run: XDG_DATA_HOME="$(mktemp -d)" timeout 90s godot --headless --fixed-fps 60 -s tests/bunker_walk.gd
+      - run: XDG_DATA_HOME="$(mktemp -d)" timeout 90s godot --headless --fixed-fps 60 -s tests/village_walk.gd
+      - name: Verify multi-touch ownership in headless Godot
+        run: XDG_DATA_HOME="$(mktemp -d)" timeout 45s godot --headless --fixed-fps 60 -s tests/mobile_controls_smoke.gd
+      - name: Validate original checkpoint geometry
+        run: XDG_DATA_HOME="$(mktemp -d)" timeout 60s godot --headless --fixed-fps 60 -s tests/rift_gate_smoke.gd
       - name: Capture player views
-        run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 960x540 -s tests/capture_gallery.gd
+        run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 960x540 -s tests/capture_gallery.gd -- --touch-ui
       - uses: actions/upload-artifact@v4
         with:
           name: zona-godot-player-views
