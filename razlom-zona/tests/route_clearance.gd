@@ -46,8 +46,25 @@ func _run() -> void:
         push_error("Too few checkpoint/forest solid obstacles inspected: %d" % checked)
         quit(1)
         return
-    if route.get_node_or_null("RaisedBarrier") == null:
-        push_error("Raised barrier is missing")
+    # These are visual guide elements: adding a collider would obstruct the
+    # existing player corridor even if the box-only broad-phase missed it.
+    var nonblocking: Array[String] = ["RaisedBarrier", "G4Wayfinder", "CheckpointWindow"]
+    for i in range(points.size() - 1):
+        nonblocking.append("RoadMark_%02d" % i)
+    for id in nonblocking:
+        var marker := route.get_node_or_null(id)
+        if marker == null:
+            push_error("Route visual marker missing: " + id)
+            quit(1)
+            return
+        for child in marker.get_children():
+            if child is CollisionObject3D or child is CollisionShape3D:
+                push_error("Visual marker unexpectedly blocks player: " + id)
+                quit(1)
+                return
+    # Check that the G-4 handoff point remains anchored at the descent.
+    if points[points.size() - 1].distance_to(Vector3(24.0, 0.0, -20.0)) > 0.01:
+        push_error("G-4 route endpoint moved without updating descent QA")
         quit(1)
         return
     print("PASS route clearance: ", checked, " solid boxes checked against ", points.size() - 1, " segments")
