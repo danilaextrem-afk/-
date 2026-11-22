@@ -1,0 +1,36 @@
+{
+  "asset_id": "RZ_PROP_VELEGRAD_ARCHIVE_KEY_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "license": "original",
+  "status": "materials_wip",
+  "units": "meters",
+  "orientation": "Z-up",
+  "source": "generate.mjs",
+  "lods": [
+    {
+      "file": "LOD0.obj",
+      "vertices": 925,
+      "triangles": 1296
+    },
+    {
+      "file": "LOD1.obj",
+      "vertices": 215,
+      "triangles": 240
+    }
+  ],
+  "material": {
+    "name": "aged_iron",
+    "baseColor": [
+      0.17,
+      0.15,
+      0.12
+    ],
+    "metallic": 0.82,
+    "roughness": 0.68,
+    "normal_map": false,
+    "ao_map": false
+  },
+  "collision": "not authored",
+  "ue5_import": "not tested"
+}
