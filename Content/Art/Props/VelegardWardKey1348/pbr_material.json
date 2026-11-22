@@ -1,0 +1,15 @@
+{
+  "material": "ForgedIron",
+  "workflow": "metallic-roughness",
+  "baseColor": [
+    0.095,
+    0.085,
+    0.072,
+    1
+  ],
+  "metallic": 0.88,
+  "roughness": 0.72,
+  "normal": "not_baked",
+  "ao": "not_baked",
+  "notes": "Numeric draft; no texture bake; oxidized forged iron"
+}
