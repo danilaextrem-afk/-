@@ -1,0 +1,34 @@
+name: Izba 1348 geometry validation
+on:
+  pull_request:
+    paths:
+      - 'Content/Art/Environment/Medieval1348/IzbaKit/**'
+      - 'Tools/Art/generate_izba_1348.js'
+      - 'Tools/Art/validate_izba_1348.js'
+      - '.github/workflows/izba-1348-qa.yml'
+  push:
+    branches:
+      - 'art/gpt2-izba-modular-kit-1348-20261122'
+    paths:
+      - 'Content/Art/Environment/Medieval1348/IzbaKit/**'
+      - 'Tools/Art/generate_izba_1348.js'
+      - 'Tools/Art/validate_izba_1348.js'
+      - '.github/workflows/izba-1348-qa.yml'
+permissions:
+  contents: read
+jobs:
+  validate-obj:
+    name: Validate authored OBJ meshes and source reproducibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+      - name: Node version
+        run: node --version
+      - name: Rebuild original geometry from source
+        run: node Tools/Art/generate_izba_1348.js
+      - name: Check mesh indices, UV, normals, and LOD
+        run: node Tools/Art/validate_izba_1348.js
+      - name: Detect nondeterministic source / committed OBJ drift
+        run: git diff --exit-code -- Content/Art/Environment/Medieval1348/IzbaKit/
