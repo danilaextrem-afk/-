@@ -219,5 +219,5 @@ func _draw() -> void:
     # Lightweight center reticle. It doesn't compete with right-thumb look.
     var aim := size / 2.0
     for v in [Vector2(-13, 0), Vector2(13, 0), Vector2(0, -13), Vector2(0, 13)]:
-        var d := v.normalized()
+        var d: Vector2 = v.normalized()
         draw_line(aim + v - d * 5 * s, aim + v, Color(0.78, 0.95, 0.93, 0.55), 1.5 * s)
