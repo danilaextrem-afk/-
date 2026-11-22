@@ -1,0 +1,61 @@
+{
+  "workflow": "metallic_roughness",
+  "mapStatus": "parameter_recipe_only",
+  "materials": {
+    "Hazel_Bark": {
+      "baseColor": [
+        0.265,
+        0.185,
+        0.116,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.82,
+      "texturePlan": "2k/4k albedo normal roughness AO to be authored, use triplanar until UV atlas final"
+    },
+    "Hazel_Cut": {
+      "baseColor": [
+        0.42,
+        0.27,
+        0.145,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.76,
+      "texturePlan": "2k/4k albedo normal roughness AO to be authored, use triplanar until UV atlas final"
+    },
+    "Wattle_Dried": {
+      "baseColor": [
+        0.32,
+        0.235,
+        0.14,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.84,
+      "texturePlan": "2k/4k albedo normal roughness AO to be authored, use triplanar until UV atlas final"
+    },
+    "Hemp_Rope": {
+      "baseColor": [
+        0.49,
+        0.39,
+        0.22,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.91,
+      "texturePlan": "2k/4k albedo normal roughness AO to be authored, use triplanar until UV atlas final"
+    },
+    "Iron_Forged": {
+      "baseColor": [
+        0.13,
+        0.14,
+        0.14,
+        1
+      ],
+      "metallic": 0.82,
+      "roughness": 0.57,
+      "texturePlan": "2k/4k albedo normal roughness AO to be authored, use triplanar until UV atlas final"
+    }
+  }
+}

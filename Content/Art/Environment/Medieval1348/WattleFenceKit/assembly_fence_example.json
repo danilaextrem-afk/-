@@ -1,0 +1,79 @@
+{
+  "unit": "meters",
+  "localAxis": "X follows each fence run, Z up",
+  "notes": "No collision/animation authored. Gate hinges are decorative; re-rig before gameplay. Gate gap between posts nominal 1.20 m.",
+  "instances": [
+    {
+      "asset": "Fence2m",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yawDegrees": 0
+    },
+    {
+      "asset": "Fence2m",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "yawDegrees": 0
+    },
+    {
+      "asset": "EndPost",
+      "position": [
+        4.05,
+        0,
+        0
+      ],
+      "yawDegrees": 0
+    },
+    {
+      "asset": "GateLeaf1m",
+      "position": [
+        4.12,
+        0,
+        0
+      ],
+      "yawDegrees": 0
+    },
+    {
+      "asset": "EndPost",
+      "position": [
+        5.27,
+        0,
+        0
+      ],
+      "yawDegrees": 180
+    },
+    {
+      "asset": "Fence2m",
+      "position": [
+        5.3,
+        0,
+        0
+      ],
+      "yawDegrees": 0
+    },
+    {
+      "asset": "CornerPost",
+      "position": [
+        7.32,
+        0,
+        0
+      ],
+      "yawDegrees": 0
+    },
+    {
+      "asset": "Fence2m",
+      "position": [
+        7.32,
+        0,
+        0
+      ],
+      "yawDegrees": 90
+    }
+  ]
+}
