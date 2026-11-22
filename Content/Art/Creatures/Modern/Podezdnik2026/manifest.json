@@ -1,0 +1,23 @@
+{
+  "asset_id": "RZ_CREATURE_MOD_PODEZDNIK_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "source": "generate.cjs",
+  "lods": [
+    {
+      "file": "podezdnik_LOD0.obj",
+      "vertices": 528,
+      "triangles": 768
+    },
+    {
+      "file": "podezdnik_LOD1.obj",
+      "vertices": 264,
+      "triangles": 384
+    }
+  ],
+  "materials": "pbr_parameters.json",
+  "units": "meters",
+  "rig": "not_created",
+  "ue5_import": "not_tested",
+  "art_floor": "not_met"
+}
