@@ -1,0 +1,29 @@
+{
+  "leather": {
+    "baseColor": [
+      0.13,
+      0.065,
+      0.034
+    ],
+    "metallic": 0,
+    "roughness": 0.83
+  },
+  "steel_buckle": {
+    "baseColor": [
+      0.31,
+      0.33,
+      0.34
+    ],
+    "metallic": 1,
+    "roughness": 0.31
+  },
+  "rivets": {
+    "baseColor": [
+      0.28,
+      0.24,
+      0.18
+    ],
+    "metallic": 0.9,
+    "roughness": 0.43
+  }
+}
