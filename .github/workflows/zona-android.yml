@@ -35,7 +35,7 @@ jobs:
           export GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey
           export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
           keytool -genkeypair -keystore "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" -storepass android -keypass android -alias androiddebugkey -dname "CN=ZONA Debug" -keyalg RSA -validity 365
-          godot --headless --import
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --import
           mkdir -p "$RUNNER_TEMP/apk"
           godot --headless --export-debug "Android Debug" "$RUNNER_TEMP/apk/razlom-zona-arm64-debug.apk"
           verifier=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
