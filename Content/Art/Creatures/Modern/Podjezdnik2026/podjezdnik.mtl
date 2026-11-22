@@ -1,0 +1,16 @@
+newmtl shadow_skin
+Kd 0.055 0.062 0.070
+Ks 0.04 0.04 0.04
+Ns 12
+newmtl torn_mantle
+Kd 0.075 0.071 0.078
+Ks 0.025 0.025 0.025
+Ns 8
+newmtl face_void
+Kd 0.005 0.006 0.008
+Ks 0.01 0.01 0.01
+Ns 3
+newmtl cold_glint
+Kd 0.45 0.65 0.68
+Ks 0.65 0.75 0.78
+Ns 90
