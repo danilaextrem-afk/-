@@ -1,0 +1,25 @@
+{
+  "asset_id": "RZ_ENV_MOSCOW_STAIRWELL_RAILING_2026_001",
+  "version": "0.1.0",
+  "epoch": 2026,
+  "category": "ModernCity",
+  "units": "metres",
+  "up_axis": "Y",
+  "materials": [
+    "painted_steel",
+    "worn_steel",
+    "concrete"
+  ],
+  "lods": {
+    "LOD0": {
+      "triangles": 1032
+    },
+    "LOD1": {
+      "triangles": 432
+    }
+  },
+  "collision": "not authored",
+  "ue5_verified": false,
+  "render_verified": false,
+  "art_status": "geometry_wip"
+}
