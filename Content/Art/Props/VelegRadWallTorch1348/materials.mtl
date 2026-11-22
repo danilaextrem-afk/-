@@ -1,0 +1,20 @@
+newmtl blackened_iron
+Kd 0.095 0.105 0.115
+Ks 0.28 0.28 0.28
+Ns 65
+# PBR metallic=0.85 roughness=0.68
+newmtl oak
+Kd 0.22 0.12 0.06
+Ks 0.05 0.05 0.05
+Ns 15
+# PBR metallic=0 roughness=0.83
+newmtl linen
+Kd 0.31 0.26 0.19
+Ks 0.03 0.03 0.03
+Ns 10
+# PBR metallic=0 roughness=0.92
+newmtl soot
+Kd 0.025 0.021 0.019
+Ks 0.01 0.01 0.01
+Ns 5
+# PBR metallic=0 roughness=0.98
