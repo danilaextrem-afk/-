@@ -1,0 +1,3 @@
+# Ninth Entrance intercom (original geometry WIP)
+Act I Ninth Entrance: proposed door-side architectural prop. Not canon-confirmed interactable. Original mesh consists of die-cast housing, display, speaker, 9 separate keys, RFID ring, screws and seams. Metres, Z-up, front toward -Y. Stats: {"nv":2424,"nt":13536,"tri":4512,"objects":86}.
+Reproduce: `node Tools/Art/generate_ninth_intercom.js > SM_NinthEntrance_Intercom_v1.obj` from repo root, adjusting output path. UVs are planar per triangle, overlapping and **not** production atlas. MTL swatches are **not** PBR. No collision, LOD, typography, animation or verified UE5 import. Needs Astra confirmation of placement and design, then proper bevels, material baking, UV unwrap, and engine QA. No merge before owner review.
