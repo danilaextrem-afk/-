@@ -1,0 +1,60 @@
+{
+  "asset_id": "RZ_PROP_1348_WELL_BUCKET_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "era": 1348,
+  "authoring": "original procedural",
+  "path": "Content/Art/Props/MedievalWellBucket1348/",
+  "units": "meters",
+  "up_axis": "Y",
+  "lods": [
+    {
+      "file": "bucket_LOD0.obj",
+      "vertices": 1204,
+      "triangles": 1664
+    },
+    {
+      "file": "bucket_LOD1.obj",
+      "vertices": 501,
+      "triangles": 628
+    }
+  ],
+  "pbr": {
+    "aged_oak": {
+      "baseColor": [
+        0.28,
+        0.16,
+        0.075
+      ],
+      "metallic": 0,
+      "roughness": 0.83
+    },
+    "blackened_iron": {
+      "baseColor": [
+        0.09,
+        0.085,
+        0.075
+      ],
+      "metallic": 0.88,
+      "roughness": 0.46
+    },
+    "iron_rivets": {
+      "baseColor": [
+        0.16,
+        0.14,
+        0.12
+      ],
+      "metallic": 0.85,
+      "roughness": 0.39
+    }
+  },
+  "collision": "not authored",
+  "lightmap_uv": "not authored",
+  "ue5_import": "not tested",
+  "render": "not tested",
+  "qa": {
+    "invalid_face_indices": 0,
+    "uv_count_equals_vertices": true
+  },
+  "notes": "Separate stave volumes, forged iron hoops, curved handle, eyelets, LOD reduction; no texture maps or UE5 claim."
+}
