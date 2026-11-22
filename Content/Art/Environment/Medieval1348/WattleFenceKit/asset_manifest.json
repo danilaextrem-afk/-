@@ -1,0 +1,187 @@
+{
+  "id": "RAZLOM_WATTLE_FENCE_KIT_1348",
+  "project": "RAZLOM: BLACK BELL",
+  "status": "geometry_wip",
+  "unit": "meters",
+  "up": "Z",
+  "engine": "Unreal Engine 5 / Windows PC",
+  "partStats": {
+    "Fence2m": {
+      "LOD0": {
+        "triangles": 10064,
+        "min": [
+          -0.01642,
+          -0.09175,
+          0
+        ],
+        "max": [
+          2.01646,
+          0.09174,
+          1.59
+        ],
+        "materials": [
+          "Hazel_Bark",
+          "Hazel_Cut",
+          "Hemp_Rope",
+          "Wattle_Dried"
+        ]
+      },
+      "LOD1": {
+        "triangles": 1155,
+        "min": [
+          -0.01335,
+          -0.10096,
+          0
+        ],
+        "max": [
+          2.01257,
+          0.10093,
+          1.59
+        ],
+        "materials": [
+          "Hazel_Bark",
+          "Hazel_Cut",
+          "Wattle_Dried"
+        ]
+      }
+    },
+    "CornerPost": {
+      "LOD0": {
+        "triangles": 1022,
+        "min": [
+          -0.31,
+          -0.31,
+          0
+        ],
+        "max": [
+          0.31,
+          0.31,
+          1.78
+        ],
+        "materials": [
+          "Hazel_Bark",
+          "Hazel_Cut",
+          "Hemp_Rope",
+          "Iron_Forged"
+        ]
+      },
+      "LOD1": {
+        "triangles": 441,
+        "min": [
+          -0.31,
+          -0.31,
+          0
+        ],
+        "max": [
+          0.31,
+          0.31,
+          1.78
+        ],
+        "materials": [
+          "Hazel_Bark",
+          "Hazel_Cut",
+          "Hemp_Rope"
+        ]
+      }
+    },
+    "EndPost": {
+      "LOD0": {
+        "triangles": 974,
+        "min": [
+          -0.23,
+          -0.12047,
+          0
+        ],
+        "max": [
+          0.121,
+          0.107,
+          1.72
+        ],
+        "materials": [
+          "Hazel_Bark",
+          "Hazel_Cut",
+          "Hemp_Rope",
+          "Iron_Forged"
+        ]
+      },
+      "LOD1": {
+        "triangles": 445,
+        "min": [
+          -0.23,
+          -0.121,
+          0
+        ],
+        "max": [
+          0.121,
+          0.10432,
+          1.72
+        ],
+        "materials": [
+          "Hazel_Bark",
+          "Hazel_Cut",
+          "Hemp_Rope",
+          "Iron_Forged"
+        ]
+      }
+    },
+    "GateLeaf1m": {
+      "LOD0": {
+        "triangles": 3412,
+        "min": [
+          -0.02447,
+          -0.105,
+          0.2
+        ],
+        "max": [
+          1.175,
+          0.125,
+          1.37
+        ],
+        "materials": [
+          "Hazel_Cut",
+          "Hemp_Rope",
+          "Iron_Forged",
+          "Wattle_Dried"
+        ]
+      },
+      "LOD1": {
+        "triangles": 960,
+        "min": [
+          -0.02295,
+          -0.105,
+          0.2
+        ],
+        "max": [
+          1.175,
+          0.125,
+          1.37
+        ],
+        "materials": [
+          "Hazel_Cut",
+          "Hemp_Rope",
+          "Iron_Forged",
+          "Wattle_Dried"
+        ]
+      }
+    }
+  },
+  "files": [
+    "SM_Wattle_Fence2m_1348_LOD0.obj",
+    "SM_Wattle_Fence2m_1348_LOD1.obj",
+    "SM_Wattle_CornerPost_1348_LOD0.obj",
+    "SM_Wattle_CornerPost_1348_LOD1.obj",
+    "SM_Wattle_EndPost_1348_LOD0.obj",
+    "SM_Wattle_EndPost_1348_LOD1.obj",
+    "SM_Wattle_GateLeaf1m_1348_LOD0.obj",
+    "SM_Wattle_GateLeaf1m_1348_LOD1.obj"
+  ],
+  "materials": [
+    "Hazel_Bark",
+    "Hazel_Cut",
+    "Wattle_Dried",
+    "Hemp_Rope",
+    "Iron_Forged"
+  ],
+  "PBRTextures": "not authored",
+  "engineValidation": "not performed"
+}
