@@ -1,0 +1,31 @@
+{
+  "asset_id": "RZ_PROP_MOSCOW_MAILBOX_BANK_2026_001",
+  "version": "0.1.0",
+  "epoch": 2026,
+  "license": "original",
+  "status": "geometry_wip",
+  "source": "generate.cjs",
+  "units": "meters",
+  "up": "Z",
+  "lods": [
+    {
+      "file": "mailboxes_LOD0.obj",
+      "vertices": 984,
+      "triangles": 492
+    },
+    {
+      "file": "mailboxes_LOD1.obj",
+      "vertices": 456,
+      "triangles": 228
+    }
+  ],
+  "materials": [
+    "paint",
+    "steel",
+    "paper",
+    "dark"
+  ],
+  "pbr_textures": false,
+  "rig": "not applicable",
+  "ue5_tested": false
+}
