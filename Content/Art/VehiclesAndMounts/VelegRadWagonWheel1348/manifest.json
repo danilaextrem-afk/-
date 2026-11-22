@@ -1,0 +1,39 @@
+{
+  "asset_id": "RZ_VEH_WAGON_WHEEL_VELEGRAD_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "category": "VehiclesAndMounts",
+  "generator": "generate.cjs",
+  "lods": [
+    {
+      "file": "wheel_LOD0.obj",
+      "segments": 32
+    },
+    {
+      "file": "wheel_LOD1.obj",
+      "segments": 16
+    }
+  ],
+  "materials": {
+    "oak": {
+      "baseColor": [
+        0.29,
+        0.16,
+        0.075
+      ],
+      "metallic": 0,
+      "roughness": 0.78
+    },
+    "iron": {
+      "baseColor": [
+        0.12,
+        0.13,
+        0.14
+      ],
+      "metallic": 0.85,
+      "roughness": 0.42
+    }
+  },
+  "notes": "Original wooden ten-spoke wheel, iron tire and brackets; preliminary material values, not texture maps. No UE5 validation."
+}

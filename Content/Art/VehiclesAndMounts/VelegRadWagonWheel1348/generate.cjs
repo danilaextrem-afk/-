@@ -1,0 +1,11 @@
+// Original procedural wagon wheel, meters; Node.js 20+; no dependencies.
+const fs=require('fs'); const path=require('path');
+const N=Number(process.argv[2]||32), out=process.argv[3]||__dirname;
+const V=[],UV=[],F=[]; let mats=[];
+function vert(p,uv){V.push(p);UV.push(uv);return V.length}
+function tri(a,b,c,m){F.push([a,b,c,m])}
+function quad(a,b,c,d,m){tri(a,b,c,m);tri(a,c,d,m)}
+function ring(radius,thick,width,segments,mat){const start=V.length;for(let side=0;side<2;side++)for(let r=0;r<2;r++)for(let i=0;i<segments;i++){let a=2*Math.PI*i/segments,rad=radius+(r?thick/2:-thick/2);vert([rad*Math.cos(a),rad*Math.sin(a),(side?1:-1)*width/2],[i/segments,r+side*2]);}for(let i=0;i<segments;i++){let j=(i+1)%segments;for(let r=0;r<2;r++){let a=start+1+r*segments+i,b=start+1+r*segments+j,c=start+1+(r+2)*segments+j,d=start+1+(r+2)*segments+i;quad(a,b,c,d,mat)}for(let s=0;s<2;s++){let a=start+1+s*2*segments+i,b=start+1+s*2*segments+j,c=start+1+s*2*segments+segments+j,d=start+1+s*2*segments+segments+i;quad(a,b,c,d,mat)}}}
+function box(cx,cy,cz,l,w,h,angle,mat){let local=[[-l/2,-w/2,-h/2],[l/2,-w/2,-h/2],[l/2,w/2,-h/2],[-l/2,w/2,-h/2],[-l/2,-w/2,h/2],[l/2,-w/2,h/2],[l/2,w/2,h/2],[-l/2,w/2,h/2]];let ids=local.map(([x,y,z],i)=>vert([cx+x*Math.cos(angle)-y*Math.sin(angle),cy+x*Math.sin(angle)+y*Math.cos(angle),cz+z],[(i%4)/3,Math.floor(i/4)]));for(let f of [[0,3,2,1],[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]])quad(...f.map(i=>ids[i]),mat)}
+function build(n){ring(.57,.105,.105,n,'oak');ring(.57,.028,.115,n,'iron');ring(.10,.11,.20,n,'oak');for(let i=0;i<10;i++){let a=i*Math.PI/5;box(.30*Math.cos(a),.30*Math.sin(a),0,.44,.065,.085,a,'oak');box(.55*Math.cos(a),.55*Math.sin(a),0,.09,.085,.12,a,'iron')}ring(.045,.02,.22,Math.max(12,Math.floor(n/2)),'iron')}
+build(N);fs.mkdirSync(out,{recursive:true});let obj='mtllib wheel.mtl\no VelegRadWagonWheel1348\n';for(let v of V)obj+='v '+v.map(x=>x.toFixed(6)).join(' ')+'\n';for(let u of UV)obj+='vt '+u.map(x=>x.toFixed(6)).join(' ')+'\n';let old='';for(let [a,b,c,m] of F){if(m!==old){obj+='usemtl '+m+'\n';old=m}obj+='f '+[a,b,c].map(x=>x+'/'+x).join(' ')+'\n'}fs.writeFileSync(path.join(out,'wheel_LOD'+(N>=32?0:1)+'.obj'),obj);console.log(JSON.stringify({vertices:V.length,triangles:F.length,uv:UV.length,degenerate:F.filter(f=>new Set(f.slice(0,3)).size<3).length}))
