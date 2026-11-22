@@ -1,0 +1,100 @@
+{
+  "asset_id": "RZ_ENV_MOSCOW_PANEL_ENTRANCE_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "source": "generate.cjs",
+  "lods": [
+    {
+      "file": "entrance_LOD0.obj",
+      "vertices": 1056,
+      "triangles": 528
+    },
+    {
+      "file": "entrance_LOD1.obj",
+      "vertices": 576,
+      "triangles": 288
+    }
+  ],
+  "units": "meters",
+  "materials": {
+    "concrete": {
+      "baseColor": [
+        0.48,
+        0.48,
+        0.46
+      ],
+      "metallic": 0,
+      "roughness": 0.92
+    },
+    "dark_metal": {
+      "baseColor": [
+        0.13,
+        0.17,
+        0.19
+      ],
+      "metallic": 0.72,
+      "roughness": 0.55
+    },
+    "paint": {
+      "baseColor": [
+        0.19,
+        0.32,
+        0.39
+      ],
+      "metallic": 0.1,
+      "roughness": 0.62
+    },
+    "glass": {
+      "baseColor": [
+        0.11,
+        0.18,
+        0.2
+      ],
+      "metallic": 0.05,
+      "roughness": 0.18
+    },
+    "lamp": {
+      "baseColor": [
+        0.83,
+        0.8,
+        0.57
+      ],
+      "metallic": 0,
+      "roughness": 0.3
+    },
+    "steel": {
+      "baseColor": [
+        0.52,
+        0.54,
+        0.55
+      ],
+      "metallic": 0.8,
+      "roughness": 0.4
+    },
+    "rust": {
+      "baseColor": [
+        0.43,
+        0.22,
+        0.12
+      ],
+      "metallic": 0.3,
+      "roughness": 0.85
+    },
+    "seam": {
+      "baseColor": [
+        0.2,
+        0.2,
+        0.2
+      ],
+      "metallic": 0,
+      "roughness": 1
+    }
+  },
+  "limitations": [
+    "PBR numeric factors only",
+    "no texture maps",
+    "no collision",
+    "no UE5 import",
+    "art quality floor not validated"
+  ]
+}
