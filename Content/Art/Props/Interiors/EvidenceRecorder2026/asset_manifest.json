@@ -1,0 +1,28 @@
+{
+  "asset_id": "RZ_PROP_MODERN_EVIDENCE_RECORDER_2026_001",
+  "version": "0.1.0",
+  "epoch": 2026,
+  "category": "investigation prop",
+  "scale": "meters",
+  "lods": [
+    0,
+    1
+  ],
+  "materials": [
+    "case",
+    "bezel",
+    "display",
+    "speaker",
+    "slit",
+    "button",
+    "seam",
+    "metal"
+  ],
+  "source": "generate.cjs",
+  "pbr_status": "scalar preview metallic/roughness only; no baked texture maps",
+  "rig": "not applicable",
+  "collision": "not authored",
+  "ue5_verified": false,
+  "art_reference": "PR #7 and bell v3 PR #5; not yet comparable",
+  "status": "geometry WIP"
+}

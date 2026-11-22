@@ -1,0 +1,47 @@
+newmtl case
+Kd 0.045 0.049 0.053
+Ks 0.12 0.12 0.12
+Ns 34.00
+# metallic 0.12 roughness 0.68 (preview only)
+
+newmtl bezel
+Kd 0.12 0.13 0.14
+Ks 0.55 0.55 0.55
+Ns 60.00
+# metallic 0.55 roughness 0.42 (preview only)
+
+newmtl display
+Kd 0.035 0.14 0.17
+Ks 0 0 0
+Ns 80.00
+# metallic 0 roughness 0.22 (preview only)
+
+newmtl speaker
+Kd 0.09 0.09 0.1
+Ks 0.1 0.1 0.1
+Ns 17.00
+# metallic 0.1 roughness 0.85 (preview only)
+
+newmtl slit
+Kd 0.012 0.012 0.013
+Ks 0 0 0
+Ns 12.00
+# metallic 0 roughness 0.9 (preview only)
+
+newmtl button
+Kd 0.2 0.22 0.23
+Ks 0.3 0.3 0.3
+Ns 54.00
+# metallic 0.3 roughness 0.48 (preview only)
+
+newmtl seam
+Kd 0.018 0.02 0.022
+Ks 0 0 0
+Ns 22.00
+# metallic 0 roughness 0.8 (preview only)
+
+newmtl metal
+Kd 0.36 0.38 0.4
+Ks 0.85 0.85 0.85
+Ns 69.00
+# metallic 0.85 roughness 0.33 (preview only)
