@@ -1,0 +1,50 @@
+{
+  "asset_id": "RZ_EQ_VELEGRAD_RITUAL_BLADE_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "category": "equipment",
+  "status": "geometry_wip",
+  "unit": "meter",
+  "up_axis": "Y",
+  "files": [
+    "blade_lod0.obj",
+    "blade_lod1.obj",
+    "blade.mtl",
+    "generate.cjs"
+  ],
+  "lods": [
+    {
+      "level": 0,
+      "vertices": 412,
+      "triangles": 760
+    },
+    {
+      "level": 1,
+      "vertices": 160,
+      "triangles": 276
+    }
+  ],
+  "materials": {
+    "steel": {
+      "metallic": 0.9,
+      "roughness": 0.27
+    },
+    "iron": {
+      "metallic": 0.85,
+      "roughness": 0.51
+    },
+    "bronze": {
+      "metallic": 0.8,
+      "roughness": 0.39
+    },
+    "dark_wood": {
+      "metallic": 0.02,
+      "roughness": 0.72
+    },
+    "patina": {
+      "metallic": 0.12,
+      "roughness": 0.83
+    }
+  },
+  "notes": "Original modeled ceremonial blade; physically based numeric parameters only; no texture maps; no UE5 import verification."
+}
