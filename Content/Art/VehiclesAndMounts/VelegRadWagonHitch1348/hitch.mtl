@@ -1,0 +1,9 @@
+newmtl wood
+Kd 0.24 0.12 0.055
+Ns 8
+newmtl iron
+Kd 0.17 0.18 0.17
+Ns 50
+newmtl leather
+Kd 0.11 0.065 0.035
+Ns 6
