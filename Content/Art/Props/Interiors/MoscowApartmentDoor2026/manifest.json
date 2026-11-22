@@ -1,0 +1,54 @@
+{
+  "asset_id": "RZ_PROP_MOSCOW_APARTMENT_DOOR_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 2026,
+  "category": "interiors",
+  "units": "meters",
+  "up_axis": "Z",
+  "lods": [
+    {
+      "file": "door_LOD0.obj",
+      "vertices": 144,
+      "triangles": 196
+    },
+    {
+      "file": "door_LOD1.obj",
+      "vertices": 88,
+      "triangles": 124
+    }
+  ],
+  "pbr": {
+    "frame": {
+      "baseColor": [
+        0.27,
+        0.28,
+        0.3
+      ],
+      "metallic": 0.85,
+      "roughness": 0.49
+    },
+    "paint": {
+      "baseColor": [
+        0.21,
+        0.23,
+        0.25
+      ],
+      "metallic": 0.65,
+      "roughness": 0.56
+    },
+    "brass": {
+      "baseColor": [
+        0.53,
+        0.38,
+        0.18
+      ],
+      "metallic": 0.9,
+      "roughness": 0.33
+    }
+  },
+  "source": "generate.cjs",
+  "collision": "not_created",
+  "ue5": "not_tested",
+  "art_floor": "not_met"
+}
