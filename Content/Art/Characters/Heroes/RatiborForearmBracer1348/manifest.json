@@ -1,0 +1,43 @@
+{
+  "asset_id": "RZ_HERO_RATIBOR_FOREARM_BRACER_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "owner": "heroes-transport",
+  "source": "generate.mjs",
+  "lods": [
+    {
+      "file": "LOD0.obj",
+      "vertices": 1116,
+      "triangles": 1632
+    },
+    {
+      "file": "LOD1.obj",
+      "vertices": 334,
+      "triangles": 408
+    }
+  ],
+  "materials": {
+    "leather": {
+      "metallic": 0,
+      "roughness": 0.84
+    },
+    "leather_edge": {
+      "metallic": 0,
+      "roughness": 0.91
+    },
+    "iron": {
+      "metallic": 0.8,
+      "roughness": 0.47
+    },
+    "bronze": {
+      "metallic": 0.72,
+      "roughness": 0.42
+    }
+  },
+  "uv": "per-vertex procedural",
+  "rig": "none; static costume piece, attachment pending",
+  "render_test": "not_run",
+  "ue5_test": "not_run",
+  "qa": "index range and UV count checked in generator runtime; no manifold test"
+}
