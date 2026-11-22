@@ -8,8 +8,8 @@ signal flashlight_requested
 signal medkit_requested
 signal save_requested
 
-var player: CharacterBody3D
-var game: Node3D
+var player  # dynamic Player script contains virtual_move/stamina/battery
+var game  # dynamic Game script exposes inventory
 var stick_finger: int = -1
 var look_finger: int = -1
 var stick_center: Vector2 = Vector2.ZERO
