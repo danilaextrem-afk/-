@@ -27,8 +27,10 @@ jobs:
       - run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/village_walk.gd
       - name: Verify multi-touch ownership in headless Godot
         run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/mobile_controls_smoke.gd
+      - name: Validate original checkpoint geometry
+        run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/rift_gate_smoke.gd
       - name: Capture player views
-        run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 960x540 -s tests/capture_gallery.gd
+        run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 960x540 -s tests/capture_gallery.gd -- --touch-ui
       - uses: actions/upload-artifact@v4
         with:
           name: zona-godot-player-views
