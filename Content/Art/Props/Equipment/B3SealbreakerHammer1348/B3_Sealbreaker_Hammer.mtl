@@ -1,0 +1,20 @@
+newmtl aged_iron
+Kd 0.18 0.17 0.15
+Pr 0.72
+Pm 1
+newmtl blackened_steel
+Kd 0.08 0.08 0.09
+Pr 0.57
+Pm 1
+newmtl oak
+Kd 0.22 0.12 0.055
+Pr 0.85
+Pm 0
+newmtl bronze
+Kd 0.34 0.22 0.09
+Pr 0.50
+Pm 1
+newmtl seal_ash
+Kd 0.15 0.11 0.11
+Pr 0.93
+Pm 0
