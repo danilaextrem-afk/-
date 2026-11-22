@@ -1,0 +1,12 @@
+newmtl forged_iron
+Kd 0.16 0.18 0.19
+Ks 0.28 0.28 0.28
+Ns 55
+newmtl dark_steel
+Kd 0.075 0.085 0.09
+Ks 0.25 0.25 0.25
+Ns 80
+newmtl bronze
+Kd 0.31 0.21 0.10
+Ks 0.25 0.20 0.12
+Ns 65
