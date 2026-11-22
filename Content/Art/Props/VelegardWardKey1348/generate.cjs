@@ -1,0 +1,12 @@
+// Original procedural mesh, CC0-equivalent project-owned, meters, Z up. Node 18+.
+const fs=require('fs'); const out=__dirname;
+function build(seg){const V=[],UV=[],F=[];const add=(p,uv)=>{V.push(p);UV.push(uv);return V.length}; const tri=(a,b,c)=>F.push([a,b,c]);
+function ring(cx,cy,z,outer,inner,depth,n){let top=[],bot=[],tin=[],bin=[];for(let i=0;i<n;i++){let a=2*Math.PI*i/n;const c=Math.cos(a),s=Math.sin(a);top.push(add([cx+outer*c,cy+outer*s,z+depth/2],[i/n,1]));bot.push(add([cx+outer*c,cy+outer*s,z-depth/2],[i/n,0]));tin.push(add([cx+inner*c,cy+inner*s,z+depth/2],[i/n,.75]));bin.push(add([cx+inner*c,cy+inner*s,z-depth/2],[i/n,.25]));}for(let i=0;i<n;i++){let j=(i+1)%n;[[top[i],top[j],tin[j]],[top[i],tin[j],tin[i]],[bot[j],bot[i],bin[i]],[bot[j],bin[i],bin[j]],[top[j],top[i],bot[i]],[top[j],bot[i],bot[j]],[tin[i],tin[j],bin[j]],[tin[i],bin[j],bin[i]]].forEach(x=>tri(...x));}}
+function box(x,y,z,w,h,d){let q=[[x-w/2,y-h/2,z-d/2],[x+w/2,y-h/2,z-d/2],[x+w/2,y+h/2,z-d/2],[x-w/2,y+h/2,z-d/2],[x-w/2,y-h/2,z+d/2],[x+w/2,y-h/2,z+d/2],[x+w/2,y+h/2,z+d/2],[x-w/2,y+h/2,z+d/2]];for(let f of [[0,3,2,1],[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]]){let a=f.map((k,i)=>add(q[k],[[0,0],[1,0],[1,1],[0,1]][i]));tri(a[0],a[1],a[2]);tri(a[0],a[2],a[3]);}}
+function rod(x0,y0,z0,x1,y1,z1,r,n){let aa=[],bb=[];for(let i=0;i<n;i++){let t=i*2*Math.PI/n,c=Math.cos(t),s=Math.sin(t);aa.push(add([x0+r*c,y0+r*s,z0],[i/n,0]));bb.push(add([x1+r*c,y1+r*s,z1],[i/n,1]));}for(let i=0;i<n;i++){let j=(i+1)%n;tri(aa[i],aa[j],bb[j]);tri(aa[i],bb[j],bb[i]);}}
+ring(0,0,.178,.042,.028,.010,seg);rod(0,0,.137,0,0,-.095,.009,seg);
+box(0,0,-.116,.037,.015,.042);box(.014,0,-.140,.024,.015,.014);box(-.012,0,-.151,.014,.015,.012);
+for(let k=0;k<3;k++){let a=2*Math.PI*k/3;box(.035*Math.cos(a),.035*Math.sin(a),.178,.008,.008,.014);}
+let lines=['# original Velegard ward key, scale meters'];V.forEach(p=>lines.push('v '+p.map(x=>x.toFixed(6)).join(' ')));UV.forEach(p=>lines.push('vt '+p.map(x=>x.toFixed(6)).join(' ')));lines.push('usemtl ForgedIron');F.forEach(f=>lines.push('f '+f.map(i=>i+'/'+i).join(' ')));return {obj:lines.join('\n')+'\n',verts:V.length,faces:F.length,degenerate:F.filter(f=>{let [a,b,c]=f.map(i=>V[i-1]);let u=b.map((v,i)=>v-a[i]),v=c.map((x,i)=>x-a[i]);let cross=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];return Math.hypot(...cross)<1e-10}).length};}
+if(require.main===module){for(let [name,seg] of [['LOD0',32],['LOD1',12]])fs.writeFileSync(out+'/'+name+'.obj',build(seg).obj);}
+module.exports={build};
