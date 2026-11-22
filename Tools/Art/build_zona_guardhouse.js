@@ -196,12 +196,24 @@ const buildAll=function buildAll(){
   return `<polygon points="${pts}" fill="${color(palette[f.mat],light)}" stroke="#0e1418" stroke-width=".42" stroke-linejoin="round"/>`;
  }).join("");
  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 1030" width="1480" height="1030"><rect width="1480" height="1030" fill="#10191d"/><defs><radialGradient id="ambient"><stop stop-color="#324449"/><stop offset="1" stop-color="#10191d"/></radialGradient></defs><rect width="1480" height="1030" fill="url(#ambient)"/><g opacity=".18" stroke="#7aa1a0" stroke-width="1">${Array.from({length:19},(_,i)=>`<path d="M ${i*100} 0 V 1030"/>`).join("")}</g><g opacity=".20" stroke="#789b99" stroke-width="1">${Array.from({length:13},(_,i)=>`<path d="M 0 ${i*90} H 1480"/>`).join("")}</g>${polys}<text x="75" y="102" font-size="43" font-family="monospace" font-weight="bold" fill="#e4e1d2">RAZLOM : ZONA</text><text x="75" y="145" font-size="21" font-family="monospace" fill="#69bbb4">CHECKPOINT // GUARDHOUSE 04</text><text x="75" y="927" font-family="monospace" font-size="19" fill="#9eb2af">Actual source geometry · orthographic projection</text><text x="75" y="959" font-family="monospace" font-size="16" fill="#83928e">Not Godot gameplay · materials are vertex-flat draft</text></svg>`;
+
+ // Second distinct camera from opposite side of the checkpoint; actual same faces
+ const eye2=[-.65,-.65,.45],rr2=[.707,-.707,0],up2=[.354,.354,.866];
+ const side=faces.map(f=>({f,depth:dot(f.v.reduce((s,v)=>s.map((t,i)=>t+v[i]/4),[0,0,0]),eye2)}))
+   .filter(x=>dot(x.f.n,eye2)>0.001).sort((a,b)=>a.depth-b.depth);
+ const polysSide=side.map(({f})=>{
+   const lighting=.64+.30*Math.max(0,dot(f.n,[-.3,-.4,.85]));
+   const points=f.v.map(v=>(740+dot(v,rr2)*110).toFixed(1)+","+(570-dot(v,up2)*110).toFixed(1)).join(" ");
+   return '<polygon points="'+points+'" fill="'+color(palette[f.mat],lighting)+'" stroke="#0e1418" stroke-width=".42" stroke-linejoin="round"/>';
+ }).join("");
+ const svgSide=svg.replace(polys,polysSide).replace("CHECKPOINT // GUARDHOUSE 04","CHECKPOINT // SIDE ANGLE 02");
  const groups={};for(let f of faces)groups[f.mat]=(groups[f.mat]||0)+2;
  const stats={elements,quads:faces.length,triangles:faces.length*2,materials:allMats.length,vertices:faces.length*4,renderFacing:fsort.length,bytes:bytes.length,groups};
- return {gltf:JSON.stringify(gltf),svg,stats,materials:palette};
+ return {gltf:JSON.stringify(gltf),svg,svgSide,stats,materials:palette};
 };
 const output=buildAll();const dir=process.argv[2]||process.cwd();fs.mkdirSync(dir,{recursive:true});
 fs.writeFileSync(path.join(dir,'SM_Guardhouse04_v1.gltf'),output.gltf);
 fs.writeFileSync(path.join(dir,'Preview_Guardhouse04_SourceGeometry.svg'),output.svg);
+fs.writeFileSync(path.join(dir,'Preview_Guardhouse04_Side_SourceGeometry.svg'),output.svgSide);
 fs.writeFileSync(path.join(dir,'guardhouse_stats.json'),JSON.stringify(output.stats,null,2));
 console.log(JSON.stringify(output.stats));
