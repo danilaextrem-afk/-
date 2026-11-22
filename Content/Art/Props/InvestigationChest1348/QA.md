@@ -1,0 +1,3 @@
+# QA — Investigation Chest v0.1
+
+Original procedural geometry, not a concept image. LOD0: 504 triangles, 336 vertices, 1008 UV entries. LOD1: 360 triangles (minor fittings removed). Face index bounds errors: 0. UV values within [0,1] on each face; overlapping UV islands, **not suitable for unique lightmap baking**. Materials: four PBR parameter sets, no authored texture maps or normal/AO. No render performed, no collision proxy, no UE5 import, no pivot rig. Model is a geometric WIP and below accepted bell v3 quality floor. Source generator included; Node.js CommonJS source stored as generate.cjs is executable with Node.js.

@@ -1,0 +1,42 @@
+{
+  "schema": "RAZLOM_PBR_PARAMETERS_v1",
+  "note": "Linear base color approximate; roughness/metallic values for UE5 material authoring, not baked maps.",
+  "materials": {
+    "wood_dark": {
+      "baseColor": [
+        0.21,
+        0.105,
+        0.05
+      ],
+      "metallic": 0,
+      "roughness": 0.84
+    },
+    "wood_endgrain": {
+      "baseColor": [
+        0.28,
+        0.16,
+        0.085
+      ],
+      "metallic": 0,
+      "roughness": 0.88
+    },
+    "iron_worn": {
+      "baseColor": [
+        0.12,
+        0.14,
+        0.15
+      ],
+      "metallic": 0.82,
+      "roughness": 0.58
+    },
+    "bronze_lock": {
+      "baseColor": [
+        0.45,
+        0.28,
+        0.12
+      ],
+      "metallic": 0.8,
+      "roughness": 0.4
+    }
+  }
+}

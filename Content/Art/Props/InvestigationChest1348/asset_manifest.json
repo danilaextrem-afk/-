@@ -1,0 +1,26 @@
+{
+  "asset_id": "RZ_PROP_1348_INVESTIGATION_CHEST_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "category": "interactive investigation prop",
+  "units": "meters",
+  "up_axis": "Z",
+  "files": [
+    "Chest_LOD0.obj",
+    "Chest_LOD1.obj",
+    "chest.mtl",
+    "pbr_materials.json",
+    "asset_manifest.json",
+    "QA.md",
+    "generate.cjs"
+  ],
+  "geometry": {
+    "vertices": 336,
+    "uv": 1008,
+    "lod0_triangles": 504,
+    "lod1_triangles": 360
+  },
+  "collision": "not authored; simple collision proxy needed",
+  "animation": "lid currently closed; pivot/hinge setup not authored",
+  "status": "WIP, not UE5-tested"
+}
