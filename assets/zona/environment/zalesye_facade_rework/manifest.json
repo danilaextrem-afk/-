@@ -1,0 +1,11 @@
+{
+  "asset_id": "RZ_ZONA_ENV_ZALESYE_FACADE_REWORK_001",
+  "version": "0.1.0",
+  "status": "REJECTED / ART REWORK",
+  "source": "generate.py",
+  "units": "meters",
+  "atlas": "atlas.png",
+  "export": "zalesye_facade_rework.glb",
+  "license": "original",
+  "notes": "GitHub reproducer is a simplified 42-part variant; richer local 66-part GLB remains separate; Godot and Android not tested."
+}
