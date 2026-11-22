@@ -89,9 +89,11 @@ func _unhandled_input(event: InputEvent) -> void:
             Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
     if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
         _look(event.relative)
-    if event is InputEventScreenDrag:
-        if event.position.x > get_viewport().get_visible_rect().size.x * 0.43:
-            _look(event.relative * 1.2)
+    # Touch gestures are owned by MobileControls. Never rotate twice
+    # because an action button and a camera drag share the same finger.
+
+func look_from_touch(relative: Vector2) -> void:
+    _look(relative)
 
 func _look(delta_pixels: Vector2) -> void:
     rotate_y(-delta_pixels.x * LOOK_SENSITIVITY)
