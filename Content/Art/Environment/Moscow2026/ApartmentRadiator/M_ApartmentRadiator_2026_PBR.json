@@ -1,0 +1,82 @@
+{
+  "status": "draft_parameter_recipe_only",
+  "coordinateSystem": "meters Z-up; verify UE5 centimeters",
+  "engine": "Unreal Engine 5",
+  "workflow": "metallic_roughness",
+  "textureMapsIncluded": false,
+  "materials": {
+    "Enamel_Cream": {
+      "baseColor": [
+        0.74,
+        0.72,
+        0.63,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.39,
+      "normalStrength": 0.27,
+      "texturePlan": "enamel_micro_orange_peel, dust, sparse chips"
+    },
+    "Enamel_Edge": {
+      "baseColor": [
+        0.61,
+        0.61,
+        0.57,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.51,
+      "normalStrength": 0.33,
+      "texturePlan": "edge_chipping, grime"
+    },
+    "Cast_Iron_Exposed": {
+      "baseColor": [
+        0.12,
+        0.125,
+        0.125,
+        1
+      ],
+      "metallic": 0.82,
+      "roughness": 0.57,
+      "normalStrength": 0.63,
+      "texturePlan": "rough_cold_cast_iron_bumps"
+    },
+    "Rust_Oxide": {
+      "baseColor": [
+        0.24,
+        0.089,
+        0.037,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.91,
+      "normalStrength": 0.82,
+      "texturePlan": "layered_iron_oxide_at_seams"
+    },
+    "Brass_Valve": {
+      "baseColor": [
+        0.48,
+        0.29,
+        0.085,
+        1
+      ],
+      "metallic": 0.84,
+      "roughness": 0.34,
+      "normalStrength": 0.32,
+      "texturePlan": "finger_polish_patina"
+    },
+    "Steel_Pipe": {
+      "baseColor": [
+        0.28,
+        0.29,
+        0.31,
+        1
+      ],
+      "metallic": 0.82,
+      "roughness": 0.48,
+      "normalStrength": 0.35,
+      "texturePlan": "paintless_pipe_scratches"
+    }
+  },
+  "notes": "These physically-based material parameters are useful starting points for UE5 material instances, not finished authored PBR textures. Validate actual tonality in calibrated UE5 lighting and capture."
+}
