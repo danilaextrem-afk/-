@@ -1,0 +1,2 @@
+# QA
+Procedural OBJ created for Moscow 2026 apartment electrical cabinet. LOD0 204 triangles, 136 vertices; LOD1 96 triangles, 64 vertices. UV indices generated for every triangle. Geometry assembled from intersecting closed cuboids; seams/intersections remain. PBR scalar values only; no baked textures. UE5 import and Blender render not tested. Not art-floor accepted.
