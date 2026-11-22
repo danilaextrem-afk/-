@@ -1,0 +1,44 @@
+{
+  "asset_id": "RZ_ENV_VELEGRAD_OAK_SHUTTER_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "units": "metres",
+  "up": "Z",
+  "pivot": "lower hinge axis at x=0",
+  "files": [
+    "shutter_LOD0.obj",
+    "shutter_LOD1.obj",
+    "generate.cjs",
+    "shutter.mtl"
+  ],
+  "lod0": {
+    "vertices": 864,
+    "triangles": 432
+  },
+  "lod1": {
+    "vertices": 504,
+    "triangles": 252
+  },
+  "materials": {
+    "Oak": {
+      "metallic": 0,
+      "roughness": 0.83
+    },
+    "Grain": {
+      "metallic": 0,
+      "roughness": 0.92
+    },
+    "Iron": {
+      "metallic": 0.85,
+      "roughness": 0.57
+    }
+  },
+  "checks": {
+    "face_indices": true,
+    "uv_ranges": true,
+    "independent_generator_run": false,
+    "mesh_render": false,
+    "ue5_import": false
+  },
+  "notes": "MTL and scalar PBR parameters only; no texture maps. Separate overlapping box parts; not watertight."
+}
