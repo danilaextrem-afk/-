@@ -1,0 +1,23 @@
+newmtl aged_bronze
+Kd 0.49 0.31 0.12
+Ks 0.28 0.28 0.28
+Ns 90
+illum 2
+
+newmtl blackened_iron
+Kd 0.10 0.10 0.11
+Ks 0.28 0.28 0.28
+Ns 90
+illum 2
+
+newmtl bone_inlay
+Kd 0.65 0.59 0.44
+Ks 0.28 0.28 0.28
+Ns 90
+illum 2
+
+newmtl blood_garnet
+Kd 0.25 0.02 0.035
+Ks 0.28 0.28 0.28
+Ns 90
+illum 2
