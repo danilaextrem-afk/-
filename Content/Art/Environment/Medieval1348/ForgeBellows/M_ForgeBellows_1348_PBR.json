@@ -1,0 +1,106 @@
+{
+  "status": "draft_parameter_recipe_only",
+  "coordinateSystem": "meters Z-up; verify UE5 centimeters",
+  "engine": "Unreal Engine 5",
+  "workflow": "metallic_roughness",
+  "textureMapsIncluded": false,
+  "materials": {
+    "Oak_Aged": {
+      "baseColor": [
+        0.31,
+        0.185,
+        0.095,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.83,
+      "normalStrength": 0.75,
+      "texturePlan": "oak_endgrain_grain_height, dark_cracks, edge_wear"
+    },
+    "Oak_Dark": {
+      "baseColor": [
+        0.155,
+        0.074,
+        0.038,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.79,
+      "normalStrength": 0.8,
+      "texturePlan": "treated_wood_fibers, varnish_patches"
+    },
+    "Leather_Smoked": {
+      "baseColor": [
+        0.125,
+        0.051,
+        0.031,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.73,
+      "normalStrength": 0.9,
+      "texturePlan": "fold_wear, pores, leather grain"
+    },
+    "Leather_Seam": {
+      "baseColor": [
+        0.25,
+        0.122,
+        0.071,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.86,
+      "normalStrength": 0.65,
+      "texturePlan": "stitched_reinforcement_scratches"
+    },
+    "Leather_Thread": {
+      "baseColor": [
+        0.41,
+        0.29,
+        0.15,
+        1
+      ],
+      "metallic": 0,
+      "roughness": 0.93,
+      "normalStrength": 0.45,
+      "texturePlan": "fiber_strand_roughness"
+    },
+    "Iron_Blackened": {
+      "baseColor": [
+        0.095,
+        0.102,
+        0.103,
+        1
+      ],
+      "metallic": 0.86,
+      "roughness": 0.56,
+      "normalStrength": 0.6,
+      "texturePlan": "hammer_marks, soot, patina"
+    },
+    "Iron_Edge": {
+      "baseColor": [
+        0.255,
+        0.268,
+        0.25,
+        1
+      ],
+      "metallic": 0.91,
+      "roughness": 0.37,
+      "normalStrength": 0.7,
+      "texturePlan": "forged_steel_edge_wear"
+    },
+    "Brass_Tarnished": {
+      "baseColor": [
+        0.42,
+        0.29,
+        0.083,
+        1
+      ],
+      "metallic": 0.82,
+      "roughness": 0.48,
+      "normalStrength": 0.55,
+      "texturePlan": "oxidized_recesses, polished_high_spots"
+    }
+  },
+  "notes": "These physically-based material parameters are useful starting points for UE5 material instances, not finished authored PBR textures. Validate actual tonality in calibrated UE5 lighting and capture."
+}
