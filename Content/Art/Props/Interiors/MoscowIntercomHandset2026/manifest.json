@@ -1,0 +1,71 @@
+{
+  "asset_id": "RZ_PROP_MOSCOW_INTERCOM_HANDSET_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "era": 2026,
+  "category": "interiors",
+  "unit": "metre",
+  "lods": [
+    {
+      "file": "handset_LOD0.obj",
+      "vertices": 2408,
+      "triangles": 3828
+    },
+    {
+      "file": "handset_LOD1.obj",
+      "vertices": 1023,
+      "triangles": 1064
+    }
+  ],
+  "materials": {
+    "plastic": {
+      "baseColor": [
+        0.73,
+        0.7,
+        0.62
+      ],
+      "metallic": 0,
+      "roughness": 0.65
+    },
+    "dark": {
+      "baseColor": [
+        0.05,
+        0.05,
+        0.06
+      ],
+      "metallic": 0,
+      "roughness": 0.88
+    },
+    "speaker": {
+      "baseColor": [
+        0.2,
+        0.19,
+        0.18
+      ],
+      "metallic": 0.15,
+      "roughness": 0.7
+    },
+    "rubber": {
+      "baseColor": [
+        0.035,
+        0.035,
+        0.04
+      ],
+      "metallic": 0,
+      "roughness": 0.92
+    },
+    "label": {
+      "baseColor": [
+        0.85,
+        0.84,
+        0.76
+      ],
+      "metallic": 0,
+      "roughness": 0.78
+    }
+  },
+  "rig": "none",
+  "collision": "not authored",
+  "texture_maps": "not authored",
+  "ue5_tested": false
+}
