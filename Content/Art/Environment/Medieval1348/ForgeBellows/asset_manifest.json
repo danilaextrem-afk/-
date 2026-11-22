@@ -1,0 +1,29 @@
+{
+  "asset": "forge_bellows_1348",
+  "authoring": "original procedural",
+  "status": "geometry_wip",
+  "unit": "meter",
+  "up": "Z",
+  "lods": [
+    {
+      "file": "SM_ForgeBellows_1348_LOD0.obj",
+      "triangles": 4288
+    },
+    {
+      "file": "SM_ForgeBellows_1348_LOD1.obj",
+      "triangles": 1632
+    }
+  ],
+  "materialSlots": [
+    "Oak_Aged",
+    "Oak_Dark",
+    "Leather_Smoked",
+    "Leather_Seam",
+    "Leather_Thread",
+    "Iron_Blackened",
+    "Iron_Edge",
+    "Brass_Tarnished"
+  ],
+  "engineValidation": "not_run",
+  "pbrTextures": "not_authored"
+}
