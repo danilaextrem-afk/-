@@ -1,0 +1,12 @@
+newmtl iron
+Kd 0.12 0.13 0.14
+Pr 0.65
+Pm 1.0
+newmtl bronze
+Kd 0.32 0.19 0.07
+Pr 0.48
+Pm 1.0
+newmtl obsidian
+Kd 0.015 0.018 0.022
+Pr 0.22
+Pm 0.0
