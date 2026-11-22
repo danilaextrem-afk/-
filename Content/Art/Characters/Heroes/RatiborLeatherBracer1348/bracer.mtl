@@ -1,0 +1,17 @@
+# PBR numeric guidance; MTL is not a full metallic-roughness material
+newmtl leather
+Kd 0.21 0.10 0.045
+Ks 0.04 0.03 0.02
+Ns 18
+newmtl stitched_leather
+Kd 0.13 0.062 0.027
+Ks 0.03 0.02 0.02
+Ns 14
+newmtl dark_iron
+Kd 0.105 0.11 0.12
+Ks 0.40 0.42 0.44
+Ns 120
+newmtl bronze
+Kd 0.32 0.19 0.075
+Ks 0.48 0.31 0.11
+Ns 95
