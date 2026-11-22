@@ -3,7 +3,52 @@ extends Node3D
 const STREET := preload("res://assets/village/street.glb")
 
 func _ready() -> void:
-    add_child(STREET.instantiate())
+    var street_scene: Node3D = STREET.instantiate()
+    add_child(street_scene)
+    # The inherited GLB contains a 10.75 m water tank precisely behind
+    # the hero checkpoint. Remove only tower triangles by local geometry
+    # coordinates, retaining authored houses, trees, road and atlas.
+    # This one-time mesh filter is a WIP replacement for offline re-export.
+    for model in street_scene.find_children("*", "MeshInstance3D", true, false):
+        _strip_tower_triangles(model)
+
+
+func _strip_tower_triangles(node: MeshInstance3D) -> void:
+    var source := node.mesh as ArrayMesh
+    if source == null:
+        return
+    var rebuilt := ArrayMesh.new()
+    var removed: int = 0
+    for index in range(source.get_surface_count()):
+        var surface_arrays := source.surface_get_arrays(index)
+        var positions: PackedVector3Array = surface_arrays[Mesh.ARRAY_VERTEX]
+        var input_ids: PackedInt32Array = surface_arrays[Mesh.ARRAY_INDEX]
+        if input_ids.is_empty():
+            # Imported GLB should be indexed; preserve any unusual surface.
+            rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_arrays)
+            rebuilt.surface_set_material(rebuilt.get_surface_count()-1, source.surface_get_material(index))
+            continue
+        var kept := PackedInt32Array()
+        for k in range(0, input_ids.size(), 3):
+            var a: Vector3 = positions[input_ids[k]]
+            var b: Vector3 = positions[input_ids[k+1]]
+            var d: Vector3 = positions[input_ids[k+2]]
+            var center: Vector3 = (a+b+d)/3.0
+            var tower := center.x > -2.2 and center.x < 3.4 and center.z > -51.6 and center.z < -46.4
+            if tower:
+                removed += 1
+            else:
+                kept.append_array(PackedInt32Array([input_ids[k], input_ids[k+1], input_ids[k+2]]))
+        if kept.is_empty():
+            continue
+        surface_arrays[Mesh.ARRAY_INDEX] = kept
+        rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_arrays)
+        rebuilt.surface_set_material(rebuilt.get_surface_count()-1, source.surface_get_material(index))
+    if removed > 0:
+        node.mesh = rebuilt
+        set_meta("water_tower_triangles_filtered", removed)
+        print("ZONA street: filtered legacy water tower triangles: ", removed)
+
     var surface := MeshInstance3D.new()
     var plane := PlaneMesh.new()
     plane.size = Vector2(9.4, 49.0)
