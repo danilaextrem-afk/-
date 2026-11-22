@@ -1,0 +1,26 @@
+{
+  "asset_id": "RZ_ENV_BLACKWOOD_MOSS_BOULDER_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "source": "generate.py",
+  "units": "meters",
+  "lods": {
+    "LOD0": {
+      "vertices": 1225,
+      "triangles": 2208
+    },
+    "LOD1": {
+      "vertices": 325,
+      "triangles": 528
+    }
+  },
+  "maps": [
+    "basecolor.ppm",
+    "roughness.ppm",
+    "metallic.ppm",
+    "normal.ppm"
+  ],
+  "collision": "not authored",
+  "ue5_tested": false,
+  "pbr_note": "Provisional procedural maps; normal not high-poly baked"
+}
