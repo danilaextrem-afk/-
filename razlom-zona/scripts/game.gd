@@ -4,6 +4,7 @@ extends Node3D
 
 const PlayerScript = preload("res://scripts/player.gd")
 const EnemyScript = preload("res://scripts/enemy.gd")
+const MobileControlsScript = preload("res://scripts/mobile_controls.gd")
 const SAVE_PATH = "user://razlom_zona_save_v1.json"
 const WORLD_HALF_SIZE = 46.0
 
@@ -17,7 +18,6 @@ var shelter_interaction := Vector3(-11.0, 0.7, 5.65)
 var anomaly_damage_clock: float = 0.0
 var message_clock: float = 0.0
 var is_dead: bool = false
-var touch_pressed: Dictionary = {}
 
 var hud: CanvasLayer
 var stats_label: Label
@@ -279,11 +279,9 @@ func _interact() -> void:
     var target := _nearest_interactable()
     if target.is_empty():
         if inventory["medkit"] > 0 and player.health < 100:
-            inventory["medkit"] -= 1
-            player.health = minf(100.0, player.health + 45.0)
-            _show_message("Использована аптечка (+45 здоровья)", 3.0)
+            _use_medkit()
         else:
-            _show_message("Подойди к предмету, убежищу или используй аптечку", 2.0)
+            _show_message("Подойди к предмету или убежищу", 2.0)
         return
     if target["kind"] == "shelter":
         player.restore()
@@ -302,6 +300,20 @@ func _interact() -> void:
         pickups.erase(node)
         node.queue_free()
         _show_message("Найдено: %s" % kind, 2.5)
+
+func _use_medkit() -> void:
+    if is_dead or not player.alive:
+        return
+    if int(inventory["medkit"]) <= 0:
+        _show_message("Нет аптечек", 1.7)
+        return
+    if player.health >= 100.0:
+        _show_message("Здоровье уже полное", 1.7)
+        return
+    inventory["medkit"] -= 1
+    player.health = minf(100.0, player.health + 45.0)
+    _show_message("Аптечка: +45 здоровья", 2.3)
+
 
 func _check_death() -> void:
     if player.health <= 0.0 and not is_dead:
@@ -365,15 +377,22 @@ func _create_hud() -> void:
     tip_label = _label(root, Vector2(22, 50), Vector2(900, 34), 16)
     status_label = _label(root, Vector2(22, 84), Vector2(1100, 52), 18)
     touch_controls = root
-    if not DisplayServer.is_touchscreen_available():
-        return
-    _touch_button("▲", Vector2(124, -222), Vector2(68, 68), "forward")
-    _touch_button("▼", Vector2(124, -84), Vector2(68, 68), "back")
-    _touch_button("◀", Vector2(47, -153), Vector2(68, 68), "left")
-    _touch_button("▶", Vector2(201, -153), Vector2(68, 68), "right")
-    _touch_button("БЕГ", Vector2(-350, -82), Vector2(80, 60), "run", true)
-    _touch_button("ДЕЙСТВИЕ", Vector2(-252, -82), Vector2(124, 60), "use", true)
-    _touch_button("СВЕТ", Vector2(-114, -82), Vector2(95, 60), "torch", true)
+    if DisplayServer.is_touchscreen_available() or "--touch-ui" in OS.get_cmdline_user_args():
+        # Overlay reads screen touch IDs itself; camera and joystick may
+        # move independently, while sprint/torch/interaction use other fingers.
+        var overlay = MobileControlsScript.new()
+        overlay.name = "MobileControls"
+        root.add_child(overlay)
+        overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+        overlay.configure(player, self)
+        overlay.interact_requested.connect(_interact)
+        overlay.flashlight_requested.connect(player.toggle_flashlight)
+        overlay.medkit_requested.connect(_use_medkit)
+        overlay.save_requested.connect(_save_game)
+        stats_label.visible = false
+        tip_label.visible = false
+        status_label.position = Vector2(22, 134)
+        status_label.add_theme_font_size_override("font_size", 17)
 
 func _label(parent: Control, pos: Vector2, size: Vector2, font_size: int) -> Label:
     var label := Label.new()
@@ -387,48 +406,6 @@ func _label(parent: Control, pos: Vector2, size: Vector2, font_size: int) -> Lab
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     parent.add_child(label)
     return label
-
-func _touch_button(caption: String, offset: Vector2, size: Vector2, button_id: String, right_anchor: bool = false) -> void:
-    var b := Button.new()
-    b.text = caption
-    b.name = button_id
-    b.custom_minimum_size = size
-    touch_controls.add_child(b)
-    if right_anchor:
-        b.anchor_left = 1.0
-        b.anchor_right = 1.0
-    else:
-        b.anchor_left = 0.0
-        b.anchor_right = 0.0
-    b.anchor_top = 1.0
-    b.anchor_bottom = 1.0
-    b.offset_left = offset.x
-    b.offset_right = offset.x + size.x
-    b.offset_top = offset.y
-    b.offset_bottom = offset.y + size.y
-    b.modulate = Color(0.77, 0.98, 0.86, 0.80)
-    b.add_theme_font_size_override("font_size", 17)
-    b.button_down.connect(func(): _touch_down(button_id))
-    b.button_up.connect(func(): _touch_up(button_id))
-
-func _touch_down(button_id: String) -> void:
-    if button_id == "use":
-        _interact()
-    elif button_id == "torch":
-        player.toggle_flashlight()
-    else:
-        touch_pressed[button_id] = true
-        _recompute_virtual_move()
-
-func _touch_up(button_id: String) -> void:
-    touch_pressed.erase(button_id)
-    _recompute_virtual_move()
-
-func _recompute_virtual_move() -> void:
-    var x := int(touch_pressed.has("right")) - int(touch_pressed.has("left"))
-    var y := int(touch_pressed.has("back")) - int(touch_pressed.has("forward"))
-    player.virtual_move = Vector2(x, y).limit_length()
-    player.virtual_sprint = touch_pressed.has("run")
 
 func _refresh_hud() -> void:
     stats_label.text = "ЗДР  %d     ВЫН  %d     СВЕТ  %d%%     ✚  %d     ЛОМ  %d" % [int(player.health), int(player.stamina), int(player.battery), int(inventory["medkit"]), int(inventory["scrap"])]
