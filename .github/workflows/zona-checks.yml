@@ -24,6 +24,7 @@ jobs:
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --import
       - run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/bunker_walk.gd
+      - run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/village_walk.gd
       - name: Capture player views
         run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 960x540 -s tests/capture_gallery.gd
       - uses: actions/upload-artifact@v4

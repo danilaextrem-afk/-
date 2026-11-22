@@ -13,7 +13,7 @@ var collected_ids: Dictionary = {}
 var pickups: Array[Node3D] = []
 var enemies: Array[CharacterBody3D] = []
 var anomaly_zones: Array[Dictionary] = []
-var shelter_interaction := Vector3(-11.0, 0.7, 12.1)
+var shelter_interaction := Vector3(-11.0, 0.7, 5.65)
 var anomaly_damage_clock: float = 0.0
 var message_clock: float = 0.0
 var is_dead: bool = false
@@ -29,13 +29,14 @@ func _ready() -> void:
     _setup_environment()
     _create_world()
     player = PlayerScript.new()
-    player.position = Vector3(-5.0, 0.25, 10.8)
+    player.position = Vector3(-39.0, 0.25, 2.0)
+    player.rotation.y = -PI / 2.0
     add_child(player)
     _spawn_enemy(Vector3(21.0, 0.3, -17.0), 0)
     _spawn_enemy(Vector3(-26.0, 0.3, -24.0), 1)
     _create_hud()
     _load_save()
-    _show_message("РАЗЛОМ: ЗОНА | Найди припасы. Убежище: зелёная дверь.", 8.0)
+    _show_message("Залесье   /   найти припасы", 4.5)
 
 func _process(delta: float) -> void:
     if not is_instance_valid(player):
@@ -57,20 +58,28 @@ func _process(delta: float) -> void:
 func _setup_environment() -> void:
     var env := WorldEnvironment.new()
     env.environment = Environment.new()
-    env.environment.background_mode = Environment.BG_COLOR
-    env.environment.background_color = Color("0c151b")
+    var sky_material := ShaderMaterial.new()
+    sky_material.shader = preload("res://assets/village/storm.gdshader")
+    sky_material.set_shader_parameter("panorama", preload("res://assets/village/storm.jpg"))
+    var sky := Sky.new()
+    sky.sky_material = sky_material
+    env.environment.sky = sky
+    env.environment.background_mode = Environment.BG_SKY
     env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.environment.ambient_light_color = Color("71878a")
-    env.environment.ambient_light_energy = 0.65
+    env.environment.ambient_light_color = Color("a99da5")
+    env.environment.ambient_light_energy = 0.78
+    env.environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.environment.fog_enabled = true
-    env.environment.fog_light_color = Color("23383a")
-    env.environment.fog_density = 0.024
+    env.environment.fog_light_color = Color("975e5e")
+    env.environment.fog_density = 0.0055
+    env.environment.fog_sky_affect = 0.0
     add_child(env)
     var moon := DirectionalLight3D.new()
-    moon.rotation_degrees = Vector3(-38.0, -30.0, 0.0)
-    moon.light_color = Color("8fa5ad")
-    moon.light_energy = 0.55
-    moon.shadow_enabled = false
+    moon.rotation_degrees = Vector3(-19.0, 69.0, 0.0)
+    moon.light_color = Color("ffac74")
+    moon.light_energy = 1.25
+    moon.shadow_enabled = true
+    moon.directional_shadow_max_distance = 35.0
     add_child(moon)
 
 func _material(hex: String, glowing: bool = false, transparent: bool = false) -> StandardMaterial3D:
@@ -129,7 +138,11 @@ func _create_world() -> void:
     _box("MainRoad", Vector3(0, 0.025, 2), Vector3(88, 0.06, 7), pavement)
     _box("SideRoad", Vector3(18, 0.03, -12), Vector3(6, 0.05, 48), pavement)
     # A fictional abandoned settlement, not a real location.
-    _house(Vector3(-20, 0, -9), Vector3(8, 6, 8), cement, roof, dark)
+    var street := preload("res://scripts/crimson_street.gd").new()
+    street.name = "CrimsonStreet"
+    street.position = Vector3(-39, 0, 2)
+    street.rotation.y = -PI / 2.0
+    add_child(street)
     _house(Vector3(-3, 0, -20), Vector3(11, 8, 9), cement, roof, dark)
     _house(Vector3(30, 0, -6), Vector3(9, 6, 10), wood, roof, dark)
     _house(Vector3(28, 0, 22), Vector3(8, 5, 8), cement, roof, dark)
@@ -142,9 +155,6 @@ func _create_world() -> void:
     add_child(gallery)
     _box("GalleryEnd", Vector3(24, -3.55, -40.13), Vector3(4.1, 3.2, 0.26), cement)
     _spawn_pickup("bunker_supplies", "medkit", Vector3(24, -4.10, -38.8))
-    _box("Safehouse", Vector3(-11, 2.2, 6), Vector3(9, 4.4, 9), wood)
-    _box("SafehouseRoof", Vector3(-11, 4.55, 6), Vector3(10, 0.5, 10), roof)
-    _box("ShelterDoor", Vector3(-11.0, 1.4, 10.66), Vector3(1.7, 2.4, 0.22), mint, false)
     _box("WatchPlatform", Vector3(-37, 5, -30), Vector3(5, 0.7, 5), wood)
     for x in [-39.0, -35.0]:
         for z in [-32.0, -28.0]:
@@ -152,7 +162,8 @@ func _create_world() -> void:
     # Deterministic decoration positions; avoids endless terrain generation on mobile.
     var trees: Array[Vector3] = [Vector3(-36,0,-8), Vector3(-41,0,17), Vector3(-24,0,36), Vector3(17,0,37), Vector3(38,0,37), Vector3(40,0,8), Vector3(38,0,-34), Vector3(-17,0,-37), Vector3(8,0,-38), Vector3(-41,0,-39)]
     for pos in trees:
-        _tree(pos, wood, moss)
+        if pos.distance_to(Vector3(-39, 0, 2)) > 18.0:
+            _tree(pos, wood, moss)
     for i in range(12):
         var x := float((i * 19) % 79 - 39)
         var z := float((i * 37) % 77 - 38)
@@ -299,12 +310,13 @@ func _check_death() -> void:
 
 func _respawn() -> void:
     is_dead = false
-    player.position = Vector3(-5.0, 0.3, 10.8)
+    player.position = Vector3(-11.0, 0.3, 4.9)
     player.restore()
     _show_message("Возрождение у убежища", 3.0)
 
 func _save_game() -> void:
     var state := {"version":1, "position":[player.position.x,player.position.y,player.position.z],
+        "yaw":player.rotation.y, "pitch":player.camera.rotation.x,
         "health":player.health, "stamina":player.stamina, "battery":player.battery,
         "inventory":inventory, "collected_ids":collected_ids}
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -328,6 +340,8 @@ func _load_save() -> void:
         var p := Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
         if absf(p.x) < WORLD_HALF_SIZE and absf(p.z) < WORLD_HALF_SIZE:
             player.position = p
+    player.rotation.y = float(parsed.get("yaw", 0.0))
+    player.camera.rotation.x = clampf(float(parsed.get("pitch", 0.0)), -1.35, 1.35)
     player.health = clampf(float(parsed.get("health", 100.0)), 1.0, 100.0)
     player.stamina = clampf(float(parsed.get("stamina", 100.0)), 0.0, 100.0)
     player.battery = clampf(float(parsed.get("battery", 100.0)), 0.0, 100.0)
@@ -351,6 +365,8 @@ func _create_hud() -> void:
     tip_label = _label(root, Vector2(22, 50), Vector2(900, 34), 16)
     status_label = _label(root, Vector2(22, 84), Vector2(1100, 52), 18)
     touch_controls = root
+    if not DisplayServer.is_touchscreen_available():
+        return
     _touch_button("▲", Vector2(124, -222), Vector2(68, 68), "forward")
     _touch_button("▼", Vector2(124, -84), Vector2(68, 68), "back")
     _touch_button("◀", Vector2(47, -153), Vector2(68, 68), "left")
@@ -415,13 +431,13 @@ func _recompute_virtual_move() -> void:
     player.virtual_sprint = touch_pressed.has("run")
 
 func _refresh_hud() -> void:
-    stats_label.text = "ЗДОРОВЬЕ %d   ВЫНОСЛИВОСТЬ %d   ФОНАРЬ %d%%   АПТЕЧКИ %d   ЛОМ %d" % [int(player.health), int(player.stamina), int(player.battery), int(inventory["medkit"]), int(inventory["scrap"])]
+    stats_label.text = "ЗДР  %d     ВЫН  %d     СВЕТ  %d%%     ✚  %d     ЛОМ  %d" % [int(player.health), int(player.stamina), int(player.battery), int(inventory["medkit"]), int(inventory["scrap"])]
     if is_dead:
         tip_label.text = "E / ДЕЙСТВИЕ — возродиться"
         return
     var target := _nearest_interactable()
     if target.is_empty():
-        tip_label.text = "WASD — идти | мышь — смотреть | Shift — бег | F — свет | E — аптечка | F5 — сохранить"
+        tip_label.text = ""
     else:
         tip_label.text = "E / ДЕЙСТВИЕ — %s" % ("убежище: лечение и сохранение" if target["kind"] == "shelter" else "подобрать предмет")
 
