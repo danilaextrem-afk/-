@@ -155,15 +155,36 @@ const buildAll=function buildAll(){
   const primitive={attributes:{POSITION:appendFloats(pos,3,true),NORMAL:appendFloats(nor,3),TEXCOORD_0:appendFloats(uv,2)},material:matIndex,mode:4};
   const mi=meshes.length;meshes.push({name,primitives:[primitive]});nodes.push({name,mesh:mi});
  }
+ // Hand-authored procedural 64x64 pixel-grunge albedo pattern, embedded PNG; reproducible, no external pack
+ function texturePNG(){
+  const w=64,h=64,rgba=[];
+  for(let y=0;y<h;y++){
+   rgba.push(0);
+   for(let x=0;x<w;x++){
+    let xx=x>>1,yy=y>>1;
+    let v=((xx*741103597)^(yy*1597334677)^(xx*yy*1376312589))>>>0;
+    let g=232+(v%24);
+    if(v%29===0)g=173;
+    if((xx+yy*3)%43===0)g=191;
+    rgba.push(g,g,g,255);
+   }
+  }
+  const len=rgba.length,be=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255];
+  function crc(arr){let c=0xffffffff;for(let b of arr){c^=b;for(let j=0;j<8;j++)c=(c>>>1)^((c&1)?0xedb88320:0);}return (c^0xffffffff)>>>0;}
+  function chunk(tag,data){let tagBytes=tag.split("").map(c=>c.charCodeAt(0)),all=[...tagBytes,...data];return [...be(data.length),...all,...be(crc(all))];}
+  let a=1,b=0;for(let v of rgba){a=(a+v)%65521;b=(b+a)%65521;}
+  const zlib=[0x78,0x01,0x01,len&255,(len>>>8)&255,(~len)&255,((~len)>>>8)&255,...rgba,...be(((b<<16)|a)>>>0)];
+  return [137,80,78,71,13,10,26,10,...chunk("IHDR",[...be(w),...be(h),8,6,0,0,0]),...chunk("IDAT",zlib),...chunk("IEND",[])];
+ }
  const materials=allMats.map(k=>{const v=palette[k],rgb=[1,3,5].map(i=>parseInt(v.slice(i,i+2),16)/255);
-  return {name:k,pbrMetallicRoughness:{baseColorFactor:[...rgb,1],metallicFactor:k.includes("metal")||k.includes("rust")?.55:0,roughnessFactor:k==="glass"?.22:.86},emissiveFactor:k==="cyan"?[.05,.55,.51]:[0,0,0],doubleSided:false};
+  return {name:k,pbrMetallicRoughness:{baseColorFactor:[...rgb,1],baseColorTexture:{index:0},metallicFactor:k.includes("metal")||k.includes("rust")?.55:0,roughnessFactor:k==="glass"?.22:.86},emissiveFactor:k==="cyan"?[.05,.55,.51]:[0,0,0],doubleSided:false};
  });
  function b64(arr){let out="",ch="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   for(let i=0;i<arr.length;i+=3){let a=arr[i],b=arr[i+1],c=arr[i+2],v=(a<<16)|((b||0)<<8)|(c||0);
    out+=ch[(v>>>18)&63]+ch[(v>>>12)&63]+(i+1<arr.length?ch[(v>>>6)&63]:"=")+(i+2<arr.length?ch[v&63]:"=");
   }return out;
  }
- const gltf={asset:{version:"2.0",generator:"RAZLOM Zona original code-generated guardhouse v1"},scene:0,scenes:[{nodes:nodes.map((_,i)=>i)}],nodes,meshes,materials,buffers:[{byteLength:bytes.length,uri:"data:application/octet-stream;base64,"+b64(bytes)}],bufferViews,accessors};
+ const gltf={asset:{version:"2.0",generator:"RAZLOM Zona original code-generated guardhouse v1"},scene:0,scenes:[{nodes:nodes.map((_,i)=>i)}],nodes,meshes,materials,images:[{uri:"data:image/png;base64,"+b64(texturePNG()),mimeType:"image/png"}],textures:[{sampler:0,source:0}],samplers:[{magFilter:9728,minFilter:9728,wrapS:10497,wrapT:10497}],buffers:[{byteLength:bytes.length,uri:"data:application/octet-stream;base64,"+b64(bytes)}],bufferViews,accessors};
  // actual source-geometry orthographic angled preview, hidden-surface painter sorting
  const eye=[.55,-.78,.45], rr=[.814,.581,0],up=[-.265,.371,.890], dot=(a,b)=>a.reduce((s,t,i)=>s+t*b[i],0);
  const fsort=faces.map(f=>({f,depth:dot(f.v.reduce((s,p)=>s.map((x,i)=>x+p[i]/4),[0,0,0]),eye)}))
