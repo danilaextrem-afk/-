@@ -1,0 +1,36 @@
+{
+  "asset_id": "RZ_BOSS_B3_SEAL_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "owner": "bosses-equipment",
+  "category": "boss phase prop",
+  "boss": "B3 Князь Без Могилы",
+  "license": "original procedural geometry",
+  "units": "metres",
+  "axis": "Z-up",
+  "status": "geometry_wip",
+  "lod0": {
+    "vertices": 3348,
+    "triangles": 6264,
+    "degenerate": 0,
+    "uv": 3348,
+    "bounds": [
+      -0.476495508014836,
+      0.4779541974479635
+    ]
+  },
+  "lod1": {
+    "vertices": 1170,
+    "triangles": 2124,
+    "degenerate": 0,
+    "uv": 1170,
+    "bounds": [
+      -0.4719655291269809,
+      0.4773286725939273
+    ]
+  },
+  "rig": "static, no rig",
+  "collision": "not yet created",
+  "pbr": "MTL roughness/metallic intent only; texture maps absent",
+  "ue5": "not tested"
+}
