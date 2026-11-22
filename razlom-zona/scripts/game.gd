@@ -13,7 +13,7 @@ var collected_ids: Dictionary = {}
 var pickups: Array[Node3D] = []
 var enemies: Array[CharacterBody3D] = []
 var anomaly_zones: Array[Dictionary] = []
-var shelter_interaction := Vector3(-11.0, 0.7, 12.1)
+var shelter_interaction := Vector3(-11.0, 0.7, 5.65)
 var anomaly_damage_clock: float = 0.0
 var message_clock: float = 0.0
 var is_dead: bool = false
@@ -66,12 +66,12 @@ func _setup_environment() -> void:
     env.environment.sky = sky
     env.environment.background_mode = Environment.BG_SKY
     env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.environment.ambient_light_color = Color("ab9d9f")
+    env.environment.ambient_light_color = Color("a99da5")
     env.environment.ambient_light_energy = 0.78
     env.environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.environment.fog_enabled = true
-    env.environment.fog_light_color = Color("ae746d")
-    env.environment.fog_density = 0.008
+    env.environment.fog_light_color = Color("975e5e")
+    env.environment.fog_density = 0.0055
     env.environment.fog_sky_affect = 0.0
     add_child(env)
     var moon := DirectionalLight3D.new()
@@ -155,9 +155,6 @@ func _create_world() -> void:
     add_child(gallery)
     _box("GalleryEnd", Vector3(24, -3.55, -40.13), Vector3(4.1, 3.2, 0.26), cement)
     _spawn_pickup("bunker_supplies", "medkit", Vector3(24, -4.10, -38.8))
-    _box("Safehouse", Vector3(-11, 2.2, 6), Vector3(9, 4.4, 9), wood)
-    _box("SafehouseRoof", Vector3(-11, 4.55, 6), Vector3(10, 0.5, 10), roof)
-    _box("ShelterDoor", Vector3(-11.0, 1.4, 10.66), Vector3(1.7, 2.4, 0.22), mint, false)
     _box("WatchPlatform", Vector3(-37, 5, -30), Vector3(5, 0.7, 5), wood)
     for x in [-39.0, -35.0]:
         for z in [-32.0, -28.0]:
@@ -313,7 +310,7 @@ func _check_death() -> void:
 
 func _respawn() -> void:
     is_dead = false
-    player.position = Vector3(-5.0, 0.3, 10.8)
+    player.position = Vector3(-11.0, 0.3, 4.9)
     player.restore()
     _show_message("Возрождение у убежища", 3.0)
 

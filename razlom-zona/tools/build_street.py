@@ -87,6 +87,11 @@ def house(x,z,angle,w,h,depth,t,lit):
     frame(x,z,angle);f=depth/2
     cube(0,.2,0,w+.1,.4,depth+.1,7)
     cube(0,h/2+.25,0,w,h,depth,t)
+    # Narrow overlapping courses cast real shadows along the facade.
+    for row in range(12):
+        yy=.37+row*(h/12)
+        cube(0,yy,f+.018,w,.057,.061,t)
+        for side in [-1,1]:cube(side*(w/2+.012),yy,0,.045,.047,depth,t)
     for zz,order in [(f,1),(-f,-1)]:
         p=[(-w/2,h+.24,zz),(w/2,h+.24,zz),(0,h+2.1,zz)]
         face(p if order==1 else p[::-1],t)
@@ -100,6 +105,10 @@ def house(x,z,angle,w,h,depth,t,lit):
     cube(w*.24,h+1.91,-f*.5,.49,1.54,.51,7);cube(w*.24,h+2.72,-f*.5,.61,.12,.63,1)
     for xx in [-w/2+.08,w/2-.08]:cube(xx,h/2+.22,f+.04,.18,h,.16,1)
     for xx in [-w*.32,w*.28]:window(xx,1.76,f+.04,lit and xx>0)
+    for xx in [-w*.32,w*.28]:
+        for dx in [-.77,.77]:
+            cube(xx+dx,1.77,f+.055,.38,1.11,.08,2 if t==0 else 0)
+            for yb in [1.39,2.16]:cube(xx+dx,yb,f+.114,.40,.073,.052,1)
     cube(0,1.11,f+.06,.91,1.92,.15,1)
     for i in range(5):cube(-.34+i*.17,1.12,f+.16,.15,1.77,.05,t)
     cube(.29,1.15,f+.21,.13,.06,.09,4)
@@ -118,7 +127,7 @@ def house(x,z,angle,w,h,depth,t,lit):
         for wx in [-depth*.24,depth*.24]:window(wx,1.72,.015,False)
     frame()
 
-houses=[(-7.6,-6,.97,5.6,2.62,5.5,2,False),(8.2,-4,-1.07,5.8,2.72,5.2,0,True),(-9.3,-20,1.35,6.9,3.05,5.7,0,False),(8.5,-17,-1.35,4.9,2.42,5.1,2,False),(-6.8,-33,.55,5.4,2.72,4.7,0,True)]
+houses=[(-7.6,-6,.97,5.6,2.62,5.5,2,False),(8.2,-4,-1.07,5.8,2.72,5.2,0,True),(-9.3,-20,1.35,6.9,3.05,5.7,0,False),(8.5,-17,-1.35,4.9,2.42,5.1,2,False),(-6.8,-33,.55,5.4,2.72,4.7,0,True),(7.1,-28,-1.57,6.2,2.77,5.0,5,True)]
 for params in houses:house(*params)
 # Leaning palisades with missing slats, posts and rails.
 for side in [-1,1]:
@@ -198,21 +207,6 @@ for _ in range(1000):
     w=rng.uniform(.16,.45);h=rng.uniform(.18,.59)
     a=rng.random()*math.pi;dx,dz=w*math.cos(a),w*math.sin(a)
     face([(x-dx,.07,z-dz),(x+dx,.07,z+dz),(x+dx+.06,h,z+dz),(x-dx+.06,h,z-dz)],13,'leaves')
-# Patched strips of earth, wagon ruts and shallow irregular reflecting water.
-for i in range(26):
-    z=4-i*1.9
-    for j in range(8):
-        x=-4.4+j*1.1
-        face([(x,.062,z),(x+1.1,.062,z),(x+1.1,.062,z-1.9),(x,.062,z-1.9)],rng.choice([8,8,9,10]))
-for _ in range(120):
-    z=rng.uniform(-43,3);x=rng.choice([-1.07,.89])+rng.uniform(-.37,.37)
-    wid=rng.uniform(.13,.63);l=rng.uniform(.24,1.22)
-    for i in range(7):
-        def edge(k):
-            a=k*math.tau/7
-            return (x+math.cos(a)*wid,.078,z+math.sin(a)*l)
-        face([(x,.078,z),edge(i+1),edge(i)],6,'water')
-
 # Normals and winding are recorded explicitly. The batch uses double-sided
 # leaves and weathered sheet metal so torn edges are visible from both sides.
 binary=bytearray();views=[];accessors=[]

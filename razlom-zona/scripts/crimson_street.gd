@@ -4,11 +4,23 @@ const STREET := preload("res://assets/village/street.glb")
 
 func _ready() -> void:
     add_child(STREET.instantiate())
+    var surface := MeshInstance3D.new()
+    var plane := PlaneMesh.new()
+    plane.size = Vector2(9.4, 49.0)
+    surface.mesh = plane
+    surface.position = Vector3(0, 0.071, -20.5)
+    var mud := ShaderMaterial.new()
+    mud.shader = preload("res://assets/village/road.gdshader")
+    mud.set_shader_parameter("ground_map", preload("res://assets/village/road.png"))
+    mud.set_shader_parameter("sky_map", preload("res://assets/village/storm.jpg"))
+    surface.material_override = mud
+    surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    add_child(surface)
     # House centres and yaw match the baked mesh. Collision excludes grass and cables.
     for house in [
         [-7.6, -6.0, 0.97, 5.6, 5.5], [8.2, -4.0, -1.07, 5.8, 5.2],
         [-9.3, -20.0, 1.35, 6.9, 5.7], [8.5, -17.0, -1.35, 4.9, 5.1],
-        [-6.8, -33.0, 0.55, 5.4, 4.7]
+        [-6.8, -33.0, 0.55, 5.4, 4.7], [7.1, -28.0, -1.57, 6.2, 5.0]
     ]:
         _solid(Vector3(house[0], 1.5, house[1]), Vector3(house[3], 3.0, house[4]), house[2])
     _solid(Vector3(-3.4, .67, -5.7), Vector3(1.6, 1.34, 3.55), .33)
