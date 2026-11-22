@@ -1,0 +1,22 @@
+{
+  "asset_id": "RZ_ENV_MOD_MOSCOW_ELECTRICAL_CABINET_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "source": "generate.cjs",
+  "lods": [
+    {
+      "file": "cabinet_LOD0.obj",
+      "vertices": 136,
+      "triangles": 204
+    },
+    {
+      "file": "cabinet_LOD1.obj",
+      "vertices": 64,
+      "triangles": 96
+    }
+  ],
+  "materials": "materials.json",
+  "units": "meters",
+  "ue5": "not_tested",
+  "art_floor": "not_met"
+}
