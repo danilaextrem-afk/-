@@ -1,0 +1,17 @@
+# PBR-like material parameters; no baked textures; UE5 material conversion required
+newmtl wood_dark
+Kd 0.21 0.105 0.050
+Ks 0.04 0.04 0.04
+Ns 12
+newmtl wood_endgrain
+Kd 0.28 0.16 0.085
+Ks 0.04 0.04 0.04
+Ns 12
+newmtl iron_worn
+Kd 0.12 0.14 0.15
+Ks 0.65 0.65 0.65
+Ns 100
+newmtl bronze_lock
+Kd 0.45 0.28 0.12
+Ks 0.5 0.4 0.2
+Ns 70
