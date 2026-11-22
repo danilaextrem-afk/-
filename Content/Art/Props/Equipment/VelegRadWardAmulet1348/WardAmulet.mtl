@@ -1,0 +1,5 @@
+newmtl PatinatedBronze
+Kd 0.29 0.21 0.12
+Ks 0.42 0.38 0.31
+Ns 65
+illum 2
