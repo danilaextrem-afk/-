@@ -1,0 +1,15 @@
+# Blender/UE5 material mapping: use manifest PBR values
+newmtl saddle_oiled_leather
+Kd 0.22 0.095 0.043
+newmtl wool_pad
+Kd 0.31 0.27 0.19
+newmtl cantle
+Kd 0.16 0.065 0.027
+newmtl pommel
+Kd 0.16 0.065 0.027
+newmtl strap_dark_leather
+Kd 0.09 0.04 0.02
+newmtl stirrup_leather
+Kd 0.12 0.055 0.03
+newmtl iron
+Kd 0.24 0.25 0.24
