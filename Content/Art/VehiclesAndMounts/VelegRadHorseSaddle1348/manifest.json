@@ -1,0 +1,19 @@
+{
+  "asset_id": "RZ_MOUNT_VELEGRAD_HORSE_SADDLE_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "units": "meters",
+  "source": "generate.cjs",
+  "generated_meshes": [
+    "LOD0.obj",
+    "LOD1.obj"
+  ],
+  "material_parameters": "pbr.json",
+  "license": "original",
+  "pivot": "horse back center",
+  "rig": "static saddle; stirrups require separate bones for animation",
+  "collision": "pending UE5 simplified collision",
+  "ue5_verified": false,
+  "render_verified": false
+}

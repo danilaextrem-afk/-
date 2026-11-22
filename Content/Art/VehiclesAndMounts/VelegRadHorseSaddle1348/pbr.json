@@ -1,0 +1,56 @@
+{
+  "WoolPad": {
+    "baseColor": [
+      0.28,
+      0.24,
+      0.18
+    ],
+    "metallic": 0,
+    "roughness": 0.94
+  },
+  "DarkLeather": {
+    "baseColor": [
+      0.16,
+      0.075,
+      0.045
+    ],
+    "metallic": 0,
+    "roughness": 0.68
+  },
+  "HarnessLeather": {
+    "baseColor": [
+      0.21,
+      0.11,
+      0.065
+    ],
+    "metallic": 0,
+    "roughness": 0.77
+  },
+  "OiledWood": {
+    "baseColor": [
+      0.24,
+      0.12,
+      0.055
+    ],
+    "metallic": 0,
+    "roughness": 0.62
+  },
+  "ForgedIron": {
+    "baseColor": [
+      0.15,
+      0.16,
+      0.17
+    ],
+    "metallic": 1,
+    "roughness": 0.55
+  },
+  "BrassStud": {
+    "baseColor": [
+      0.45,
+      0.29,
+      0.09
+    ],
+    "metallic": 1,
+    "roughness": 0.38
+  }
+}
