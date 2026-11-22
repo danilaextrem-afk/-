@@ -22,7 +22,7 @@ jobs:
           unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
           mv "$RUNNER_TEMP/Godot_v4.4.1-stable_linux.x86_64" "$RUNNER_TEMP/godot"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
-      - run: godot --headless --import
+      - run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --import
       - run: XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 -s tests/bunker_walk.gd
       - name: Capture player views
         run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 960x540 -s tests/capture_gallery.gd
