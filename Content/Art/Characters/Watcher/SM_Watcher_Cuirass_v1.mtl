@@ -1,0 +1,5 @@
+# Draft only; not physically based
+newmtl Watcher_BlackenedIron_Draft
+Kd 0.13 0.15 0.17
+Ks 0.25 0.25 0.25
+Ns 64
