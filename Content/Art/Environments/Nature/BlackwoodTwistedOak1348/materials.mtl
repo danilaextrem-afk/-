@@ -1,0 +1,6 @@
+newmtl bark
+Kd 0.14 0.095 0.065
+Ns 8
+newmtl root
+Kd 0.105 0.075 0.052
+Ns 5
