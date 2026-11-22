@@ -1,0 +1,37 @@
+{
+  "asset_id": "RZ_EQUIP_VELEGRAD_SEVEN_SEAL_WARD_1348_001",
+  "version": "0.1.0",
+  "category": "equipment",
+  "epoch": 1348,
+  "canonical_context": "Seven bells / seals; original ornamental ward, not asserted as an established story artifact",
+  "geometry": {
+    "file": "ward_LOD0.obj",
+    "vertices": 2508,
+    "triangles": 4312,
+    "degenerate_triangles": 0,
+    "uv": true,
+    "units": "meters"
+  },
+  "materials": {
+    "bronze": {
+      "metallic": 0.85,
+      "roughness": 0.35
+    },
+    "dark_iron": {
+      "metallic": 0.9,
+      "roughness": 0.5
+    },
+    "garnet": {
+      "metallic": 0,
+      "roughness": 0.17
+    },
+    "silver": {
+      "metallic": 0.95,
+      "roughness": 0.25
+    }
+  },
+  "status": "geometry_wip",
+  "lod1": false,
+  "ue5_verified": false,
+  "render_verified": false
+}
