@@ -1,0 +1,69 @@
+{
+  "asset_id": "RZ_ENV_VELEGRAD_OAK_SHUTTER_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "category": "MedievalArchitecture",
+  "purpose": "Modular hinged shutter for village homes; decorative/interactive candidate",
+  "source": "generate.cjs",
+  "license": "original project work",
+  "status": "materials_wip",
+  "units": "metres",
+  "axis": "Z-up",
+  "lods": {
+    "LOD0": {
+      "vertices": 614,
+      "triangles": 844,
+      "uv": 614,
+      "degenerate": 0,
+      "materials": [
+        "Oak",
+        "OakDark",
+        "Iron"
+      ]
+    },
+    "LOD1": {
+      "vertices": 334,
+      "triangles": 364,
+      "uv": 334,
+      "degenerate": 4,
+      "materials": [
+        "Oak",
+        "OakDark",
+        "Iron"
+      ]
+    }
+  },
+  "materials": {
+    "Oak": {
+      "base_color": [
+        0.27,
+        0.14,
+        0.067
+      ],
+      "roughness": 0.88,
+      "metallic": 0
+    },
+    "OakDark": {
+      "base_color": [
+        0.14,
+        0.075,
+        0.038
+      ],
+      "roughness": 0.91,
+      "metallic": 0
+    },
+    "Iron": {
+      "base_color": [
+        0.12,
+        0.115,
+        0.11
+      ],
+      "roughness": 0.7,
+      "metallic": 1
+    }
+  },
+  "textures": "Not baked; numeric PBR values only",
+  "collision": "not authored",
+  "rig": "hinge pivot at x=-0.505; not rigged",
+  "validation": "in-memory triangle-area and UV-index checks; no external renderer or UE5"
+}
