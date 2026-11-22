@@ -1,0 +1,17 @@
+# Preview values, not baked texture maps
+newmtl steel
+Kd 0.17 0.19 0.21
+Ns 110
+newmtl concrete
+Kd 0.37 0.36 0.34
+Ns 18
+newmtl enamel
+Kd 0.04 0.18 0.42
+Ns 145
+newmtl glass
+Kd 0.19 0.25 0.29
+d 0.45
+Ns 180
+newmtl wood
+Kd 0.28 0.17 0.10
+Ns 35
