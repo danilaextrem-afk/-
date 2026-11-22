@@ -58,15 +58,16 @@ func _glow(name: String, tint: String, power: float) -> StandardMaterial3D:
     return m
 
 func _make_materials() -> void:
-    _mat("stone", "5e6468")
-    _mat("stone_dark", "333f47")
-    _mat("stone_warm", "79746b")
-    _mat("rubble", "515456")
-    _mat("rust", "845345", 0.32)
+    _mat("stone", "33434b")
+    _mat("stone_dark", "1e2f36")
+    _mat("stone_warm", "526067")
+    _mat("rubble", "404f50")
+    _mat("rust", "794638", 0.32)
     _mat("iron", "27383a", 0.70)
     _mat("iron_edge", "73837f", 0.65)
-    _mat("soil", "333a35")
-    _mat("mud", "55433e")
+    _mat("soil", "243432")
+    _mat("void", "060e13")
+    _mat("mud", "383b3c")
     _mat("moss", "3c5344")
     _mat("dry_grass", "8b7e58")
     _mat("wet", "182f35")
@@ -220,6 +221,7 @@ func _anomaly() -> void:
     var p := PlaneMesh.new()
     p.size = Vector2(3.33, 3.15)
     pane.mesh = p
+    _box("AnomalyDarkDepth_NoCollision", Vector3(0,1.85,0.51), Vector3(3.08,3.00,0.16), "void")
     pane.position = Vector3(0, 1.88, 0.35)
     pane.rotation_degrees.x = 90.0
     var sh := ShaderMaterial.new()
@@ -229,14 +231,14 @@ func _anomaly() -> void:
 
     # Three-dimensional crystalline edges, irregular local highlights
     # and two coloured real lights make the portal dimensional in-engine.
-    for i in 24:
-        var a := float(i) / 23.0
+    for i in 19:
+        var a := float(i) / 18.0
         var side := -1.0 if i % 2 == 0 else 1.0
         var x := side * _rng.randf_range(1.35, 2.36)
         var z := _rng.randf_range(-.45, .88)
-        var y := .12 if i < 12 else _rng.randf_range(.60, 1.8)
-        var height := _rng.randf_range(.18, .85)
-        var mat_name := "cyan" if i % 3 != 0 else "magenta"
+        var y := .12 if i < 10 else _rng.randf_range(.60, 1.8)
+        var height := _rng.randf_range(.17, .62)
+        var mat_name := "cyan" if i % 4 != 0 else "magenta"
         _spike("rift_crystal_%02d" % i, Vector3(x, y, z), height, _rng.randf_range(.07, .16), mat_name)
         if i % 4 == 0:
             _rod("rift_electric_filament", Vector3(x, y + height*.55, z), Vector3(x - side*.20, y + height*1.23, z-.25), .014, "pale_cyan")
