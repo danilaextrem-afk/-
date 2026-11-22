@@ -1,0 +1,40 @@
+{
+  "asset_id": "RZ_EQUIP_1348_VEIL_RITUAL_DAGGER_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "category": "equipment",
+  "intended_use": "Order of Veil ritual prop",
+  "source": "generate.cjs",
+  "license": "original",
+  "lod0": {
+    "vertices": 972,
+    "triangles": 1808
+  },
+  "lod1": {
+    "vertices": 408,
+    "triangles": 712
+  },
+  "pbr_parameters": {
+    "iron": {
+      "metallic": 1,
+      "roughness": 0.42
+    },
+    "bronze": {
+      "metallic": 1,
+      "roughness": 0.58
+    },
+    "leather": {
+      "metallic": 0,
+      "roughness": 0.82
+    },
+    "silver": {
+      "metallic": 1,
+      "roughness": 0.34
+    }
+  },
+  "texture_maps": [],
+  "collision": "not created",
+  "ue5_tested": false,
+  "art_floor_approved": false
+}
