@@ -1,0 +1,31 @@
+{
+  "asset_id": "RZ_EQUIP_VELEGRAD_RITUAL_CENSER_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "units": "metres",
+  "up": "Z",
+  "lods": {
+    "LOD0": {
+      "vertices": 6510,
+      "triangles": 11552,
+      "degenerate": 0
+    },
+    "LOD1": {
+      "vertices": 2399,
+      "triangles": 3920,
+      "degenerate": 0
+    }
+  },
+  "materials": {
+    "blackened_bronze": {
+      "base_color": [
+        0.14,
+        0.105,
+        0.075
+      ],
+      "metallic": 0.83,
+      "roughness": 0.46
+    }
+  },
+  "notes": "UV coordinates procedural; PBR scalar only. Open cage is intentional; chain links interpenetrate. Not rigged, rendered, or UE5 verified."
+}
