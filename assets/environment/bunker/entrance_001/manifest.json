@@ -1,0 +1,21 @@
+{
+  "asset_id": "RZ_ZONA_ENV_BUNKER_ENTRANCE_001",
+  "version": "0.1.0",
+  "units": "meters",
+  "axis": "Y-up",
+  "module_width_m": 4,
+  "door_opening_m": [
+    1.4,
+    2.25
+  ],
+  "triangles": 132,
+  "materials": 4,
+  "texture_atlas": "not yet; vertex UV per face and flat PBR material factors",
+  "source": "generate.mjs",
+  "export": "bunker_entrance.gltf (generate locally)",
+  "collision": "pending",
+  "godot_import": "not tested",
+  "android_fps": "not tested",
+  "license": "CC0 original",
+  "status": "geometry_wip"
+}
