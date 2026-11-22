@@ -1,0 +1,30 @@
+{
+  "asset_id": "RZ_BOSS_B3_GRAVELESS_PRINCE_BODY_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "canonical_boss": "B3 Князь Без Могилы",
+  "phase": "phase_1 only",
+  "units": "metres",
+  "up": "Z",
+  "lod0": {
+    "vertices": 678,
+    "triangles": 1120,
+    "uv": 678
+  },
+  "lod1": {
+    "vertices": 354,
+    "triangles": 548,
+    "uv": 354
+  },
+  "materials": [
+    "aged_bone",
+    "corroded_armor",
+    "funeral_cloth",
+    "tarnished_gold",
+    "seal_ember"
+  ],
+  "pbr_status": "scalar draft only; no texture maps",
+  "rig_status": "not rigged",
+  "ue5_verified": false,
+  "quality_gate": "not met"
+}
