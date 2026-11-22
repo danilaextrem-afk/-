@@ -1,0 +1,17 @@
+{
+  "asset_id": "RZ_PROP_INTERIOR_STAIRWELL_BREAKER_PANEL_2026_001",
+  "version": "0.1.0",
+  "status": "geometry-wip",
+  "era": 2026,
+  "units": "metres",
+  "lod0": {
+    "vertices": 868,
+    "triangles": 924
+  },
+  "lod1": {
+    "vertices": 576,
+    "triangles": 380
+  },
+  "pbr": "pbr.json",
+  "validation": "face index range passed; UE5 and render not tested"
+}
