@@ -1,0 +1,5 @@
+// Mesh/UV/normal QA for original Izba kit. Invoke: node Tools/Art/validate_izba_1348.js
+const fs=require('node:fs'),path=require('node:path');
+const dir=path.join(__dirname,'..','..','Content','Art','Environment','Medieval1348','IzbaKit');const manifest=JSON.parse(fs.readFileSync(path.join(dir,'asset_manifest.json'),'utf8'));let checked=0;
+for(const part of Object.keys(manifest.parts)){for(const lod of [0,1]){const txt=fs.readFileSync(path.join(dir,'SM_Izba_'+part+'_1348_LOD'+lod+'.obj'),'utf8');let v=0,vt=0,vn=0,f=0;for(const l of txt.split(/\r?\n/)){const a=l.split(/\s+/);if(a[0]==='v')v++;if(a[0]==='vt')vt++;if(a[0]==='vn')vn++;if(a[0]==='f'){f++;if(a.length!==4)throw Error('not triangulated');for(const part of a.slice(1)){const [i,j,k]=part.split('/').map(Number);if(i<1||j<1||k<1||i>v||j>vt||k>vn)throw Error('bad face index')}}}if(f!==manifest.parts[part]['LOD'+lod].triangles||vt<18||!vn)throw Error('manifest count mismatch '+part+' LOD'+lod);checked++}if(manifest.parts[part].LOD0.triangles<=manifest.parts[part].LOD1.triangles)throw Error('LOD regression')}
+console.log('PASS:',checked,'OBJ files; valid face / UV / normal indices and LOD ordering');
