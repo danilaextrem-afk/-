@@ -215,13 +215,48 @@ func _spike(label: String, base: Vector3, height: float, radius: float, material
     ]
     _polyhedron(label, p, PackedInt32Array([0,1,4,1,2,4,2,3,4,3,0,4,0,3,2,0,2,1]), material)
 
+func _rift_void_geometry() -> void:
+    # Jagged non-rectangular silhouette: an actual authored mesh under the
+    # translucent fracture shader, not an intrusive flat black cube.
+    var outline: Array[Vector2] = [
+        Vector2(-.91,.20), Vector2(-1.31,.41),
+        Vector2(-1.25,.76), Vector2(-1.46,1.11),
+        Vector2(-1.32,1.53), Vector2(-1.53,1.99),
+        Vector2(-1.23,2.25), Vector2(-1.33,2.61),
+        Vector2(-1.02,2.94), Vector2(-.80,3.37),
+        Vector2(-.33,3.34), Vector2(.08,3.42),
+        Vector2(.49,3.31), Vector2(.90,3.37),
+        Vector2(1.20,2.99), Vector2(1.14,2.53),
+        Vector2(1.42,2.17), Vector2(1.28,1.81),
+        Vector2(1.39,1.46), Vector2(1.17,1.00),
+        Vector2(1.29,.67), Vector2(.96,.25)
+    ]
+    var st := SurfaceTool.new()
+    st.begin(Mesh.PRIMITIVE_TRIANGLES)
+    var center := Vector3(0,1.82,.06)
+    for i in range(outline.size()):
+        var a := Vector3(outline[i].x, outline[i].y, .06)
+        var b := Vector3(outline[(i+1) % outline.size()].x, outline[(i+1) % outline.size()].y, .06)
+        for v in [center, a, b]:
+            st.set_normal(Vector3(0,0,1))
+            st.set_uv(Vector2(v.x*.3,v.y*.3))
+            st.add_vertex(v)
+    var m := MeshInstance3D.new()
+    m.name = "AnomalyDarkJaggedDepth_NoCollision"
+    m.mesh = st.commit()
+    var void_mat: StandardMaterial3D = _materials["void"]
+    void_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+    m.material_override = void_mat
+    add_child(m)
+
+
 func _anomaly() -> void:
     var pane := MeshInstance3D.new()
     pane.name = "PixelFracturePlane_NonCollision"
     var p := PlaneMesh.new()
     p.size = Vector2(3.33, 3.15)
     pane.mesh = p
-    _box("AnomalyDarkDepth_NoCollision", Vector3(0,1.85,0.06), Vector3(3.08,3.00,0.16), "void")
+    _rift_void_geometry()
     pane.position = Vector3(0, 1.88, 0.35)
     pane.rotation_degrees.x = 90.0
     var sh := ShaderMaterial.new()
