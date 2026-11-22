@@ -1,0 +1,35 @@
+{
+  "asset_id": "RZ_EQUIP_1348_VEIL_WARD_AMULET_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "category": "equipment",
+  "geometry": {
+    "lod0_vertices": 1088,
+    "lod0_triangles": 2112,
+    "uv0": true,
+    "index_validation": true
+  },
+  "pbr_parameters": {
+    "aged_bronze": {
+      "metallic": 0.85,
+      "roughness": 0.43
+    },
+    "dark_silver": {
+      "metallic": 0.9,
+      "roughness": 0.37
+    },
+    "bone_inlay": {
+      "metallic": 0,
+      "roughness": 0.72
+    }
+  },
+  "limitations": [
+    "No texture maps",
+    "No LOD1",
+    "No UE5 import",
+    "No rendered mesh verification",
+    "Not at black bell v3 art floor"
+  ],
+  "source": "generate.cjs"
+}
