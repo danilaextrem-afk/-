@@ -1,0 +1,23 @@
+{
+  "asset_id": "RZ_BOSS_B3_FUNERARY_SEAL_001",
+  "version": "0.1.0",
+  "boss": "B3 Князь Без Могилы",
+  "canon": "Печати князя; визуальный реквизит для механики разрушения печатей",
+  "mesh": "B3_FunerarySeal.obj",
+  "source": "generate.cjs",
+  "triangles": 940,
+  "vertices": 492,
+  "uv_coordinates": 492,
+  "materials": [
+    "aged_iron",
+    "blackened_silver",
+    "bone_inlay"
+  ],
+  "pbr_status": "MTL preview only; texture maps not baked",
+  "lod_status": "LOD0 only",
+  "rig": "not applicable (static seal)",
+  "collision": "not generated",
+  "ue5_tested": false,
+  "render_tested": false,
+  "quality": "WIP below accepted Black Bell v3 art floor"
+}
