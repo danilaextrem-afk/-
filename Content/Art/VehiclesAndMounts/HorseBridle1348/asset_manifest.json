@@ -1,0 +1,32 @@
+{
+  "asset_id": "RZ_VEH_MOUNT_HORSE_BRIDLE_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "status": "geometry_wip",
+  "source": "generate.mjs",
+  "unit": "meter",
+  "axis": "Z-up",
+  "lods": [
+    {
+      "file": "bridle_LOD0.obj",
+      "vertices": 864,
+      "triangles": 1656,
+      "uv": 864
+    },
+    {
+      "file": "bridle_LOD1.obj",
+      "vertices": 432,
+      "triangles": 792,
+      "uv": 432
+    }
+  ],
+  "materials": [
+    "Leather",
+    "Iron",
+    "Bronze"
+  ],
+  "rigging": "Static strap arrangement; skin weights and horse fitting not authored",
+  "ue5_tested": false,
+  "render_tested": false,
+  "art_floor_met": false
+}
