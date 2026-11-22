@@ -1,0 +1,12 @@
+newmtl leather
+Kd 0.13 0.065 0.034
+Ks 0.03 0.03 0.03
+Ns 12
+newmtl steel_buckle
+Kd 0.31 0.33 0.34
+Ks 0.7 0.7 0.7
+Ns 110
+newmtl rivets
+Kd 0.28 0.24 0.18
+Ks 0.6 0.5 0.3
+Ns 75
