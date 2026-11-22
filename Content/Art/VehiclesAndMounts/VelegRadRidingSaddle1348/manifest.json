@@ -1,0 +1,95 @@
+{
+  "asset_id": "RZ_VEH_VELEGRAD_RIDING_SADDLE_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "author": "Original procedural asset",
+  "license": "Original project asset",
+  "status": "materials_wip",
+  "source": "generate.cjs",
+  "units": "metres",
+  "orientation": "X forward Z up",
+  "lod": {
+    "LOD0": {
+      "vertices": 704,
+      "uv": 704,
+      "triangles": 1352,
+      "degenerate": 0
+    },
+    "LOD1": {
+      "vertices": 412,
+      "uv": 412,
+      "triangles": 768,
+      "degenerate": 0
+    }
+  },
+  "pbr_parameters": {
+    "saddle_oiled_leather": {
+      "baseColor": [
+        0.22,
+        0.095,
+        0.043
+      ],
+      "metallic": 0,
+      "roughness": 0.72
+    },
+    "wool_pad": {
+      "baseColor": [
+        0.31,
+        0.27,
+        0.19
+      ],
+      "metallic": 0,
+      "roughness": 0.95
+    },
+    "cantle": {
+      "baseColor": [
+        0.16,
+        0.065,
+        0.027
+      ],
+      "metallic": 0,
+      "roughness": 0.7
+    },
+    "pommel": {
+      "baseColor": [
+        0.16,
+        0.065,
+        0.027
+      ],
+      "metallic": 0,
+      "roughness": 0.7
+    },
+    "strap_dark_leather": {
+      "baseColor": [
+        0.09,
+        0.04,
+        0.02
+      ],
+      "metallic": 0,
+      "roughness": 0.79
+    },
+    "stirrup_leather": {
+      "baseColor": [
+        0.12,
+        0.055,
+        0.03
+      ],
+      "metallic": 0,
+      "roughness": 0.8
+    },
+    "iron": {
+      "baseColor": [
+        0.24,
+        0.25,
+        0.24
+      ],
+      "metallic": 1,
+      "roughness": 0.48
+    }
+  },
+  "texture_maps": "Not created; scalar PBR only",
+  "rig": "Static saddle; stirrup animation/attachment sockets pending",
+  "collision": "Pending",
+  "ue5_import": "Not tested",
+  "art_floor": "Not met"
+}
