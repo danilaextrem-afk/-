@@ -221,7 +221,7 @@ func _anomaly() -> void:
     var p := PlaneMesh.new()
     p.size = Vector2(3.33, 3.15)
     pane.mesh = p
-    _box("AnomalyDarkDepth_NoCollision", Vector3(0,1.85,0.51), Vector3(3.08,3.00,0.16), "void")
+    _box("AnomalyDarkDepth_NoCollision", Vector3(0,1.85,0.06), Vector3(3.08,3.00,0.16), "void")
     pane.position = Vector3(0, 1.88, 0.35)
     pane.rotation_degrees.x = 90.0
     var sh := ShaderMaterial.new()
