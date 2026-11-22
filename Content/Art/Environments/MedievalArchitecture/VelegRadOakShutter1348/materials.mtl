@@ -1,0 +1,14 @@
+newmtl Oak
+Kd 0.27 0.14 0.067
+Ks 0.03 0.03 0.03
+Ns 12
+
+newmtl OakDark
+Kd 0.14 0.075 0.038
+Ks 0.02 0.02 0.02
+Ns 9
+
+newmtl Iron
+Kd 0.12 0.115 0.11
+Ks 0.5 0.5 0.5
+Ns 45
