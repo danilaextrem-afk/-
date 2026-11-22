@@ -1,0 +1,17 @@
+{
+  "asset_id": "RZ_BOSS_B3_GRAVELESS_PRINCE_CROWN_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "canon": "B3 Князь Без Могилы",
+  "lod0": {
+    "vertices": 729,
+    "triangles": 702
+  },
+  "lod1": {
+    "vertices": 345,
+    "triangles": 318
+  },
+  "pbr": "parameter-only MTL; texture maps not in repository",
+  "rig": "rigid head attachment pending",
+  "ue5_tested": false
+}
