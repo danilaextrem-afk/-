@@ -1,0 +1,2 @@
+# QA
+Procedural numerical check in JS: LOD0 424 vertices / 624 triangles / 0 zero-area; LOD1 184 / 264 / 0 zero-area. UV per vertex. Geometry is a closed-looking layered band but manifoldness, self-intersection, normals, texture baking and UE5 import NOT tested. No real render produced. This is a low-detail draft below PR #5 bell v3 quality. PBR numerical values only, no texture maps. Kirill wristband design is provisional, not canon-confirmed.
