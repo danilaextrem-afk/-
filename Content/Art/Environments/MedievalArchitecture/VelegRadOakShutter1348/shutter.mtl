@@ -1,0 +1,9 @@
+newmtl Oak
+Kd 0.28 0.16 0.08
+Ns 20
+newmtl Grain
+Kd 0.17 0.09 0.045
+Ns 15
+newmtl Iron
+Kd 0.13 0.14 0.15
+Ns 90
