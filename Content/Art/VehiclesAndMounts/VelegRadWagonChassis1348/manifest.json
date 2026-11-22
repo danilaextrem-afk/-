@@ -1,0 +1,64 @@
+{
+  "asset_id": "RZ_VEH_VELEGRAD_WAGON_CHASSIS_1348_001",
+  "version": "0.1.0",
+  "epoch": 1348,
+  "category": "VehiclesAndMounts",
+  "units": "meters",
+  "axes": "Z up",
+  "status": "geometry_wip",
+  "lods": [
+    {
+      "file": "chassis_LOD0.obj",
+      "vertices": 976,
+      "triangles": 488
+    },
+    {
+      "file": "chassis_LOD1.obj",
+      "vertices": 672,
+      "triangles": 336
+    }
+  ],
+  "materials": {
+    "oak": {
+      "base_color": [
+        0.22,
+        0.105,
+        0.044
+      ],
+      "metallic": 0,
+      "roughness": 0.83
+    },
+    "iron": {
+      "base_color": [
+        0.13,
+        0.145,
+        0.15
+      ],
+      "metallic": 0.82,
+      "roughness": 0.57
+    }
+  },
+  "wheel_mounts_m": [
+    [
+      -1.16,
+      -0.94,
+      0.78
+    ],
+    [
+      1.16,
+      -0.94,
+      0.78
+    ],
+    [
+      -1.16,
+      0.94,
+      0.78
+    ],
+    [
+      1.16,
+      0.94,
+      0.78
+    ]
+  ],
+  "note": "Procedural original chassis; no wheels, rig, PBR texture maps or UE5 validation. Intended compatibility with separate wagon wheel pending dimensional check."
+}
