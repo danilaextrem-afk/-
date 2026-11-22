@@ -1,0 +1,37 @@
+# ORIGINAL DRAFT PALETTE; FINAL PBR MAPS ARE NOT INCLUDED
+newmtl Enamel_Cream
+Ka 0.04 0.04 0.04
+Kd 0.68 0.67 0.59
+Ks 0.08 0.08 0.075
+Ns 42
+illum 2
+newmtl Enamel_Edge
+Ka 0.04 0.04 0.04
+Kd 0.55 0.55 0.51
+Ks 0.08 0.08 0.08
+Ns 34
+illum 2
+newmtl Cast_Iron_Exposed
+Ka 0.04 0.04 0.04
+Kd 0.115 0.12 0.115
+Ks 0.20 0.20 0.18
+Ns 70
+illum 2
+newmtl Rust_Oxide
+Ka 0.04 0.04 0.04
+Kd 0.205 0.083 0.036
+Ks 0.025 0.025 0.022
+Ns 14
+illum 2
+newmtl Brass_Valve
+Ka 0.04 0.04 0.04
+Kd 0.50 0.32 0.095
+Ks 0.35 0.28 0.12
+Ns 88
+illum 2
+newmtl Steel_Pipe
+Ka 0.04 0.04 0.04
+Kd 0.26 0.28 0.30
+Ks 0.27 0.28 0.29
+Ns 72
+illum 2
