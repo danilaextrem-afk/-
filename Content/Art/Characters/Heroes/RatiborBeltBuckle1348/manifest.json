@@ -1,0 +1,31 @@
+{
+  "asset_id": "RZ_HERO_RATIBOR_BELT_BUCKLE_1348_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 1348,
+  "unit": "metres",
+  "source": "generate.cjs",
+  "lod0": {
+    "vertices": 480,
+    "triangles": 736
+  },
+  "lod1": {
+    "vertices": 320,
+    "triangles": 416
+  },
+  "pbr": {
+    "aged_bronze": {
+      "metallic": 0.8,
+      "roughness": 0.48
+    },
+    "iron": {
+      "metallic": 0.75,
+      "roughness": 0.55
+    },
+    "silver_inlay": {
+      "metallic": 0.9,
+      "roughness": 0.28
+    }
+  },
+  "validation": "Generated geometry with per-vertex UV; index bounds checked. No Blender/UE5 render or topology/manifold validation."
+}
