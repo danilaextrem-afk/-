@@ -1,0 +1,8 @@
+newmtl iron_black
+Kd 0.045 0.048 0.055
+Ks 0.3 0.3 0.3
+Ns 20
+newmtl iron_oxidized
+Kd 0.13 0.09 0.075
+Ks 0.2 0.2 0.2
+Ns 10
