@@ -1,0 +1,6 @@
+newmtl ForgedIron
+Ka 0.06 0.06 0.06
+Kd 0.24 0.25 0.26
+Ks 0.35 0.35 0.36
+Ns 85
+illum 2

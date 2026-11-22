@@ -1,0 +1,5 @@
+newmtl ForgedIron
+Kd 0.16 0.17 0.18
+Ks 0.45 0.45 0.45
+Ns 70
+illum 2
