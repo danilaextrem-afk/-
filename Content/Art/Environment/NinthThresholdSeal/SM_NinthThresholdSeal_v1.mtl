@@ -1,0 +1,28 @@
+newmtl Basalt
+Kd 0.09 0.10 0.12
+Ks 0.12 0.12 0.12
+Ns 20
+newmtl OxidizedBronze
+Kd 0.29 0.21 0.12
+Ks 0.45 0.36 0.19
+Ns 90
+newmtl PaleInlay
+Kd 0.60 0.58 0.49
+Ks 0.28 0.28 0.27
+Ns 45
+newmtl Silver
+Kd 0.48 0.49 0.48
+Ks 0.62 0.63 0.64
+Ns 110
+newmtl BlackIron
+Kd 0.12 0.12 0.13
+Ks 0.32 0.32 0.33
+Ns 75
+newmtl VoidBlack
+Kd 0.018 0.019 0.025
+Ks 0.03 0.03 0.03
+Ns 12
+newmtl StoneHighlight
+Kd 0.25 0.26 0.27
+Ks 0.12 0.12 0.12
+Ns 18
