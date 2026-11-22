@@ -1,0 +1,20 @@
+newmtl aged_bone
+Kd 0.39 0.34 0.28
+Pr 0.86
+Pm 0.0
+newmtl corroded_armor
+Kd 0.16 0.19 0.18
+Pr 0.71
+Pm 0.82
+newmtl funeral_cloth
+Kd 0.09 0.08 0.11
+Pr 0.93
+Pm 0
+newmtl tarnished_gold
+Kd 0.32 0.23 0.09
+Pr 0.52
+Pm 0.9
+newmtl seal_ember
+Kd 0.53 0.11 0.04
+Pr 0.42
+Pm 0.12
