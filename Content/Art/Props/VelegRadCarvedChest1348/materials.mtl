@@ -1,0 +1,12 @@
+newmtl oak
+Kd 0.29 0.15 0.075
+Ns 12
+newmtl iron
+Kd 0.13 0.14 0.15
+Ns 55
+newmtl bronze
+Kd 0.35 0.21 0.09
+Ns 65
+newmtl carving
+Kd 0.18 0.085 0.035
+Ns 10
