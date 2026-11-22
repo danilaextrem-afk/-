@@ -1,0 +1,24 @@
+{
+  "asset_id": "RZ_PROP_MOSCOW_INTERCOM_HANDSET_2026_001",
+  "version": "0.1.0",
+  "epoch": 2026,
+  "status": "geometry_wip",
+  "units": "m",
+  "axis": "Z-up",
+  "original": true,
+  "LOD0": {
+    "vertices": 184,
+    "triangles": 276,
+    "uv": 184,
+    "degenerate": 0
+  },
+  "LOD1": {
+    "vertices": 120,
+    "triangles": 180,
+    "uv": 120,
+    "degenerate": 0
+  },
+  "pbr": "numeric MTL only; texture maps missing",
+  "ue5_tested": false,
+  "render_tested": false
+}
