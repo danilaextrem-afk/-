@@ -1,0 +1,53 @@
+{
+  "asset_id": "RZ_CRE_MOD_KRIVOROG_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "source": "generate.cjs",
+  "units": "meters",
+  "axis": "Z-up",
+  "lods": [
+    {
+      "file": "krivorog_LOD0.obj",
+      "vertices": 711,
+      "triangles": 1326
+    },
+    {
+      "file": "krivorog_LOD1.obj",
+      "vertices": 448,
+      "triangles": 800
+    }
+  ],
+  "pbr_parameters": {
+    "skin": {
+      "base_color": [
+        0.09,
+        0.065,
+        0.06
+      ],
+      "metallic": 0,
+      "roughness": 0.87
+    },
+    "horn": {
+      "base_color": [
+        0.16,
+        0.12,
+        0.095
+      ],
+      "metallic": 0,
+      "roughness": 0.68
+    },
+    "eye": {
+      "base_color": [
+        0.006,
+        0.004,
+        0.008
+      ],
+      "metallic": 0,
+      "roughness": 0.3
+    }
+  },
+  "texture_maps": false,
+  "rig": false,
+  "ue5_test": false,
+  "render_test": false
+}

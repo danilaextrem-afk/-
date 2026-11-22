@@ -1,0 +1,8 @@
+newmtl skin
+Kd 0.09 0.065 0.06
+
+newmtl horn
+Kd 0.16 0.12 0.095
+
+newmtl eye
+Kd 0.006 0.004 0.008
