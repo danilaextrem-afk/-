@@ -1,0 +1,2 @@
+# QA
+Original parametric humanoid silhouette. No robots. Geometry checks on generated in-memory arrays: LOD0 528 vertices, 768 triangles, 0 degenerate; LOD1 264 vertices, 384 triangles, 0 degenerate. OBJ UV index per vertex. Generator is provided but independent Node execution, mesh renderer, rig, texture maps and UE5 import are NOT verified. Open tubes, intersecting limbs, insufficient anatomical fidelity. Not at accepted bell v3 art floor. This is WIP, not a production-ready creature.
