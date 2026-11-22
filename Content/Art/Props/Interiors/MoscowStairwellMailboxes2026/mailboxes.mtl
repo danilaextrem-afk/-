@@ -1,0 +1,13 @@
+# MTL approximates base colors only; physically based maps NOT supplied
+newmtl paint
+Kd 0.32 0.40 0.39
+Ns 25
+newmtl steel
+Kd 0.31 0.32 0.32
+Ns 80
+newmtl paper
+Kd 0.72 0.67 0.53
+Ns 4
+newmtl dark
+Kd 0.035 0.035 0.04
+Ns 20
