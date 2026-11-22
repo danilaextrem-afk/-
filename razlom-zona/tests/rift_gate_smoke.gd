@@ -12,6 +12,11 @@ func verify() -> void:
         push_error("Missing original rift checkpoint in playable scene")
         quit(1)
         return
+    var street: Node3D = game.get_node_or_null("CrimsonStreet")
+    if street == null or int(street.get_meta("water_tower_triangles_filtered", 0)) < 20:
+        push_error("Obstructing original water tower still visible in scene")
+        quit(1)
+        return
     var meshes := gate.find_children("*", "MeshInstance3D", true, false)
     if meshes.size() < 140:
         push_error("Rift checkpoint is not real detailed 3D geometry: " + str(meshes.size()))
