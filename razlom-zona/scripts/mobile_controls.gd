@@ -19,11 +19,11 @@ var held_buttons: Dictionary = {}
 var show_labels: bool = true
 var look_multiplier: float = 1.08
 
-const BG := Color(0.035, 0.068, 0.082, 0.66)
-const OUTLINE := Color(0.44, 0.73, 0.71, 0.61)
-const ACTIVE := Color(0.25, 0.96, 0.83, 0.90)
-const LABEL := Color(0.91, 0.97, 0.95, 0.97)
-const MUTED := Color(0.62, 0.74, 0.76, 0.85)
+const BG = Color(0.035, 0.068, 0.082, 0.66)
+const OUTLINE = Color(0.44, 0.73, 0.71, 0.61)
+const ACTIVE = Color(0.25, 0.96, 0.83, 0.90)
+const LABEL = Color(0.91, 0.97, 0.95, 0.97)
+const MUTED = Color(0.62, 0.74, 0.76, 0.85)
 
 func configure(player_node: CharacterBody3D, game_node: Node3D) -> void:
     player = player_node
