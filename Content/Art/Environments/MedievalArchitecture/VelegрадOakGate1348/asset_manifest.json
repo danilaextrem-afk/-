@@ -1,0 +1,76 @@
+{
+  "asset_id": "RZ_ENV_1348_VELEGRAD_OAK_GATE_001",
+  "version": "0.1.0",
+  "status": "geometry_WIP",
+  "epoch": 1348,
+  "units": "meters",
+  "axis": "Y_up",
+  "vertices": 432,
+  "uv_vertices": 1296,
+  "triangles": 648,
+  "materials": {
+    "oak": {
+      "baseColor": [
+        0.24,
+        0.11,
+        0.047
+      ],
+      "metallic": 0,
+      "roughness": 0.88
+    },
+    "grain": {
+      "baseColor": [
+        0.12,
+        0.045,
+        0.02
+      ],
+      "metallic": 0,
+      "roughness": 0.92
+    },
+    "iron": {
+      "baseColor": [
+        0.16,
+        0.17,
+        0.18
+      ],
+      "metallic": 1,
+      "roughness": 0.58
+    },
+    "rivet": {
+      "baseColor": [
+        0.24,
+        0.25,
+        0.26
+      ],
+      "metallic": 1,
+      "roughness": 0.42
+    },
+    "void": {
+      "baseColor": [
+        0.025,
+        0.025,
+        0.027
+      ],
+      "metallic": 0,
+      "roughness": 1
+    },
+    "hinge": {
+      "baseColor": [
+        0.13,
+        0.13,
+        0.14
+      ],
+      "metallic": 1,
+      "roughness": 0.67
+    }
+  },
+  "qa": {
+    "face_index_range": "validated_by_generator",
+    "render": "not_tested",
+    "ue5": "not_tested",
+    "pbr_textures": "not_baked",
+    "collision": "not_created",
+    "lod": "LOD0_only",
+    "art_floor": "not_met"
+  }
+}
