@@ -60,10 +60,11 @@ function mesh(kind,lod){
  for(const f of F)for(const p of f.p)for(let i=0;i<3;i++){bounds.min[i]=Math.min(bounds.min[i],p[i]);bounds.max[i]=Math.max(bounds.max[i],p[i]);}
  return {faces:F,stats:{triangles:F.length,bounds,materials:[...mats].sort()}};
 }
+function newUV(P,N,group){const log=group.match(/^log_course_(\d+)$/),scale=1.8;if(log){const z=.125+Number(log[1])*.245,vals=P.map(p=>(Math.atan2(p[2]-z,p[1])+Math.PI)/(2*Math.PI));const seam=Math.max(...vals)-Math.min(...vals)>.5;return P.map((p,i)=>[p[0]*1.6,vals[i]+(seam&&vals[i]<.5?1:0)].map(x=>+x.toFixed(5)))}const abs=N.map(Math.abs),j=abs.indexOf(Math.max(...abs));return P.map(p=>(j===0?[p[1]*scale,p[2]*scale]:j===1?[p[0]*scale,p[2]*scale]:[p[0]*scale,p[1]*scale]).map(x=>+x.toFixed(5)))}
 function obj(M,k,lod){
  const V=[],U=[],N=[],parts=[],maps=[new Map(),new Map(),new Map()],index=(collection,map,vec)=>{const key=vec.join(",");if(!map.has(key)){collection.push(vec);map.set(key,collection.length)}return map.get(key)};
  let prev="";
- for(const f of M.faces){if(prev!==f.g+f.m){prev=f.g+f.m;parts.push("o "+f.g,"usemtl "+f.m)}parts.push("f "+f.p.map((p,i)=>index(V,maps[0],p)+"/"+index(U,maps[1],f.uv[i])+"/"+index(N,maps[2],f.n)).join(" "))}
+ for(const f of M.faces){if(prev!==f.g+f.m){prev=f.g+f.m;parts.push("o "+f.g,"usemtl "+f.m)}parts.push("f "+f.p.map((p,i)=>index(V,maps[0],p)+"/"+index(U,maps[1],newUV(f.p,f.n,f.g)[i])+"/"+index(N,maps[2],f.n)).join(" "))}
  return `# Original RAZLOM Izba ${k} LOD${lod}; OBJ, triangulated, meters Z-up\nmtllib M_IzbaKit_1348.mtl\n`+V.map(a=>"v "+a.join(" ")).join("\n")+"\n"+U.map(a=>"vt "+a.join(" ")).join("\n")+"\n"+N.map(a=>"vn "+a.join(" ")).join("\n")+"\n"+parts.join("\n")+"\n";
 }
 const names=["WallSolid","WallWindow","WallDoor","CornerPost","Floor4m","RoofHalf","DoorLeaf","Table","Bench"];const dir=path.join(__dirname,'..','..','Content','Art','Environment','Medieval1348','IzbaKit');fs.mkdirSync(dir,{recursive:true});for(const n of names)for(const l of [0,1]){const a=mesh(n,l);fs.writeFileSync(path.join(dir,'SM_Izba_'+n+'_1348_LOD'+l+'.obj'),obj(a,n,l));console.log(n,l,a.stats.triangles)}
