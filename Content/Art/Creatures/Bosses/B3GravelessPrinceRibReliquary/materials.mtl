@@ -1,0 +1,19 @@
+newmtl oxidized_iron
+Kd 0.19 0.20 0.19
+Ks 0.22 0.22 0.22
+Ns 80
+
+newmtl bone
+Kd 0.59 0.54 0.42
+Ks 0.06 0.06 0.06
+Ns 15
+
+newmtl silver
+Kd 0.55 0.56 0.54
+Ks 0.68 0.68 0.68
+Ns 220
+
+newmtl seal_black
+Kd 0.035 0.025 0.032
+Ks 0.15 0.08 0.09
+Ns 50
