@@ -1,0 +1,45 @@
+{
+  "asset_id": "RZ_ENV_MODERN_BUS_SHELTER_2026_001",
+  "version": "0.1.0",
+  "status": "geometry_wip",
+  "epoch": 2026,
+  "source_units": "metres",
+  "up_axis": "Z",
+  "lod0": {
+    "vertices": 696,
+    "triangles": 348
+  },
+  "lod1": {
+    "vertices": 312,
+    "triangles": 156
+  },
+  "pbr_preview": {
+    "steel": {
+      "metallic": 0.75,
+      "roughness": 0.43
+    },
+    "concrete": {
+      "metallic": 0,
+      "roughness": 0.91
+    },
+    "enamel": {
+      "metallic": 0.55,
+      "roughness": 0.27
+    },
+    "glass": {
+      "metallic": 0,
+      "roughness": 0.18
+    },
+    "wood": {
+      "metallic": 0,
+      "roughness": 0.7
+    }
+  },
+  "validation": {
+    "face_indices_valid": true,
+    "uv_in_range": true,
+    "render_verified": false,
+    "ue5_verified": false
+  },
+  "notes": "Original procedural box-component shelter; no texture maps; no UE5 import; not art-approved."
+}
