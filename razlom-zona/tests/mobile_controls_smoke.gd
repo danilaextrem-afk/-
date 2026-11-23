@@ -59,6 +59,11 @@ func _run() -> void:
     overlay.medkit_requested.connect(func() -> void: medkit_presses[0] += 1)
     overlay._begin_touch(4, Vector2(1045, 464))
     overlay._begin_touch(5, Vector2(1045, 464))
+    # Duplicate down for pointer 4 must not steal the camera or re-fire medkit.
+    overlay._begin_touch(4, Vector2(820, 300))
+    if overlay.look_finger == 4 or overlay.button_fingers.get(4, "") != "medkit":
+        _fail("duplicate pointer-down reassigned active medkit finger")
+        return
     if medkit_presses[0] != 1:
         _fail("overlapping fingers consumed multiple medkits")
         return
