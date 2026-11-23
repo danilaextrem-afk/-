@@ -41,8 +41,16 @@ func _run() -> void:
             for collision in body.get_children():
                 if not (collision is CollisionShape3D):
                     continue
-                if not (collision.shape is BoxShape3D):
+                if collision.disabled:
                     continue
+                if collision.shape == null:
+                    push_error("Enabled collision has no shape: %s/%s" % [node.name, body.name])
+                    quit(1)
+                    return
+                if not (collision.shape is BoxShape3D):
+                    push_error("Unsupported route collision shape (not clearance-tested): %s/%s (%s)" % [node.name, body.name, collision.shape.get_class()])
+                    quit(1)
+                    return
                 var size: Vector3 = collision.shape.size
                 var to_world: Transform3D = collision.global_transform
                 var to_local: Transform3D = to_world.affine_inverse()
@@ -89,11 +97,13 @@ func _run() -> void:
             push_error("Route visual marker missing: " + id)
             quit(1)
             return
-        for child in marker.get_children():
-            if child is CollisionObject3D or child is CollisionShape3D:
-                push_error("Visual marker unexpectedly blocks player: " + id)
-                quit(1)
-                return
+        # Inspect descendants too: a nested collider must not bypass QA.
+        var colliders := marker.find_children("*", "CollisionObject3D", true, false)
+        var shapes := marker.find_children("*", "CollisionShape3D", true, false)
+        if not colliders.is_empty() or not shapes.is_empty():
+            push_error("Visual marker unexpectedly contains collision: " + id)
+            quit(1)
+            return
     # Check that the G-4 handoff point remains anchored at the descent.
     if points[points.size() - 1].distance_to(Vector3(24.0, 0.0, -20.0)) > 0.01:
         push_error("G-4 route endpoint moved without updating descent QA")
