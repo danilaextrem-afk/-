@@ -166,6 +166,10 @@ func _run() -> void:
         _fail("releasing backup camera finger stole primary look")
         return
     overlay._end_touch(12)
+    # Critical flashlight charge must be unmistakable without relying on color alone.
+    if overlay._battery_warning_text(16.0) != "" or overlay._battery_warning_text(15.0) != "НИЗКИЙ ЗАРЯД ФОНАРЯ" or overlay._battery_warning_text(0.0) != "ФОНАРЬ РАЗРЯЖЕН":
+        _fail("critical flashlight warning thresholds or labels are wrong")
+        return
     # Exercise HUD drawing on a tall landscape screen and at low resource
     # values; a draw-time error must fail the headless gameplay smoke run.
     overlay.size = Vector2(1600, 720)
