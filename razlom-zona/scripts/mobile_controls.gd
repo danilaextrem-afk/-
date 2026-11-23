@@ -110,11 +110,10 @@ func _begin_touch(finger: int, p: Vector2) -> void:
     # the lower-left 45% avoids requiring a precise thumb position.
     if stick_finger == -1 and p.x < size.x * 0.45 and p.y > size.y * 0.38:
         stick_finger = finger
-        var margin := 88.0 * _scale()
-        stick_center = Vector2(
-            clampf(p.x, margin, size.x * 0.45 - margin),
-            clampf(p.y, size.y * 0.42, size.y - margin)
-        )
+        # A floating stick must start exactly under the thumb. Clamping
+        # its origin to an inset margin made edge swipes jump abruptly
+        # (especially on narrow Android viewports).
+        stick_center = p
         stick_tip = stick_center
         player.virtual_move = Vector2.ZERO
     elif look_finger == -1 and p.x >= size.x * 0.42:
