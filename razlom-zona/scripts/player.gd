@@ -13,6 +13,8 @@ const WALK_SPEED: float = 4.5
 const RUN_SPEED: float = 7.5
 const LOOK_SENSITIVITY: float = 0.0026
 
+var hand: Node3D
+var stride := 0.0
 var camera: Camera3D
 var torch: SpotLight3D
 var flashlight_on: bool = true
@@ -34,6 +36,10 @@ func _ready() -> void:
     camera.fov = 74.0
     add_child(camera)
 
+    hand = preload("res://assets/transport/field_torch.glb").instantiate() as Node3D
+    hand.position = Vector3(.245,-.192,-.42)
+    hand.rotation_degrees = Vector3(5,12,-6)
+    camera.add_child(hand)
     torch = SpotLight3D.new()
     torch.name = "Flashlight"
     torch.light_color = Color(0.86, 0.97, 1.0)
@@ -74,6 +80,10 @@ func _physics_process(delta: float) -> void:
         velocity.y -= 18.0 * delta
     move_and_slide()
 
+    var pace := Vector2(velocity.x, velocity.z).length() if is_on_floor() else 0.0
+    stride = fmod(stride + pace * delta * 1.65, TAU)
+    var sway := Vector3(sin(stride)*.010, cos(stride*2.0)*.006, 0) * minf(1.0,pace/4)
+    hand.position = hand.position.lerp(Vector3(.245,-.192,-.42)+sway, minf(1.0,delta*14))
     if flashlight_on:
         battery = maxf(0.0, battery - 0.12 * delta)
         if battery <= 0.0:

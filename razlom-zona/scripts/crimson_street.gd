@@ -3,52 +3,12 @@ extends Node3D
 const STREET := preload("res://assets/village/street.glb")
 
 func _ready() -> void:
+    var bus := preload("res://assets/transport/last_bus.glb").instantiate() as Node3D
+    bus.position = Vector3(-3.95, .03, -7.1)
+    bus.rotation.y = .70
+    add_child(bus)
     var street_scene: Node3D = STREET.instantiate()
     add_child(street_scene)
-    # The inherited GLB contains a 10.75 m water tank precisely behind
-    # the hero checkpoint. Remove only tower triangles by local geometry
-    # coordinates, retaining authored houses, trees, road and atlas.
-    # This one-time mesh filter is a WIP replacement for offline re-export.
-    for model in street_scene.find_children("*", "MeshInstance3D", true, false):
-        _strip_tower_triangles(model)
-
-
-func _strip_tower_triangles(node: MeshInstance3D) -> void:
-    var source := node.mesh as ArrayMesh
-    if source == null:
-        return
-    var rebuilt := ArrayMesh.new()
-    var removed: int = 0
-    for index in range(source.get_surface_count()):
-        var surface_arrays := source.surface_get_arrays(index)
-        var positions: PackedVector3Array = surface_arrays[Mesh.ARRAY_VERTEX]
-        var input_ids: PackedInt32Array = surface_arrays[Mesh.ARRAY_INDEX]
-        if input_ids.is_empty():
-            # Imported GLB should be indexed; preserve any unusual surface.
-            rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_arrays)
-            rebuilt.surface_set_material(rebuilt.get_surface_count()-1, source.surface_get_material(index))
-            continue
-        var kept := PackedInt32Array()
-        for k in range(0, input_ids.size(), 3):
-            var a: Vector3 = positions[input_ids[k]]
-            var b: Vector3 = positions[input_ids[k+1]]
-            var d: Vector3 = positions[input_ids[k+2]]
-            var center: Vector3 = (a+b+d)/3.0
-            var tower := center.x > -2.2 and center.x < 3.4 and center.z > -51.6 and center.z < -46.4
-            if tower:
-                removed += 1
-            else:
-                kept.append_array(PackedInt32Array([input_ids[k], input_ids[k+1], input_ids[k+2]]))
-        if kept.is_empty():
-            continue
-        surface_arrays[Mesh.ARRAY_INDEX] = kept
-        rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_arrays)
-        rebuilt.surface_set_material(rebuilt.get_surface_count()-1, source.surface_get_material(index))
-    if removed > 0:
-        node.mesh = rebuilt
-        set_meta("water_tower_triangles_filtered", removed)
-        print("ZONA street: filtered legacy water tower triangles: ", removed)
-
     var surface := MeshInstance3D.new()
     var plane := PlaneMesh.new()
     plane.size = Vector2(9.4, 49.0)
@@ -63,16 +23,24 @@ func _strip_tower_triangles(node: MeshInstance3D) -> void:
     add_child(surface)
     # House centres and yaw match the baked mesh. Collision excludes grass and cables.
     for house in [
-        [-7.6, -6.0, 0.97, 5.6, 5.5], [7.5, -6.4, -.68, 6.5, 4.16],
+        [7.5, -6.4, -.68, 6.5, 4.16],
         [-9.3, -20.0, 1.35, 6.9, 5.7], [8.5, -17.0, -1.35, 4.9, 5.1],
         [-6.8, -33.0, 0.55, 5.4, 4.7], [7.1, -28.0, -1.57, 6.2, 5.0]
     ]:
         _solid(Vector3(house[0], 1.5, house[1]), Vector3(house[3], 3.0, house[4]), house[2])
-    _solid(Vector3(-3.25, .67, -4.7), Vector3(1.6, 1.34, 3.55), .95)
+    var shed := Transform3D(Basis(Vector3.UP,1.06), Vector3(-8,0,-7.5))
+    for piece in [[Vector3(0,1.62,-2.35),Vector3(6.4,3,.16)],
+            [Vector3(-3.08,1.5,0),Vector3(.18,2.8,4.7)],
+            [Vector3(-2.35,1.54,2.16),Vector3(1.5,2.6,.18)],
+            [Vector3(.72,1.6,2.14),Vector3(.21,3,.21)],
+            [Vector3(3.08,1.6,2.14),Vector3(.21,3,.21)],
+            [Vector3(.25,.58,-1.54),Vector3(3.03,1.16,.71)]]:
+        _solid(shed * (piece[0] as Vector3), piece[1], 1.06)
+    _solid(Vector3(-3.95, 1.36, -7.1), Vector3(2.25, 2.72, 6.30), .70)
     for x in [-4.25, 4.25]:
         for segment in [[-3, 2], [-15, -10], [-26, -21]]:
             _solid(Vector3(x, .57, (segment[0]+segment[1])*.5), Vector3(.18, 1.14, segment[1]-segment[0]), 0.0)
-    for p in [Vector3(4.08, 2.1, -5.9), Vector3(7.25, 2.1, -3.03), Vector3(-5.0, 2.13, -30.5)]:
+    for p in [Vector3(-4.72, 2.34, -4.95), Vector3(4.08, 2.1, -5.9), Vector3(7.25, 2.1, -3.03), Vector3(-5.0, 2.13, -30.5)]:
         var light := OmniLight3D.new()
         light.position = p
         light.light_color = Color("ffad58")

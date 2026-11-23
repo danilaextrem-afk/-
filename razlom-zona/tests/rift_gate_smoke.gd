@@ -13,10 +13,22 @@ func verify() -> void:
         quit(1)
         return
     var street: Node3D = game.get_node_or_null("CrimsonStreet")
-    if street == null or int(street.get_meta("water_tower_triangles_filtered", 0)) < 20:
-        push_error("Obstructing original water tower still visible in scene")
+    if street == null:
+        push_error("Missing approach street")
         quit(1)
         return
+    var model := load("res://assets/village/street.glb").instantiate() as Node3D
+    for instance in model.find_children("*", "MeshInstance3D", true, false):
+        var mesh: Mesh = instance.mesh
+        for surface in mesh.get_surface_count():
+            var positions: PackedVector3Array = mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+            for p in positions:
+                if p.y > 4.5 and p.x > -2.2 and p.x < 3.4 and p.z > -51.6 and p.z < -46.4:
+                    push_error("High geometry obstructs the sightline to checkpoint 07")
+                    model.free()
+                    quit(1)
+                    return
+    model.free()
     var meshes := gate.find_children("*", "MeshInstance3D", true, false)
     if meshes.size() < 140:
         push_error("Rift checkpoint is not real detailed 3D geometry: " + str(meshes.size()))

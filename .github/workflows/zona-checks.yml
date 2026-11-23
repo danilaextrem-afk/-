@@ -9,7 +9,7 @@ permissions:
 jobs:
   bunker:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 18
     defaults:
       run:
         working-directory: razlom-zona
@@ -34,10 +34,26 @@ jobs:
         run: XDG_DATA_HOME="$(mktemp -d)" timeout 45s godot --headless --fixed-fps 60 -s tests/mobile_controls_smoke.gd
       - name: Validate original checkpoint geometry
         run: XDG_DATA_HOME="$(mktemp -d)" timeout 60s godot --headless --fixed-fps 60 -s tests/rift_gate_smoke.gd
+      - name: Walk and restore the last-service radio route
+        run: XDG_DATA_HOME="$(mktemp -d)" timeout 90s godot --headless --fixed-fps 60 -s tests/last_service_walk.gd
       - name: Capture player views
         run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 960x540 -s tests/capture_gallery.gd -- --touch-ui
+      - name: Capture two geometry views for each kit
+        run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 800x480 -s tests/asset_views.gd
       - uses: actions/upload-artifact@v4
         with:
           name: zona-godot-player-views
-          path: razlom-zona/captures/*.png
+          path: razlom-zona/captures/
+          if-no-files-found: error
+
+      - name: Record continuous player traversal with game audio
+        run: |
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y ffmpeg; fi
+          mkdir -p "$RUNNER_TEMP/last-service"
+          XDG_DATA_HOME="$(mktemp -d)" LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --resolution 854x480 --fixed-fps 24 --write-movie "$RUNNER_TEMP/last-service/play.avi" -s tests/last_service_walk.gd -- --touch-ui --film
+          ffmpeg -hide_banner -loglevel error -i "$RUNNER_TEMP/last-service/play.avi" -c:v libx264 -crf 21 -pix_fmt yuv420p -c:a aac -movflags +faststart "$RUNNER_TEMP/last-service/walk.mp4"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: last-service-gameplay
+          path: ${{ runner.temp }}/last-service/walk.mp4
           if-no-files-found: error

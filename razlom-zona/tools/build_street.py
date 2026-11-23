@@ -228,8 +228,40 @@ def post_office():
         cube(xx,2.35,f+.25,.38,.08,.32,4)
     frame()
 
+def repair_shed():
+    frame(-8.0,-7.5,1.06)
+    # Open repair bay, half-collapsed corrugated roof and a braced loft.
+    cube(0,.12,0,6.6,.24,5.1,7)
+    cube(0,1.62,-2.35,6.4,3.0,.16,2)
+    cube(-3.08,1.5,0,.18,2.8,4.7,0)
+    for x in [-3.08,.72,3.08]:
+        beam((x,.22,2.14),(x,3.05,2.14),.21,1)
+    for z in [-2.28,2.14]:
+        beam((-3.2,3.05,z),(3.19,3.05,z),.24,1)
+    for i in range(11):
+        x=-3.4+i*.67
+        ridge=4.55-.48*max(0,(x-.9)/2.5)
+        beam((x,3.02,2.57),(x,ridge,-.38),.125,0)
+        beam((x,ridge,-.38),(x,2.91,-2.60),.125,0)
+        if i<10:
+            face([(x,2.94,-2.7),(x+.67,2.94,-2.7),(x+.67,ridge,-.38),(x,ridge,-.38)],3)
+        if i<7 or i==9:
+            sag=-.27 if i==6 else 0
+            face([(x,3.09,2.65),(x+.67,3.09+sag,2.65),(x+.67,ridge,-.38),(x,ridge,-.38)],3)
+    for x in [-2.91,-2.62,-2.33,-2.04,-1.75]:
+        cube(x,1.54,2.16,.27,2.6,.14,2)
+    beam((-2.99,.52,2.27),(-1.68,2.52,2.27),.13,1)
+    for x in [-1.05,1.55]:cube(x,.56,-1.54,.16,.94,.59,1)
+    cube(.25,1.09,-1.54,3.03,.16,.71,0)
+    for i in range(4):
+        cube(2.28,.35+i*.46,-1.43,1.0,.085,.64,4)
+    for x in [1.79,2.76]:beam((x,0,-1.16),(x,2.09,-1.16),.07,4)
+    cube(-1.22,2.49,2.29,.19,.28,.18,14,'lamps')
+    frame()
+
+repair_shed()
 post_office()
-houses=[(-7.6,-6,.97,5.6,2.62,5.5,2,False),(-9.3,-20,1.35,6.9,3.05,5.7,0,False),(8.5,-17,-1.35,4.9,2.42,5.1,2,False),(-6.8,-33,.55,5.4,2.72,4.7,0,True),(7.1,-28,-1.57,6.2,2.77,5.0,5,True)]
+houses=[(-9.3,-20,1.35,6.9,3.05,5.7,0,False),(8.5,-17,-1.35,4.9,2.42,5.1,2,False),(-6.8,-33,.55,5.4,2.72,4.7,0,True),(7.1,-28,-1.57,6.2,2.77,5.0,5,True)]
 for params in houses:house(*params)
 # Leaning palisades with missing slats, posts and rails.
 for side in [-1,1]:
@@ -254,51 +286,6 @@ for (x,z),(xx,zz) in zip(poles,poles[1:]):
             k=i/7;pt=(x+dx+(xx-x)*k,6.25-2.4*k*(1-k),z+(zz-z)*k)
             beam(last,pt,.026,1);last=pt
 
-# Abandoned estate car with a sloped cabin, wheel wells, grille and lamps.
-frame(-3.25,-4.7,.95)
-cube(0,.59,0,1.55,.48,3.52,15)
-cube(0,.86,1.14,1.53,.16,1.22,15)
-cube(0,.96,-.40,1.49,.22,1.92,15)
-for side in [-1,1]:
-    for zz in [-1.12,1.06]:
-        ring=[(.40+math.sin(k*math.tau/10)*.36,zz+math.cos(k*math.tau/10)*.36) for k in range(10)]
-        for i,(y,z) in enumerate(ring):
-            yy,z2=ring[(i+1)%10]
-            face([(side*.67,y,z),(side*.84,y,z),(side*.84,yy,z2),(side*.67,yy,z2)],1)
-            face([(side*.85,.40,zz),(side*.85,y,z),(side*.85,yy,z2)],1)
-        cube(side*.862,.40,zz,.035,.24,.24,4)
-    face([(side*.73,1.03,.58),(side*.60,1.51,.12),(side*.60,1.51,-1.08),(side*.73,1.03,-1.39)],6)
-    beam((side*.70,1.04,-.54),(side*.60,1.51,-.54),.07,15)
-    cube(side*.76,.83,-.37,.05,.05,.17,1)
-face([(-.73,1.03,.58),(.73,1.03,.58),(.60,1.51,.12),(-.60,1.51,.12)],6)
-face([(.73,1.03,-1.39),(-.73,1.03,-1.39),(-.60,1.51,-1.08),(.60,1.51,-1.08)],6)
-cube(0,1.53,-.47,1.3,.075,1.31,15)
-for xx in [-.52,.52]:
-    beam((xx,1.58,-1.02),(xx,1.58,.02),.045,5)
-    beam((xx*.93,1.05,.59),(xx+.11,1.19,.47),.025,1)
-for zz in [-.95,-.16]:
-    beam((-.56,1.64,zz),(.56,1.64,zz),.05,5)
-for side in [-1,1]:
-    cube(side*.77,.80,-.48,.05,.04,1.85,5)
-    beam((side*.74,1.0,.38),(side*.88,1.12,.40),.05,4)
-    cube(side*.91,1.14,.40,.13,.105,.15,5)
-cube(0,.38,1.79,1.67,.12,.14,5)
-for xx in [-.58,.58]:cube(xx,.70,1.77,.27,.16,.07,7)
-for yy in [.57,.64,.71]:cube(0,yy,1.77,.74,.035,.065,1)
-frame()
-
-# Octagonal water tower with an exposed lattice, elevated above the roofline.
-tx,tz=.6,-49
-for dx in [-1,1]:
-    for dz in [-1,1]:
-        beam((tx+dx*1.62,0,tz+dz*1.62),(tx+dx,7.6,tz+dz),.15,4)
-    for mid in [0,3.4]:
-        beam((tx+dx*1.44,mid,tz+1.25),(tx-dx*1.16,mid+3.6,tz+1.12),.10,4)
-for i in range(12):
-    a,b=i*math.tau/12,(i+1)*math.tau/12
-    def pt(r,y,ang):return (tx+r*math.cos(ang),y,tz+r*math.sin(ang))
-    for lo,hi,r1,r2,t in [(6.8,7.7,.8,2.0,4),(7.7,9.9,2,2,5),(9.9,10.75,2.13,.14,3)]:
-        face([pt(r1,lo,a),pt(r2,hi,a),pt(r2,hi,b),pt(r1,lo,b)],t)
 def birch(x,z,h):
     frame(x,z,0)
     trunk=[(0,.03,0),(.15,h*.31,.08),(-.04,h*.60,-.04),(.32,h*.88,-.25),(.21,h,-.4)]
@@ -324,7 +311,7 @@ for tree in [(-4.9,.65,7.7),(5.5,-1.1,7.1),(-8,-13,7.9),(5.1,-22,6.4),(-9,-38,7.
 # Pine boughs and seed heads use cutout cards with original pixel masks.
 for i in range(88):
     z=rng.uniform(-54,3)
-    x=rng.choice([-1,1])*rng.uniform(12,26)
+    x=rng.choice([-1,1])*(12+3.1*math.sin(z*.18)+rng.uniform(0,13))
     if i>74:z=rng.uniform(-64,-54);x=rng.uniform(-23,23)
     h=rng.uniform(4.3,10.5)
     beam((x,0,z),(x,h*.94,z),h*.031,1)
@@ -342,23 +329,49 @@ for _ in range(1000):
     face([(x-dx,.07,z-dz),(x+dx,.07,z+dz),(x+dx+.06,h,z+dz),(x-dx+.06,h,z-dz)],13,'leaves')
 # Normals and winding are recorded explicitly. The batch uses double-sided
 # leaves and weathered sheet metal so torn edges are visible from both sides.
-binary=bytearray();views=[];accessors=[]
-def add(values,dtype,kind):
-    a=np.asarray(values,dtype=dtype);data=a.tobytes()
-    while len(binary)%4:binary.append(0)
-    views.append(dict(buffer=0,byteOffset=len(binary),byteLength=len(data)))
-    binary.extend(data);item=dict(bufferView=len(views)-1,componentType=5126 if dtype=='<f4' else 5125,count=len(a),type=kind)
-    if kind=='VEC3':item.update(min=a.min(axis=0).tolist(),max=a.max(axis=0).tolist())
-    accessors.append(item);return len(accessors)-1
-materials=[];prims=[]
-for group,(pos,norm,uv,idx) in parts.items():
-    mat=dict(name=group,doubleSided=True,pbrMetallicRoughness=dict(baseColorTexture=dict(index=0),metallicFactor=0,roughnessFactor=.87))
-    if group=='water':mat['pbrMetallicRoughness']=dict(baseColorFactor=[.31,.19,.17,1],metallicFactor=.88,roughnessFactor=.08)
-    if group=='leaves':mat.update(alphaMode='MASK',alphaCutoff=.45)
-    if group=='lamps':mat.update(emissiveFactor=[1,.29,.045])
-    materials.append(mat)
-    prims.append(dict(attributes=dict(POSITION=add(pos,'<f4','VEC3'),NORMAL=add(norm,'<f4','VEC3'),TEXCOORD_0=add(uv,'<f4','VEC2')),indices=add(idx,'<u4','SCALAR'),material=len(materials)-1))
-doc=dict(asset=dict(version='2.0'),scene=0,scenes=[dict(nodes=[0])],nodes=[dict(name='CrimsonStreet',mesh=0)],meshes=[dict(primitives=prims)],materials=materials,textures=[dict(source=0,sampler=0)],images=[dict(uri='street_atlas.png')],samplers=[dict(magFilter=9728,minFilter=9984)],accessors=accessors,bufferViews=views,buffers=[dict(byteLength=len(binary))])
-js=json.dumps(doc,separators=(',',':')).encode();js+=b' '*(-len(js)%4);binary+=b'\0'*(-len(binary)%4)
-(OUT/'street.glb').write_bytes(struct.pack('<4sII',b'glTF',2,28+len(js)+len(binary))+struct.pack('<I4s',len(js),b'JSON')+js+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
-print({k:len(v[3])//3 for k,v in parts.items()})
+def export_cluster(filename):
+    binary=bytearray();views=[];accessors=[]
+    def add(values,dtype,kind):
+        a=np.asarray(values,dtype=dtype);data=a.tobytes()
+        while len(binary)%4:binary.append(0)
+        views.append(dict(buffer=0,byteOffset=len(binary),byteLength=len(data)))
+        binary.extend(data);item=dict(bufferView=len(views)-1,componentType=5126 if dtype=='<f4' else 5125,count=len(a),type=kind)
+        if kind=='VEC3':item.update(min=a.min(axis=0).tolist(),max=a.max(axis=0).tolist())
+        accessors.append(item);return len(accessors)-1
+    materials=[];prims=[]
+    for group,(pos,norm,uv,idx) in parts.items():
+        mat=dict(name=group,doubleSided=True,pbrMetallicRoughness=dict(baseColorTexture=dict(index=0),metallicFactor=0,roughnessFactor=.87))
+        if group=='water':mat['pbrMetallicRoughness']=dict(baseColorFactor=[.31,.19,.17,1],metallicFactor=.88,roughnessFactor=.08)
+        if group=='leaves':mat.update(alphaMode='MASK',alphaCutoff=.45)
+        if group=='lamps':mat.update(emissiveFactor=[1,.29,.045])
+        materials.append(mat)
+        prims.append(dict(attributes=dict(POSITION=add(pos,'<f4','VEC3'),NORMAL=add(norm,'<f4','VEC3'),TEXCOORD_0=add(uv,'<f4','VEC2')),indices=add(idx,'<u4','SCALAR'),material=len(materials)-1))
+    doc=dict(asset=dict(version='2.0'),scene=0,scenes=[dict(nodes=[0])],nodes=[dict(name=Path(filename).stem,mesh=0)],meshes=[dict(primitives=prims)],materials=materials,textures=[dict(source=0,sampler=0)],images=[dict(uri='street_atlas.png')],samplers=[dict(magFilter=9728,minFilter=9984)],accessors=accessors,bufferViews=views,buffers=[dict(byteLength=len(binary))])
+    js=json.dumps(doc,separators=(',',':')).encode();js+=b' '*(-len(js)%4);binary+=b'\0'*(-len(binary)%4)
+    (OUT/filename).write_bytes(struct.pack('<4sII',b'glTF',2,28+len(js)+len(binary))+struct.pack('<I4s',len(js),b'JSON')+js+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
+    print({k:len(v[3])//3 for k,v in parts.items()})
+
+export_cluster("street.glb")
+parts.clear()
+frame()
+# A separate cullable stand shelters the access lane outside the checkpoint.
+for x,z,h in [(13,-4,7.3),(11,-7,6.3),(14,-9,8.8),(12.8,-14,7.2),(10,-17,8.2),
+              (15,-21,7.0),(12,-24,9.1),(22.8,-2.9,6.3),(31,-5,8.5),(32,-14,6.8),(31,-21,8.3)]:
+    beam((x,0,z),(x+.12,h,z-.08),h*.029,1)
+    for j in range(7):
+        level=.17+j*.108
+        for k in range(6):
+            a=j*.97+k*math.tau/6+rng.uniform(-.13,.13)
+            outward=np.array([math.cos(a),0,math.sin(a)])
+            w=h*(.24-j*.025)*rng.uniform(.76,1.18)
+            stem=np.array([x,h*(level+.12),z])
+            elbow=stem+outward*w*.63-[0,.59,0]
+            tip=elbow+outward*w*.45-[0,.17,0]
+            if j<5:beam(stem,elbow,.065,1)
+            tangent=np.array([-outward[2],0,outward[0]])*w*.54
+            face([tip-tangent,tip+tangent,stem+tangent*.27,stem-tangent*.27],12,'leaves')
+for _ in range(560):
+    z=rng.uniform(-22,0);x=rng.choice([rng.uniform(12.3,15.4),rng.uniform(22.6,23.8)])
+    d=rng.uniform(.16,.40);h=rng.uniform(.16,.44)
+    face([(x-d,.05,z-d*.45),(x+d,.05,z+d*.45),(x+d,h,z+d*.45),(x-d,h,z-d*.45)],13,'leaves')
+export_cluster("access_woods.glb")
