@@ -42,13 +42,18 @@ func _run() -> void:
     if p.virtual_move != Vector2.ZERO or not p.virtual_sprint:
         _fail("releasing joystick disturbed sprint")
         return
+    overlay._begin_touch(3, Vector2(995, 616))
     overlay._end_touch(2)
-    if p.virtual_sprint:
-        _fail("sprint stuck on release")
+    if not p.virtual_sprint or not overlay.held_buttons.has("sprint"):
+        _fail("releasing one of two sprint fingers stopped sprint")
+        return
+    overlay._end_touch(3)
+    if p.virtual_sprint or overlay.held_buttons.has("sprint"):
+        _fail("sprint stuck after final finger released")
         return
     overlay._end_touch(1)
     if overlay.look_finger != -1:
         _fail("look finger not released")
         return
-    print("PASS mobile controls: analog joystick + camera + sprint across 3 fingers")
+    print("PASS mobile controls: analog joystick + camera + sprint across 4 fingers with shared sprint")
     quit(0)
