@@ -68,9 +68,8 @@ func _run() -> void:
                         var corner: Vector3 = to_world * (size * Vector3(sx, sy, sz) * 0.5)
                         min_y = minf(min_y, corner.y)
                         max_y = maxf(max_y, corner.y)
-            # The standing capsule occupies approximately 0.3..1.9 m.
-            if max_y < 0.3 or min_y > 1.9:
-                continue
+            # Evaluate capsule height at each route sample, not world Y=0.
+            # Sloped forest roads and the G-4 descent can change elevation.
             checked += 1
             for i in range(points.size() - 1):
                 var a: Vector3 = points[i]
@@ -79,6 +78,9 @@ func _run() -> void:
                 var steps := maxi(1, ceili(a.distance_to(b) / 0.2))
                 for j in range(steps + 1):
                     var p: Vector3 = a.lerp(b, float(j) / float(steps))
+                    # Skip boxes fully above/below the capsule at this waypoint.
+                    if max_y < p.y + 0.3 or min_y > p.y + 1.9:
+                        continue
                     var local_p: Vector3 = to_local * p
                     var dx: float = maxf(absf(local_p.x) - size.x * 0.5, 0.0)
                     var dz: float = maxf(absf(local_p.z) - size.z * 0.5, 0.0)
