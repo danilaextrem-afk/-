@@ -34,54 +34,58 @@ func _run() -> void:
                 quit(1)
                 return
     var checked := 0
-    for node in route.get_children():
-        for body in node.get_children():
-            if not (body is StaticBody3D):
+    # Search the entire route subtree. Imported checkpoint GLBs may nest
+    # StaticBody3D and CollisionShape3D deeper than the original two levels.
+    # A shallow traversal would falsely report a clear corridor.
+    var bodies := route.find_children("*", "StaticBody3D", true, false)
+    for body in bodies:
+        var collisions := body.find_children("*", "CollisionShape3D", true, false)
+        if collisions.is_empty():
+            push_error("Route static body has no collision shapes: %s" % body.get_path())
+            quit(1)
+            return
+        for collision in collisions:
+            if collision.disabled:
                 continue
-            for collision in body.get_children():
-                if not (collision is CollisionShape3D):
-                    continue
-                if collision.disabled:
-                    continue
-                if collision.shape == null:
-                    push_error("Enabled collision has no shape: %s/%s" % [node.name, body.name])
-                    quit(1)
-                    return
-                if not (collision.shape is BoxShape3D):
-                    push_error("Unsupported route collision shape (not clearance-tested): %s/%s (%s)" % [node.name, body.name, collision.shape.get_class()])
-                    quit(1)
-                    return
-                var size: Vector3 = collision.shape.size
-                var to_world: Transform3D = collision.global_transform
-                var to_local: Transform3D = to_world.affine_inverse()
-                # Rotated/scaled boxes need world-space vertical bounds; the
-                # unrotated center +/- size.y/2 can miss tilted obstacles.
-                var min_y := INF
-                var max_y := -INF
-                for sx in [-1.0, 1.0]:
-                    for sy in [-1.0, 1.0]:
-                        for sz in [-1.0, 1.0]:
-                            var corner: Vector3 = to_world * (size * Vector3(sx, sy, sz) * 0.5)
-                            min_y = minf(min_y, corner.y)
-                            max_y = maxf(max_y, corner.y)
-                # The standing capsule occupies approximately 0.3..1.9 m.
-                if max_y < 0.3 or min_y > 1.9:
-                    continue
-                checked += 1
-                for i in range(points.size() - 1):
-                    var a: Vector3 = points[i]
-                    var b: Vector3 = points[i + 1]
-                    # Conservative 2D broad phase: sample the route every 0.2m.
-                    var steps := maxi(1, ceili(a.distance_to(b) / 0.2))
-                    for j in range(steps + 1):
-                        var p: Vector3 = a.lerp(b, float(j) / float(steps))
-                        var local_p: Vector3 = to_local * p
-                        var dx: float = maxf(absf(local_p.x) - size.x * 0.5, 0.0)
-                        var dz: float = maxf(absf(local_p.z) - size.z * 0.5, 0.0)
-                        if Vector2(dx, dz).length() < CAPSULE_RADIUS + SAFETY_MARGIN:
-                            push_error("Route clearance blocked by %s near %s" % [node.name, p])
-                            quit(1)
-                            return
+            if collision.shape == null:
+                push_error("Enabled collision has no shape: %s/%s" % [body.get_path(), collision.name])
+                quit(1)
+                return
+            if not (collision.shape is BoxShape3D):
+                push_error("Unsupported route collision shape (not clearance-tested): %s/%s (%s)" % [body.get_path(), collision.name, collision.shape.get_class()])
+                quit(1)
+                return
+            var size: Vector3 = collision.shape.size
+            var to_world: Transform3D = collision.global_transform
+            var to_local: Transform3D = to_world.affine_inverse()
+            # Rotated/scaled boxes need world-space vertical bounds; the
+            # unrotated center +/- size.y/2 can miss tilted obstacles.
+            var min_y := INF
+            var max_y := -INF
+            for sx in [-1.0, 1.0]:
+                for sy in [-1.0, 1.0]:
+                    for sz in [-1.0, 1.0]:
+                        var corner: Vector3 = to_world * (size * Vector3(sx, sy, sz) * 0.5)
+                        min_y = minf(min_y, corner.y)
+                        max_y = maxf(max_y, corner.y)
+            # The standing capsule occupies approximately 0.3..1.9 m.
+            if max_y < 0.3 or min_y > 1.9:
+                continue
+            checked += 1
+            for i in range(points.size() - 1):
+                var a: Vector3 = points[i]
+                var b: Vector3 = points[i + 1]
+                # Conservative 2D broad phase: sample the route every 0.2m.
+                var steps := maxi(1, ceili(a.distance_to(b) / 0.2))
+                for j in range(steps + 1):
+                    var p: Vector3 = a.lerp(b, float(j) / float(steps))
+                    var local_p: Vector3 = to_local * p
+                    var dx: float = maxf(absf(local_p.x) - size.x * 0.5, 0.0)
+                    var dz: float = maxf(absf(local_p.z) - size.z * 0.5, 0.0)
+                    if Vector2(dx, dz).length() < CAPSULE_RADIUS + SAFETY_MARGIN:
+                        push_error("Route clearance blocked by %s near %s" % [body.get_path(), p])
+                        quit(1)
+                        return
     if checked < 4:
         push_error("Too few checkpoint/forest solid obstacles inspected: %d" % checked)
         quit(1)
