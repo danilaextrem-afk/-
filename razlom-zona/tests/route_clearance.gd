@@ -1,5 +1,6 @@
 extends SceneTree
 ## Route QA: assert that checkpoint solids do not intersect the player corridor.
+## Uses collider-local coordinates so rotated checkpoint obstacles cannot evade clearance QA.
 ## This is a source-scene geometry regression, not an Android FPS or visual test.
 const ROUTE_SCRIPT = preload("res://scripts/route.gd")
 const CAPSULE_RADIUS := 0.42
@@ -24,7 +25,8 @@ func _run() -> void:
                 if not (collision.shape is BoxShape3D):
                     continue
                 var size: Vector3 = collision.shape.size
-                var center: Vector3 = node.global_position + body.position + collision.position
+                var center: Vector3 = collision.global_position
+                var to_local: Transform3D = collision.global_transform.affine_inverse()
                 # Only obstacles reaching the player body above the ground matter.
                 if center.y + size.y * 0.5 < 0.3:
                     continue
@@ -36,8 +38,9 @@ func _run() -> void:
                     var steps := maxi(1, ceili(a.distance_to(b) / 0.2))
                     for j in range(steps + 1):
                         var p: Vector3 = a.lerp(b, float(j) / float(steps))
-                        var dx: float = maxf(absf(p.x - center.x) - size.x * 0.5, 0.0)
-                        var dz: float = maxf(absf(p.z - center.z) - size.z * 0.5, 0.0)
+                        var local_p: Vector3 = to_local * p
+                        var dx: float = maxf(absf(local_p.x) - size.x * 0.5, 0.0)
+                        var dz: float = maxf(absf(local_p.z) - size.z * 0.5, 0.0)
                         if Vector2(dx, dz).length() < CAPSULE_RADIUS + SAFETY_MARGIN:
                             push_error("Route clearance blocked by %s near %s" % [node.name, p])
                             quit(1)
