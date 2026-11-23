@@ -60,10 +60,12 @@ func _button_radius(id: String) -> float:
         "save": factor = 34.0
     return factor * _scale()
 
+## Keep the interactive target close to the visible ring: camera swipes
+## beside a button must not silently consume medkits or trigger saves.
 func _touch_button_at(p: Vector2) -> String:
     var layout := _layout()
     for id in ["interact", "sprint", "torch", "medkit", "save"]:
-        if p.distance_to(layout[id]) < _button_radius(id) * 1.24:
+        if p.distance_to(layout[id]) <= _button_radius(id) * 0.94:
             return id
     return ""
 
@@ -177,10 +179,10 @@ func _draw_button(id: String, caption: String, center: Vector2) -> void:
     var pressed := held_buttons.has(id)
     var s := _scale()
     var ink := ACTIVE if pressed else Color(.89,.89,.81,.68)
-    draw_circle(center, radius*.65, Color(.05,.06,.055,.39 if pressed else .22))
+    draw_circle(center, radius*.86, Color(.05,.06,.055,.39 if pressed else .22))
     for quarter in 4:
         var start := quarter*PI*.5+.16
-        draw_arc(center, radius*.65, start, start+1.23, 12, ink, 1.3*s, true)
+        draw_arc(center, radius*.86, start, start+1.23, 12, ink, 1.3*s, true)
     var font_size := maxi(12, int(15 * s))
     _draw_text(caption, center + Vector2(0, font_size * 0.31), font_size, LABEL, true)
 

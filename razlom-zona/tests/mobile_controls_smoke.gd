@@ -72,5 +72,21 @@ func _run() -> void:
     if medkit_presses[0] != 2:
         _fail("new medkit press was not recognized after release")
         return
+    # The old 1.24x invisible hit radius could consume a medkit when
+    # the player intended to rotate the camera just beside its icon.
+    var near_medkit := Vector2(1088, 464)
+    if overlay._touch_button_at(near_medkit) != "":
+        _fail("invisible button hit area steals camera swipe beside medkit")
+        return
+    var yaw_before_edge: float = p.rotation.y
+    overlay._begin_touch(7, near_medkit)
+    overlay._drag_touch(7, near_medkit + Vector2(20, 0), Vector2(20, 0))
+    if medkit_presses[0] != 2 or absf(p.rotation.y - yaw_before_edge) < 0.01:
+        _fail("near-button swipe did not rotate camera safely")
+        return
+    overlay._end_touch(7)
+    if overlay.look_finger != -1:
+        _fail("near-button camera finger was not released")
+        return
     print("PASS mobile controls: analog joystick + camera + sprint across 4 fingers with shared sprint")
     quit(0)
