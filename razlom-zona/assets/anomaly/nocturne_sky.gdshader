@@ -20,5 +20,7 @@ void sky() {
     // an enormous permanently overexposed line on the sky.
     vec3 dusk = min(sample_rgb,vec3(0.78,0.32,0.44));
     float western_bank = smoothstep(-0.25,0.86,EYEDIR.x);
-    COLOR = base + cloud_ink * cloud_mask + dusk*(0.13+0.48*western_bank);
+    float low_cloud = exp(-abs(EYEDIR.y-0.16)*5.1)*western_bank;
+    vec3 ember = vec3(.54,.113,.031)*low_cloud*(.22+1.13*cloud_signal);
+    COLOR = base + cloud_ink * cloud_mask + dusk*(0.16+0.65*western_bank) + ember;
 }

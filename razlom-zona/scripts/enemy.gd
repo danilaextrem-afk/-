@@ -19,28 +19,23 @@ func _ready() -> void:
     _build_visual()
 
 func _build_visual() -> void:
-    var body := MeshInstance3D.new()
-    var mesh := BoxMesh.new()
-    mesh.size = Vector3(0.9, 1.5, 0.65) if creature_type == 0 else Vector3(1.2, 0.9, 1.4)
-    body.mesh = mesh
-    body.position.y = 0.8 if creature_type == 0 else 0.48
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = Color("455151") if creature_type == 0 else Color("654150")
-    mat.roughness = 1.0
-    body.material_override = mat
-    add_child(body)
-    for side in [-1, 1]:
-        var eye := MeshInstance3D.new()
-        var em := BoxMesh.new()
-        em.size = Vector3(0.12, 0.10, 0.08)
-        eye.mesh = em
-        eye.position = Vector3(side * 0.24, 1.21 if creature_type == 0 else 0.65, -0.36 if creature_type == 0 else -0.72)
-        var eye_mat := StandardMaterial3D.new()
-        eye_mat.albedo_color = Color("7eecd6") if creature_type == 0 else Color("ff6679")
-        eye_mat.emission_enabled = true
-        eye_mat.emission = eye_mat.albedo_color
-        eye.material_override = eye_mat
-        add_child(eye)
+    model = preload("res://assets/transport/watchman.glb").instantiate() as Node3D
+    add_child(model)
+    for name_part in ["ArmL","ArmR","LegL","LegR"]:
+        limbs.append(model.find_child(name_part,true,false) as Node3D)
+
+var model: Node3D
+var limbs: Array[Node3D] = []
+var phase := 0.0
+
+func animate(delta: float, pace: float) -> void:
+    phase = fmod(phase + delta*(2.0+pace*3.5), TAU)
+    var motion := sin(phase)*minf(.47,pace*.19)
+    limbs[0].rotation.x = -.16+motion
+    limbs[1].rotation.x = -.28-motion
+    limbs[2].rotation.x = -motion
+    limbs[3].rotation.x = motion
+    model.position.y = absf(cos(phase))*.019*minf(1,pace)
 
 func _physics_process(delta: float) -> void:
     if not is_instance_valid(player) or not player.alive:
@@ -51,7 +46,7 @@ func _physics_process(delta: float) -> void:
     var distance := flat.length()
     var direction := Vector3.ZERO
     var chase_distance := 12.0 if creature_type == 0 else 9.0
-    if distance < chase_distance and distance > 1.35:
+    if distance < chase_distance and distance > 1.35 and attack_timer < 1.20:
         direction = flat.normalized()
         look_at(global_position + direction, Vector3.UP)
     elif distance >= chase_distance:
@@ -68,6 +63,7 @@ func _physics_process(delta: float) -> void:
     velocity.z = direction.z * (2.6 if creature_type == 0 else 3.5)
     velocity.y -= 18.0 * delta
     move_and_slide()
+    animate(delta,Vector2(velocity.x,velocity.z).length())
     if distance < 1.65 and attack_timer <= 0.0:
         player.hit(12.0 if creature_type == 0 else 8.0)
         attack_timer = 1.8

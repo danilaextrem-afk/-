@@ -9,6 +9,7 @@ const SAVE_PATH = "user://razlom_zona_save_v1.json"
 const WORLD_HALF_SIZE = 46.0
 
 var player
+var radio := preload("res://scripts/radio_route.gd").new()
 var inventory: Dictionary = {"medkit": 0, "battery": 0, "scrap": 0}
 var collected_ids: Dictionary = {}
 var pickups: Array[Node3D] = []
@@ -29,19 +30,20 @@ var touch_controls: Control
 func _ready() -> void:
     _setup_environment()
     _create_world()
+    add_child(radio)
     player = PlayerScript.new()
     player.position = Vector3(-39.0, 0.25, 2.0)
     player.rotation.y = -PI / 2.0
     add_child(player)
-    _spawn_enemy(Vector3(21.0, 0.3, -17.0), 0)
-    _spawn_enemy(Vector3(-26.0, 0.3, -24.0), 1)
+    _spawn_enemy(Vector3(12.0, 0.3, -13.5), 0)
     _create_hud()
     _load_save()
-    _show_message("Залесье   /   найти припасы", 4.5)
+    _show_message("ЗАЛЕСЬЕ   /   Последний рейс", 4.5)
 
 func _process(delta: float) -> void:
     if not is_instance_valid(player):
         return
+    radio.update_sound(delta, player.global_position)
     _animate_pickups(delta)
     _check_anomalies(delta)
     _check_death()
@@ -67,17 +69,17 @@ func _setup_environment() -> void:
     env.environment.sky = sky
     env.environment.background_mode = Environment.BG_SKY
     env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.environment.ambient_light_color = Color("607c81")
-    env.environment.ambient_light_energy = 0.43
+    env.environment.ambient_light_color = Color("9e9ba1")
+    env.environment.ambient_light_energy = 0.62
     env.environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.environment.fog_enabled = true
-    env.environment.fog_light_color = Color("304c54")
-    env.environment.fog_density = 0.0135
+    env.environment.fog_light_color = Color("956b73")
+    env.environment.fog_density = 0.009
     env.environment.fog_sky_affect = 0.0
     add_child(env)
     var moon := DirectionalLight3D.new()
     moon.rotation_degrees = Vector3(-19.0, 69.0, 0.0)
-    moon.light_color = Color("eec4ad")
+    moon.light_color = Color("ffd09f")
     moon.light_energy = 0.71
     moon.shadow_enabled = true
     moon.directional_shadow_max_distance = 24.0
@@ -119,8 +121,16 @@ func _box(name: String, center: Vector3, size: Vector3, material: Material, soli
     return root
 
 func _create_world() -> void:
-    var earth := _material("26332d")
-    var pavement := _material("374146")
+    var earth := _material("b6af9a")
+    earth.albedo_texture = preload("res://assets/village/leaf_litter.jpg")
+    earth.uv1_triplanar = true
+    earth.uv1_world_triplanar = true
+    earth.uv1_scale = Vector3.ONE*.48
+    var pavement := _material("858586")
+    pavement.albedo_texture = earth.albedo_texture
+    pavement.uv1_triplanar = true
+    pavement.uv1_world_triplanar = true
+    pavement.uv1_scale = Vector3.ONE*.61
     var cement := _material("596161")
     var roof := _material("283a43")
     var wood := _material("4b4239")
@@ -155,7 +165,20 @@ func _create_world() -> void:
     add_child(hero_gate)
 
     _house(Vector3(-3, 0, -20), Vector3(11, 8, 9), cement, roof, dark)
-    _house(Vector3(30, 0, -6), Vector3(9, 6, 10), wood, roof, dark)
+    var woods := preload("res://assets/village/access_woods.glb").instantiate() as Node3D
+    add_child(woods)
+    var guardhouse := preload("res://assets/base/guardhouse04.gltf").instantiate() as Node3D
+    guardhouse.position = Vector3(26.6, 0, -9.5)
+    guardhouse.rotation.y = -PI/2
+    add_child(guardhouse)
+    var shell := StaticBody3D.new()
+    var collider := CollisionShape3D.new()
+    var shape := BoxShape3D.new()
+    shape.size = Vector3(6.15, 3.38, 4.76)
+    collider.shape = shape
+    collider.position.y = 1.69
+    shell.add_child(collider)
+    guardhouse.add_child(shell)
     _house(Vector3(28, 0, 22), Vector3(8, 5, 8), cement, roof, dark)
     _box("OldWarehouse", Vector3(1, 4, 29), Vector3(15, 8, 12), _material("414f50"))
     _box("WarehouseRoof", Vector3(1, 8.2, 29), Vector3(16, 0.55, 13), roof)
@@ -182,6 +205,8 @@ func _create_world() -> void:
     for i in range(12):
         var x := float((i * 19) % 79 - 39)
         var z := float((i * 37) % 77 - 38)
+        if absf(x-18.0) < 2.5 and z < 0:
+            x -= 4.5
         _box("Rubble_%d" % i, Vector3(x, 0.14, z), Vector3(0.8 + float(i % 3), 0.28, 0.8), scrap)
     for i in range(8):
         var z := -33.0 + 8.0 * float(i)
@@ -285,6 +310,10 @@ func _nearest_interactable() -> Dictionary:
         if distance < best_distance:
             best_distance = distance
             candidate = {"kind":"loot", "node":node}
+    if radio.stage < radio.SITES.size():
+        var radio_distance: float = player.global_position.distance_to(radio.SITES[radio.stage])
+        if radio_distance < minf(best_distance,2.15):
+            candidate = {"kind":"radio"}
     return candidate
 
 func _interact() -> void:
@@ -298,7 +327,11 @@ func _interact() -> void:
         else:
             _show_message("Подойди к предмету или убежищу", 2.0)
         return
-    if target["kind"] == "shelter":
+    if target["kind"] == "radio":
+        var transmission: String = radio.tune()
+        _save_game()
+        _show_message(transmission, 6.0)
+    elif target["kind"] == "shelter":
         player.restore()
         _save_game()
         _show_message("Убежище: здоровье восстановлено, игра сохранена", 4.0)
@@ -345,7 +378,7 @@ func _save_game() -> void:
     var state := {"version":1, "position":[player.position.x,player.position.y,player.position.z],
         "yaw":player.rotation.y, "pitch":player.camera.rotation.x,
         "health":player.health, "stamina":player.stamina, "battery":player.battery,
-        "inventory":inventory, "collected_ids":collected_ids}
+        "radio_stage":radio.stage, "inventory":inventory, "collected_ids":collected_ids}
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
     if file == null:
         _show_message("Ошибка сохранения", 3.0)
@@ -362,6 +395,7 @@ func _load_save() -> void:
     var parsed: Variant = JSON.parse_string(file.get_as_text())
     if typeof(parsed) != TYPE_DICTIONARY or parsed.get("version", -1) != 1:
         return
+    radio.restore(int(parsed.get("radio_stage", 0)))
     var pos: Array = parsed.get("position", [])
     if pos.size() == 3:
         var p := Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
@@ -405,8 +439,8 @@ func _create_hud() -> void:
         overlay.medkit_requested.connect(_use_medkit)
         overlay.save_requested.connect(_save_game)
         stats_label.visible = false
-        tip_label.visible = false
-        status_label.position = Vector2(22, 134)
+        tip_label.visible = true
+        status_label.position = Vector2(22, 86)
         status_label.add_theme_font_size_override("font_size", 17)
 
 func _label(parent: Control, pos: Vector2, size: Vector2, font_size: int) -> Label:
@@ -452,9 +486,13 @@ func _refresh_hud() -> void:
         return
     var target := _nearest_interactable()
     if target.is_empty():
-        tip_label.text = ""
+        tip_label.text = radio.CLUES[radio.stage] if radio.stage < 3 else ""
+    elif target["kind"] == "radio":
+        tip_label.text = radio.ACTIONS[radio.stage]
+    elif target["kind"] == "shelter":
+        tip_label.text = "Убежище · лечение и сохранение"
     else:
-        tip_label.text = "E / ДЕЙСТВИЕ — %s" % ("убежище: лечение и сохранение" if target["kind"] == "shelter" else "подобрать предмет")
+        tip_label.text = "Подобрать предмет"
 
 func _show_message(text_value: String, duration: float) -> void:
     if status_label != null:
