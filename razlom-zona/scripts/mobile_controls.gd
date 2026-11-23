@@ -127,11 +127,16 @@ func _drag_touch(finger: int, p: Vector2, relative: Vector2) -> void:
     if finger == stick_finger:
         var radius := 69.0 * _scale()
         var v: Vector2 = (p - stick_center) / radius
-        # Ignore small tremors; full analog movement / diagonal control.
-        if v.length() < 0.085:
-            v = Vector2.ZERO
+        # A continuous radial dead zone prevents a sudden movement jump
+        # when the thumb crosses the tremor threshold. Preserve direction
+        # and reach full speed at the outer ring, including diagonals.
+        var magnitude := v.length()
+        var output := Vector2.ZERO
+        if magnitude > 0.085:
+            var strength := clampf((magnitude - 0.085) / (1.0 - 0.085), 0.0, 1.0)
+            output = v / magnitude * strength
         stick_tip = stick_center + v.limit_length() * radius
-        player.virtual_move = v.limit_length()
+        player.virtual_move = output
         queue_redraw()
     elif finger == look_finger:
         player.look_from_touch(relative * look_multiplier)
