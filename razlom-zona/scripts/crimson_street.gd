@@ -5,7 +5,7 @@ const STREET := preload("res://assets/village/street.glb")
 func _ready() -> void:
     var bus := preload("res://assets/transport/last_bus.glb").instantiate() as Node3D
     bus.position = Vector3(-3.95, .03, -7.1)
-    bus.rotation.y = .70
+    bus.rotation.y = -.40
     add_child(bus)
     var street_scene: Node3D = STREET.instantiate()
     add_child(street_scene)
@@ -36,7 +36,7 @@ func _ready() -> void:
             [Vector3(3.08,1.6,2.14),Vector3(.21,3,.21)],
             [Vector3(.25,.58,-1.54),Vector3(3.03,1.16,.71)]]:
         _solid(shed * (piece[0] as Vector3), piece[1], 1.06)
-    _solid(Vector3(-3.95, 1.36, -7.1), Vector3(2.25, 2.72, 6.30), .70)
+    _solid(Vector3(-3.95, 1.36, -7.1), Vector3(2.25, 2.72, 6.30), -.40)
     for x in [-4.25, 4.25]:
         for segment in [[-3, 2], [-15, -10], [-26, -21]]:
             _solid(Vector3(x, .57, (segment[0]+segment[1])*.5), Vector3(.18, 1.14, segment[1]-segment[0]), 0.0)

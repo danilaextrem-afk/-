@@ -26,7 +26,14 @@ for slot,color in enumerate(colors):
         rust=np.clip(3.7*(.32*Y/N+.9*stain+.11*noise-.38),0,1)
         rgb=rgb*(1-rust[:,:,None])+np.array([92,59,40])*rust[:,:,None]
     if slot==6:
-        rgb+=((1-Y/N)*24+streak)[:,:,None]
+        # Opaque dusty glazing: bands of reflected sky above a dark tree line.
+        ridge=62+7*np.sin(X/17)+5*np.sin(X/6)+noise[0,:]*2
+        sky=np.clip((ridge-Y)/21,0,1)
+        rgb=np.array([27,38,42])+sky[:,:,None]*[47,43,43]+(streak+noise*1.8)[:,:,None]
+    if slot in [10,11]:
+        radial=np.sqrt(((X-63)/62)**2+((Y-61)/62)**2)
+        ridges=6*np.cos(X*.62)+8*np.cos(radial*56)
+        rgb=np.array([176,166,135] if slot==11 else [169,96,42])+(29*(1-radial)+ridges+noise*1.6)[:,:,None]
     if slot==4:
         rgb+=np.where(((X+(Y//5)*2)%12)<2,-13,0)[:,:,None]
     tile=Image.fromarray(np.uint8(np.clip(rgb,0,255)))

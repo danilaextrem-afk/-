@@ -121,8 +121,16 @@ func _box(name: String, center: Vector3, size: Vector3, material: Material, soli
     return root
 
 func _create_world() -> void:
-    var earth := _material("26332d")
-    var pavement := _material("374146")
+    var earth := _material("b6af9a")
+    earth.albedo_texture = preload("res://assets/village/leaf_litter.jpg")
+    earth.uv1_triplanar = true
+    earth.uv1_world_triplanar = true
+    earth.uv1_scale = Vector3.ONE*.48
+    var pavement := _material("858586")
+    pavement.albedo_texture = earth.albedo_texture
+    pavement.uv1_triplanar = true
+    pavement.uv1_world_triplanar = true
+    pavement.uv1_scale = Vector3.ONE*.61
     var cement := _material("596161")
     var roof := _material("283a43")
     var wood := _material("4b4239")

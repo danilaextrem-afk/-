@@ -45,15 +45,15 @@ def bolt(points,width,level):
     pen.line(points,fill=level,width=width)
 def xy(lon,elev):
     return ((lon+np.pi)/(2*np.pi)*w,(1.57-elev)/3.14*h)
-hub=xy(.06,.43)
+hub=xy(.145,.398)
 for line,width,level in [
-    ([xy(-.67,.88),xy(-.40,.69),xy(-.27,.65),xy(-.12,.53),hub,xy(.22,.48),xy(.39,.59),xy(.62,.67)],2,255),
-    ([hub,xy(.025,.31),xy(-.005,.28),xy(-.04,.19)],1,252),
-    ([xy(.39,.59),xy(.42,.73),xy(.58,.83)],1,185),
-    ([xy(-.27,.65),xy(-.32,.77),xy(-.46,.83)],1,135)]:
+    ([xy(-.84,.64),xy(-.55,.61),xy(-.31,.53),xy(-.09,.52),hub,xy(.29,.46),xy(.49,.50),xy(.73,.62)],1,215),
+    ([hub,xy(.125,.31),xy(.068,.28),xy(.051,.19)],1,252),
+    ([xy(.49,.50),xy(.52,.63),xy(.64,.71)],1,185),
+    ([xy(-.31,.53),xy(-.36,.59),xy(-.47,.61)],1,135)]:
     bolt(line,width,level)
 rgb=np.array(base,dtype=float)
-for radius,color in [(13,[103,0,85]),(4,[142,11,108]),(1.3,[240,60,162]),(0,[245,202,233])]:
+for radius,color in [(9,[73,0,64]),(3,[120,11,99]),(1,[182,48,140]),(0,[228,179,223])]:
     mask=np.asarray(glow.filter(ImageFilter.GaussianBlur(radius)),dtype=float)/255
     rgb+=mask[...,None]*color
 Image.fromarray(np.clip(rgb,0,255).astype('uint8')).save(out/'storm.jpg',quality=91)

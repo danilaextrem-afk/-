@@ -59,7 +59,7 @@ func run() -> void:
     open_game()
     await listen(Vector3(-19,2.65,2), 48)
     await listen(game.radio.SITES[0]+Vector3(0,.6,0), 52)
-    if not await walk_to(Vector2(-32.6,1.1)):
+    if not await walk_to(Vector2(-33.4,0.02)):
         return
     await listen(game.radio.SITES[0], 36)
     if not tune(1):

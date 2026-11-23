@@ -190,7 +190,7 @@ func _draw() -> void:
         draw_arc(base,outline_radius,start,start+.96,12, OUTLINE, 1.6*s,true)
     draw_circle(tip, (16 if engaged else 5)*s,Color(.84,.88,.77,.45))
 
-    _draw_button("interact", "ВЗЯТЬ", layout["interact"])
+    _draw_button("interact", "ДЕЙСТВ.", layout["interact"])
     _draw_button("sprint", "БЕГ", layout["sprint"])
     _draw_button("torch", "СВЕТ", layout["torch"])
     _draw_button("medkit", "АПТ", layout["medkit"])

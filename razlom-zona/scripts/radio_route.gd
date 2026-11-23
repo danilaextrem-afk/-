@@ -4,9 +4,9 @@ const RECEIVER := preload("res://assets/transport/field_receiver.glb")
 const CALL := preload("res://assets/sound/relay_call.ogg")
 const CONTACT := preload("res://assets/sound/relay_contact.ogg")
 const SITES := [
-    Vector3(-32.31, 1.18, -.10), Vector3(6.55, 1.12, 3.72), Vector3(25.38, -2.83, -35.7)
+    Vector3(-33.50, 1.21, -1.39), Vector3(6.55, 1.12, 3.72), Vector3(25.38, -2.83, -35.7)
 ]
-const YAW := [0.70, -1.80, -1.57]
+const YAW := [-.40, -1.80, -1.57]
 const CLUES := [
     "У автобуса работает приёмник",
     "Передать позывной через КПП-07",
