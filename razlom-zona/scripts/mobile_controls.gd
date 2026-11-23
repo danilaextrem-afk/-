@@ -83,6 +83,10 @@ func _input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
 
 func _begin_touch(finger: int, p: Vector2) -> void:
+    # Android may deliver a repeated press for the same pointer index.
+    # Never reassign an active finger or fire a one-shot action twice.
+    if finger == stick_finger or finger == look_finger or button_fingers.has(finger):
+        return
     var button_id := _touch_button_at(p)
     if button_id != "":
         # A second finger on a one-shot action must not consume two items
