@@ -24,6 +24,21 @@ func _run() -> void:
         _fail("analog left-thumb move did not register")
         return
 
+    # Tremor stays still, and crossing the radial threshold must not
+    # instantly jump to ~8.5% movement speed.
+    overlay._drag_touch(0, Vector2(145 + 69.0 * 0.08, 590), Vector2.ZERO)
+    if p.virtual_move.length() > 0.001:
+        _fail("joystick tremor inside deadzone moved player")
+        return
+    overlay._drag_touch(0, Vector2(145 + 69.0 * 0.10, 590), Vector2.ZERO)
+    if p.virtual_move.length() <= 0.0 or p.virtual_move.length() >= 0.04:
+        _fail("joystick crossed deadzone with abrupt movement jump")
+        return
+    overlay._drag_touch(0, Vector2(205, 590), Vector2.ZERO)
+    if p.virtual_move.x < 0.7:
+        _fail("joystick lost full analog range after deadzone")
+        return
+
     var initial_yaw: float = p.rotation.y
     overlay._begin_touch(1, Vector2(820, 300))
     overlay._drag_touch(1, Vector2(873, 306), Vector2(53, 6))
