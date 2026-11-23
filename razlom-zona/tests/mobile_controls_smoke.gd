@@ -55,5 +55,22 @@ func _run() -> void:
     if overlay.look_finger != -1:
         _fail("look finger not released")
         return
+    var medkit_presses := [0]
+    overlay.medkit_requested.connect(func() -> void: medkit_presses[0] += 1)
+    overlay._begin_touch(4, Vector2(1045, 464))
+    overlay._begin_touch(5, Vector2(1045, 464))
+    if medkit_presses[0] != 1:
+        _fail("overlapping fingers consumed multiple medkits")
+        return
+    overlay._end_touch(4)
+    if not overlay.held_buttons.has("medkit"):
+        _fail("one-shot button released while second finger still held")
+        return
+    overlay._end_touch(5)
+    overlay._begin_touch(6, Vector2(1045, 464))
+    overlay._end_touch(6)
+    if medkit_presses[0] != 2:
+        _fail("new medkit press was not recognized after release")
+        return
     print("PASS mobile controls: analog joystick + camera + sprint across 4 fingers with shared sprint")
     quit(0)
