@@ -19,5 +19,5 @@ void fragment() {
     float cloud_signal = dot(texture(sky_map,sky_uv).rgb, vec3(0.2126, 0.7152, 0.0722));
     EMISSION = (vec3(.032,.069,.077)*cloud_signal+min(texture(sky_map,sky_uv).rgb,vec3(.72,.28,.30))*.48)*wet*(.12+.57*fresnel);
     ROUGHNESS = mix(.94,.26,wet);
-    SPECULAR = mix(.14,.52,wet);
+    SPECULAR = mix(.11,.025,wet);
 }

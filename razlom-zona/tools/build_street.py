@@ -56,7 +56,11 @@ put(2,swatches[0]);put(3,swatches[1]);put(7,swatches[2])
 put(0,ImageEnhance.Color(swatches[0]).enhance(.28))
 put(1,ImageEnhance.Brightness(ImageEnhance.Color(swatches[0]).enhance(.18)).enhance(.48))
 # Weathered pale paint separates car body from the orange roadside timber.
-put(15,ImageEnhance.Brightness(ImageEnhance.Color(swatches[2]).enhance(.43)).enhance(.83))
+metal=np.asarray(swatches[1].resize((256,256)),dtype=float)
+wear=gaussian_filter(noise.normal(size=(256,256)),5)
+chip=np.clip((wear-.047)*27,0,1)
+paint=np.array([104,134,124])+noise.normal(0,3,(256,256,1))
+put(15,Image.fromarray(np.uint8(np.clip(paint*(1-chip[:,:,None])+metal*chip[:,:,None],0,255))))
 sign=Image.new('RGB',(840,112),'#234c52')
 pen=ImageDraw.Draw(sign)
 pen.rounded_rectangle((6,5,833,106),radius=12,outline='#c8ba94',width=4)
@@ -201,6 +205,19 @@ def post_office():
         beam((xx,.32,3.11),(xx,2.51,3.11),.10,4)
         beam((xx,2.06,3.11),(xx,2.54,2.57),.07,4)
     face([(-1.3,2.46,3.32),(1.49,2.46,3.32),(1.49,2.71,f),(-1.3,2.71,f)],3)
+    # The east elevation faces the return path: paired projecting sash windows,
+    # a downspout, a pinned shutter and a low timber bench break up the long wall.
+    saved_origin, saved_rotation = origin.copy(), rotation.copy()
+    for side in [-1,1]:
+        centre=saved_origin+saved_rotation@np.array([side*3.29,0,0])
+        frame(centre[0],centre[2],-.68+side*math.pi/2)
+        for wx in [-.90,.67]:
+            window(wx,1.84,.025,side==1 and wx<0)
+            cube(wx-0.70,1.85,.078,.31,1.12,.09,2)
+        beam((1.81,.18,.14),(1.81,3.07,.14),.092,4)
+        cube(-.23,.62,.45,1.83,.12,.42,0)
+        for dx in [-.87,.43]:cube(dx,.34,.45,.13,.52,.30,4)
+    frame(7.5,-6.4,-.68)
     # A wall-mounted blue postal box and an amber lamp with an iron cage.
     cube(2.31,1.26,f+.17,.51,.62,.27,2)
     cube(2.31,1.43,f+.32,.38,.05,.04,1)
