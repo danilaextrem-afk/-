@@ -144,7 +144,11 @@ func _drag_touch(finger: int, p: Vector2, relative: Vector2) -> void:
         player.virtual_move = output
         queue_redraw()
     elif finger == look_finger:
-        player.look_from_touch(relative * look_multiplier)
+        # Some Android drivers batch a large stale drag after a frame stall or
+        # pointer handoff. Bound only the single-event spike, preserving normal
+        # fine aim and sustained turning over successive events.
+        var safe_relative := relative.limit_length(72.0 * _scale())
+        player.look_from_touch(safe_relative * look_multiplier)
 
 func _end_touch(finger: int) -> void:
     if finger == stick_finger:
