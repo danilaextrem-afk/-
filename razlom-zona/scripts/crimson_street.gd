@@ -5,6 +5,7 @@ const STREET := preload("res://assets/village/street.glb")
 # Only two lamps flicker; no additional dynamic lights or shadow casters.
 var unstable_lamps: Array[OmniLight3D] = []
 var lamp_clock := 0.0
+var lamp_filaments: Array[MeshInstance3D] = []
 
 func _process(delta: float) -> void:
     lamp_clock += delta
@@ -17,6 +18,9 @@ func _process(delta: float) -> void:
         # Occasional short brownout, but never a full black frame.
         var brownout := 0.48 if sin(phase * 0.31) > 0.985 else 1.0
         lamp.light_energy = 2.5 * clampf((1.0 + tremor) * brownout, 0.35, 1.2)
+        # The actual bulb visibly dims with the light; no extra light sources.
+        var filament_material := lamp_filaments[i].material_override as StandardMaterial3D
+        filament_material.emission_energy_multiplier = 0.8 + lamp.light_energy * 0.9
 
 
 func _ready() -> void:
@@ -65,8 +69,26 @@ func _ready() -> void:
         light.omni_range = 5.0
         light.shadow_enabled = false
         add_child(light)
+        var bulb := MeshInstance3D.new()
+        var bulb_mesh := SphereMesh.new()
+        bulb_mesh.radius = 0.105
+        bulb_mesh.height = 0.21
+        bulb_mesh.radial_segments = 8
+        bulb_mesh.rings = 4
+        bulb.mesh = bulb_mesh
+        bulb.position = p
+        bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        var glass := StandardMaterial3D.new()
+        glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+        glass.albedo_color = Color("ffca78")
+        glass.emission_enabled = true
+        glass.emission = Color("ffb45d")
+        glass.emission_energy_multiplier = 3.05
+        bulb.material_override = glass
+        add_child(bulb)
         if unstable_lamps.size() < 2:
             unstable_lamps.append(light)
+            lamp_filaments.append(bulb)
 
 func _solid(center: Vector3, size: Vector3, yaw: float) -> void:
     var body := StaticBody3D.new()
