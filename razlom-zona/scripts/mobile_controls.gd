@@ -83,8 +83,14 @@ func _input(event: InputEvent) -> void:
 func _begin_touch(finger: int, p: Vector2) -> void:
     var button_id := _touch_button_at(p)
     if button_id != "":
+        # A second finger on a one-shot action must not consume two items
+        # or trigger two interactions during the same physical press.
+        var first_press := not held_buttons.has(button_id)
         button_fingers[finger] = button_id
         held_buttons[button_id] = true
+        if not first_press and button_id != "sprint":
+            queue_redraw()
+            return
         match button_id:
             "interact": interact_requested.emit()
             "torch": flashlight_requested.emit()
