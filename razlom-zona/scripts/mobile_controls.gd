@@ -12,6 +12,7 @@ var player  # dynamic Player script contains virtual_move/stamina/battery
 var game  # dynamic Game script exposes inventory
 var stick_finger: int = -1
 var look_finger: int = -1
+var waiting_look_fingers: Array[int] = []
 var stick_center: Vector2 = Vector2.ZERO
 var stick_tip: Vector2 = Vector2.ZERO
 var button_fingers: Dictionary = {}  # index -> button name
@@ -85,7 +86,7 @@ func _input(event: InputEvent) -> void:
 func _begin_touch(finger: int, p: Vector2) -> void:
     # Android may deliver a repeated press for the same pointer index.
     # Never reassign an active finger or fire a one-shot action twice.
-    if finger == stick_finger or finger == look_finger or button_fingers.has(finger):
+    if finger == stick_finger or finger == look_finger or waiting_look_fingers.has(finger) or button_fingers.has(finger):
         return
     var button_id := _touch_button_at(p)
     if button_id != "":
@@ -121,6 +122,10 @@ func _begin_touch(finger: int, p: Vector2) -> void:
         # The previous x >= 42% gate left the upper-left screen dead,
         # especially noticeable when reaching across a landscape phone.
         look_finger = finger
+    else:
+        # Keep a spare camera finger so lifting the primary finger does not
+        # freeze first-person look until the player lifts every finger.
+        waiting_look_fingers.append(finger)
     queue_redraw()
 
 func _drag_touch(finger: int, p: Vector2, relative: Vector2) -> void:
@@ -148,6 +153,10 @@ func _end_touch(finger: int) -> void:
         player.virtual_move = Vector2.ZERO
     if finger == look_finger:
         look_finger = -1
+        if not waiting_look_fingers.is_empty():
+            look_finger = waiting_look_fingers.pop_front()
+    else:
+        waiting_look_fingers.erase(finger)
     if button_fingers.has(finger):
         var id: String = button_fingers[finger]
         button_fingers.erase(finger)
@@ -166,6 +175,7 @@ func _notification(what: int) -> void:
     elif what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
         stick_finger = -1
         look_finger = -1
+        waiting_look_fingers.clear()
         button_fingers.clear()
         held_buttons.clear()
         if is_instance_valid(player):
