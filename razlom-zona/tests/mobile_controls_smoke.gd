@@ -178,6 +178,24 @@ func _run() -> void:
         _fail("stalled Android camera drag bypassed the per-event spike limit")
         return
     overlay._end_touch(14)
+    # Android lifecycle regression: app switching / incoming call may pause
+    # without a window-focus notification. No held control may survive resume.
+    overlay._begin_touch(15, Vector2(145, 590))
+    overlay._drag_touch(15, Vector2(205, 590), Vector2(60, 0))
+    overlay._begin_touch(16, Vector2(820, 300))
+    overlay._begin_touch(17, Vector2(995, 616))
+    if p.virtual_move.length() < 0.1 or not p.virtual_sprint:
+        _fail("pause setup did not engage movement and sprint")
+        return
+    overlay._notification(Node.NOTIFICATION_APPLICATION_PAUSED)
+    if p.virtual_move != Vector2.ZERO or p.virtual_sprint or overlay.stick_finger != -1 or overlay.look_finger != -1 or not overlay.button_fingers.is_empty() or not overlay.held_buttons.is_empty():
+        _fail("Android pause left movement, sprint or touch ownership stuck")
+        return
+    overlay._begin_touch(18, Vector2(820, 300))
+    if overlay.look_finger != 18:
+        _fail("camera did not recover after Android pause")
+        return
+    overlay._end_touch(18)
     # Critical flashlight charge must be unmistakable without relying on color alone.
     if overlay._battery_warning_text(16.0) != "" or overlay._battery_warning_text(15.0) != "НИЗКИЙ ЗАРЯД ФОНАРЯ" or overlay._battery_warning_text(0.0) != "ФОНАРЬ РАЗРЯЖЕН":
         _fail("critical flashlight warning thresholds or labels are wrong")
