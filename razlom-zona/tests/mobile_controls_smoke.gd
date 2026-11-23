@@ -139,5 +139,32 @@ func _run() -> void:
     if overlay.look_finger != -1:
         _fail("upper-left camera gesture remained engaged after release")
         return
+    # A second free finger takes over camera look when the first lifts.
+    # Releasing the waiting finger early must never steal the camera.
+    overlay._begin_touch(10, Vector2(820, 300))
+    overlay._begin_touch(11, Vector2(770, 310))
+    if overlay.look_finger != 10 or not overlay.waiting_look_fingers.has(11):
+        _fail("backup camera finger not tracked")
+        return
+    overlay._end_touch(10)
+    if overlay.look_finger != 11:
+        _fail("camera look stopped instead of transferring to held finger")
+        return
+    var yaw_before_handoff: float = p.rotation.y
+    overlay._drag_touch(11, Vector2(790, 310), Vector2(20, 0))
+    if absf(p.rotation.y - yaw_before_handoff) < 0.01:
+        _fail("promoted camera finger cannot rotate view")
+        return
+    overlay._end_touch(11)
+    if overlay.look_finger != -1 or not overlay.waiting_look_fingers.is_empty():
+        _fail("camera finger handoff left stale pointer ownership")
+        return
+    overlay._begin_touch(12, Vector2(820, 300))
+    overlay._begin_touch(13, Vector2(770, 310))
+    overlay._end_touch(13)
+    if overlay.look_finger != 12 or not overlay.waiting_look_fingers.is_empty():
+        _fail("releasing backup camera finger stole primary look")
+        return
+    overlay._end_touch(12)
     print("PASS mobile controls: analog joystick + camera + sprint across 4 fingers with shared sprint")
     quit(0)
