@@ -27,7 +27,8 @@ func _run() -> void:
             quit(1)
             return
         if i > 0:
-            var segment_length := points[i - 1].distance_to(p)
+            var previous: Vector3 = points[i - 1]
+            var segment_length: float = previous.distance_to(p)
             if segment_length < 0.1 or segment_length > 20.0:
                 push_error("Route segment %d invalid length: %f" % [i - 1, segment_length])
                 quit(1)
