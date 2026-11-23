@@ -12,6 +12,7 @@ var player  # dynamic Player script contains virtual_move/stamina/battery
 var game  # dynamic Game script exposes inventory
 var stick_finger: int = -1
 var look_finger: int = -1
+var waiting_look_fingers: Array[int] = []
 var stick_center: Vector2 = Vector2.ZERO
 var stick_tip: Vector2 = Vector2.ZERO
 var button_fingers: Dictionary = {}  # index -> button name
@@ -60,10 +61,12 @@ func _button_radius(id: String) -> float:
         "save": factor = 34.0
     return factor * _scale()
 
+## Keep the interactive target close to the visible ring: camera swipes
+## beside a button must not silently consume medkits or trigger saves.
 func _touch_button_at(p: Vector2) -> String:
     var layout := _layout()
     for id in ["interact", "sprint", "torch", "medkit", "save"]:
-        if p.distance_to(layout[id]) < _button_radius(id) * 1.24:
+        if p.distance_to(layout[id]) <= _button_radius(id) * 0.94:
             return id
     return ""
 
@@ -81,10 +84,20 @@ func _input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
 
 func _begin_touch(finger: int, p: Vector2) -> void:
+    # Android may deliver a repeated press for the same pointer index.
+    # Never reassign an active finger or fire a one-shot action twice.
+    if finger == stick_finger or finger == look_finger or waiting_look_fingers.has(finger) or button_fingers.has(finger):
+        return
     var button_id := _touch_button_at(p)
     if button_id != "":
+        # A second finger on a one-shot action must not consume two items
+        # or trigger two interactions during the same physical press.
+        var first_press := not held_buttons.has(button_id)
         button_fingers[finger] = button_id
         held_buttons[button_id] = true
+        if not first_press and button_id != "sprint":
+            queue_redraw()
+            return
         match button_id:
             "interact": interact_requested.emit()
             "torch": flashlight_requested.emit()
@@ -98,26 +111,37 @@ func _begin_touch(finger: int, p: Vector2) -> void:
     # the lower-left 45% avoids requiring a precise thumb position.
     if stick_finger == -1 and p.x < size.x * 0.45 and p.y > size.y * 0.38:
         stick_finger = finger
-        var margin := 88.0 * _scale()
-        stick_center = Vector2(
-            clampf(p.x, margin, size.x * 0.45 - margin),
-            clampf(p.y, size.y * 0.42, size.y - margin)
-        )
+        # A floating stick must start exactly under the thumb. Clamping
+        # its origin to an inset margin made edge swipes jump abruptly
+        # (especially on narrow Android viewports).
+        stick_center = p
         stick_tip = stick_center
         player.virtual_move = Vector2.ZERO
-    elif look_finger == -1 and p.x >= size.x * 0.42:
+    elif look_finger == -1:
+        # Any free touch outside the movement zone can look around.
+        # The previous x >= 42% gate left the upper-left screen dead,
+        # especially noticeable when reaching across a landscape phone.
         look_finger = finger
+    else:
+        # Keep a spare camera finger so lifting the primary finger does not
+        # freeze first-person look until the player lifts every finger.
+        waiting_look_fingers.append(finger)
     queue_redraw()
 
 func _drag_touch(finger: int, p: Vector2, relative: Vector2) -> void:
     if finger == stick_finger:
         var radius := 69.0 * _scale()
         var v: Vector2 = (p - stick_center) / radius
-        # Ignore small tremors; full analog movement / diagonal control.
-        if v.length() < 0.085:
-            v = Vector2.ZERO
+        # A continuous radial dead zone prevents a sudden movement jump
+        # when the thumb crosses the tremor threshold. Preserve direction
+        # and reach full speed at the outer ring, including diagonals.
+        var magnitude := v.length()
+        var output := Vector2.ZERO
+        if magnitude > 0.085:
+            var strength := clampf((magnitude - 0.085) / (1.0 - 0.085), 0.0, 1.0)
+            output = v / magnitude * strength
         stick_tip = stick_center + v.limit_length() * radius
-        player.virtual_move = v.limit_length()
+        player.virtual_move = output
         queue_redraw()
     elif finger == look_finger:
         player.look_from_touch(relative * look_multiplier)
@@ -129,12 +153,20 @@ func _end_touch(finger: int) -> void:
         player.virtual_move = Vector2.ZERO
     if finger == look_finger:
         look_finger = -1
+        if not waiting_look_fingers.is_empty():
+            look_finger = waiting_look_fingers.pop_front()
+    else:
+        waiting_look_fingers.erase(finger)
     if button_fingers.has(finger):
         var id: String = button_fingers[finger]
         button_fingers.erase(finger)
-        held_buttons.erase(id)
+        # A second finger may still hold the same action. Only release it
+        # when the last owning finger lifts, otherwise sprint flickers off.
+        var still_held := button_fingers.values().has(id)
+        if not still_held:
+            held_buttons.erase(id)
         if id == "sprint":
-            player.virtual_sprint = false
+            player.virtual_sprint = still_held
     queue_redraw()
 
 func _notification(what: int) -> void:
@@ -143,6 +175,7 @@ func _notification(what: int) -> void:
     elif what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
         stick_finger = -1
         look_finger = -1
+        waiting_look_fingers.clear()
         button_fingers.clear()
         held_buttons.clear()
         if is_instance_valid(player):
@@ -167,10 +200,10 @@ func _draw_button(id: String, caption: String, center: Vector2) -> void:
     var pressed := held_buttons.has(id)
     var s := _scale()
     var ink := ACTIVE if pressed else Color(.89,.89,.81,.68)
-    draw_circle(center, radius*.65, Color(.05,.06,.055,.39 if pressed else .22))
+    draw_circle(center, radius*.86, Color(.05,.06,.055,.39 if pressed else .22))
     for quarter in 4:
         var start := quarter*PI*.5+.16
-        draw_arc(center, radius*.65, start, start+1.23, 12, ink, 1.3*s, true)
+        draw_arc(center, radius*.86, start, start+1.23, 12, ink, 1.3*s, true)
     var font_size := maxi(12, int(15 * s))
     _draw_text(caption, center + Vector2(0, font_size * 0.31), font_size, LABEL, true)
 
@@ -199,11 +232,19 @@ func _draw() -> void:
     if is_instance_valid(player):
         for item in [["ЗДР",player.health,Color("#d9967c")], ["ВЫН",player.stamina,Color("#abb99a")], ["ЗАР",player.battery,Color("#b9c9c3")]]:
             var index: int = ["ЗДР","ВЫН","ЗАР"].find(item[0])
-            var corner := Vector2(23+index*101,22)*s
-            _draw_text(item[0],corner+Vector2(0,7)*s,maxi(12,int(14*s)),LABEL)
-            var line := Rect2(corner+Vector2(0,14)*s,Vector2(79,4)*s)
-            draw_rect(line,Color(.06,.07,.06,.65))
-            draw_rect(Rect2(line.position,Vector2(line.size.x*clampf(float(item[1])/100,0,1),line.size.y)),item[2])
+            # Readable on a landscape phone: label, actual value, and a
+            # thicker high-contrast bar instead of a 4px hairline.
+            var corner := Vector2(23 + index * 119, 22) * s
+            var value := clampf(float(item[1]), 0.0, 100.0)
+            var label_size := maxi(13, int(15 * s))
+            _draw_text(item[0], corner + Vector2(0, 9) * s, label_size, LABEL)
+            _draw_text("%d%%" % roundi(value), corner + Vector2(91, 9) * s, label_size, LABEL, true)
+            var line := Rect2(corner + Vector2(0, 18) * s, Vector2(106, 10) * s)
+            draw_rect(line.grow(2.0 * s), Color(0.02, 0.035, 0.04, 0.86))
+            draw_rect(line, Color(0.12, 0.16, 0.17, 0.95))
+            if value > 0.0:
+                draw_rect(Rect2(line.position, Vector2(line.size.x * value / 100.0, line.size.y)), item[2])
+            draw_rect(line, Color(0.78, 0.86, 0.83, 0.8), false, maxf(1.0, s))
     if is_instance_valid(game) and game.inventory is Dictionary:
         _draw_text("АПТ %d" % int(game.inventory.get("medkit", 0)), Vector2(27 * s, size.y - 30 * s), maxi(12, int(16 * s)), MUTED)
 
