@@ -10,13 +10,16 @@ func capture() -> void:
     player.set_physics_process(false)
     var folder := ProjectSettings.globalize_path("res://captures")
     DirAccess.make_dir_recursive_absolute(folder)
-    for name in ["village", "porch", "rift_checkpoint", "approach", "underground"]:
+    for name in ["village", "post_office", "porch", "rift_checkpoint", "approach", "underground"]:
         if name == "village":
             player.position = Vector3(-39, 0.1, 2)
             player.camera.look_at(Vector3(-18, 2.65, 2))
+        elif name == "post_office":
+            player.position = Vector3(-38.4, 0.1, 4.6)
+            player.camera.look_at(Vector3(-33.8, 2.0, 8.3))
         elif name == "porch":
             player.position = Vector3(-28, 0.1, 4)
-            player.camera.look_at(Vector3(-34, 2.15, 9.4))
+            player.camera.look_at(Vector3(-32.6, 2.15, 9.5))
         elif name == "rift_checkpoint":
             # Genuine engine capture of the newly added checkpoint 07.
             player.position = Vector3(-1.5, 0.08, 2.0)

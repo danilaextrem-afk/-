@@ -18,5 +18,7 @@ void sky() {
     float cloud_mask = cloud_signal * cloud_contrast * (0.38 + horizon * 0.62);
     // The original panorama's lightning is a low-luminance haze, not
     // an enormous permanently overexposed line on the sky.
-    COLOR = base + cloud_ink * cloud_mask;
+    vec3 dusk = min(sample_rgb,vec3(0.78,0.32,0.44));
+    float western_bank = smoothstep(-0.25,0.86,EYEDIR.x);
+    COLOR = base + cloud_ink * cloud_mask + dusk*(0.13+0.48*western_bank);
 }
