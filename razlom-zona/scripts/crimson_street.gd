@@ -2,6 +2,23 @@ extends Node3D
 
 const STREET := preload("res://assets/village/street.glb")
 
+# Only two lamps flicker; no additional dynamic lights or shadow casters.
+var unstable_lamps: Array[OmniLight3D] = []
+var lamp_clock := 0.0
+
+func _process(delta: float) -> void:
+    lamp_clock += delta
+    for i in unstable_lamps.size():
+        var lamp := unstable_lamps[i]
+        if not is_instance_valid(lamp):
+            continue
+        var phase := lamp_clock * (2.3 + i * 0.37) + i * 2.1
+        var tremor := sin(phase) * 0.12 + sin(phase * 4.7) * 0.045
+        # Occasional short brownout, but never a full black frame.
+        var brownout := 0.48 if sin(phase * 0.31) > 0.985 else 1.0
+        lamp.light_energy = 2.5 * clampf((1.0 + tremor) * brownout, 0.35, 1.2)
+
+
 func _ready() -> void:
     var bus := preload("res://assets/transport/last_bus.glb").instantiate() as Node3D
     bus.position = Vector3(-3.95, .03, -7.1)
@@ -46,7 +63,10 @@ func _ready() -> void:
         light.light_color = Color("ffad58")
         light.light_energy = 2.5
         light.omni_range = 5.0
+        light.shadow_enabled = false
         add_child(light)
+        if unstable_lamps.size() < 2:
+            unstable_lamps.append(light)
 
 func _solid(center: Vector3, size: Vector3, yaw: float) -> void:
     var body := StaticBody3D.new()
