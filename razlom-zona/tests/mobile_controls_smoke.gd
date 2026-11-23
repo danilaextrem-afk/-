@@ -166,6 +166,18 @@ func _run() -> void:
         _fail("releasing backup camera finger stole primary look")
         return
     overlay._end_touch(12)
+    # Android can batch an enormous drag after a stalled frame. One event
+    # must not spin the camera further than the intended maximum gesture.
+    overlay._begin_touch(14, Vector2(820, 300))
+    var yaw_before_spike: float = p.rotation.y
+    overlay._drag_touch(14, Vector2(1200, 300), Vector2(1200, 0))
+    var yaw_after_spike: float = p.rotation.y
+    p.rotation.y = yaw_before_spike
+    overlay._drag_touch(14, Vector2(892, 300), Vector2(72.0 * overlay._scale(), 0))
+    if absf(p.rotation.y - yaw_after_spike) > 0.0001:
+        _fail("stalled Android camera drag bypassed the per-event spike limit")
+        return
+    overlay._end_touch(14)
     # Critical flashlight charge must be unmistakable without relying on color alone.
     if overlay._battery_warning_text(16.0) != "" or overlay._battery_warning_text(15.0) != "НИЗКИЙ ЗАРЯД ФОНАРЯ" or overlay._battery_warning_text(0.0) != "ФОНАРЬ РАЗРЯЖЕН":
         _fail("critical flashlight warning thresholds or labels are wrong")
