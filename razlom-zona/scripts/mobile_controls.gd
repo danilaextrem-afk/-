@@ -232,11 +232,19 @@ func _draw() -> void:
     if is_instance_valid(player):
         for item in [["ЗДР",player.health,Color("#d9967c")], ["ВЫН",player.stamina,Color("#abb99a")], ["ЗАР",player.battery,Color("#b9c9c3")]]:
             var index: int = ["ЗДР","ВЫН","ЗАР"].find(item[0])
-            var corner := Vector2(23+index*101,22)*s
-            _draw_text(item[0],corner+Vector2(0,7)*s,maxi(12,int(14*s)),LABEL)
-            var line := Rect2(corner+Vector2(0,14)*s,Vector2(79,4)*s)
-            draw_rect(line,Color(.06,.07,.06,.65))
-            draw_rect(Rect2(line.position,Vector2(line.size.x*clampf(float(item[1])/100,0,1),line.size.y)),item[2])
+            # Readable on a landscape phone: label, actual value, and a
+            # thicker high-contrast bar instead of a 4px hairline.
+            var corner := Vector2(23 + index * 119, 22) * s
+            var value := clampf(float(item[1]), 0.0, 100.0)
+            var label_size := maxi(13, int(15 * s))
+            _draw_text(item[0], corner + Vector2(0, 9) * s, label_size, LABEL)
+            _draw_text("%d%%" % roundi(value), corner + Vector2(91, 9) * s, label_size, LABEL, true)
+            var line := Rect2(corner + Vector2(0, 18) * s, Vector2(106, 10) * s)
+            draw_rect(line.grow(2.0 * s), Color(0.02, 0.035, 0.04, 0.86))
+            draw_rect(line, Color(0.12, 0.16, 0.17, 0.95))
+            if value > 0.0:
+                draw_rect(Rect2(line.position, Vector2(line.size.x * value / 100.0, line.size.y)), item[2])
+            draw_rect(line, Color(0.78, 0.86, 0.83, 0.8), false, maxf(1.0, s))
     if is_instance_valid(game) and game.inventory is Dictionary:
         _draw_text("АПТ %d" % int(game.inventory.get("medkit", 0)), Vector2(27 * s, size.y - 30 * s), maxi(12, int(16 * s)), MUTED)
 
