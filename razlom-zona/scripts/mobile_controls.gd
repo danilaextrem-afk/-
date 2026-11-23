@@ -132,9 +132,13 @@ func _end_touch(finger: int) -> void:
     if button_fingers.has(finger):
         var id: String = button_fingers[finger]
         button_fingers.erase(finger)
-        held_buttons.erase(id)
+        # A second finger may still hold the same action. Only release it
+        # when the last owning finger lifts, otherwise sprint flickers off.
+        var still_held := button_fingers.values().has(id)
+        if not still_held:
+            held_buttons.erase(id)
         if id == "sprint":
-            player.virtual_sprint = false
+            player.virtual_sprint = still_held
     queue_redraw()
 
 func _notification(what: int) -> void:
