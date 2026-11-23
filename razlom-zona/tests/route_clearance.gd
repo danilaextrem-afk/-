@@ -56,7 +56,17 @@ func _run() -> void:
                 quit(1)
                 return
             var size: Vector3 = collision.shape.size
+            # Malformed imports must fail QA rather than silently producing
+            # NaN clearance distances or an unusable affine inverse.
+            if not size.is_finite() or size.x <= 0.0 or size.y <= 0.0 or size.z <= 0.0:
+                push_error("Invalid route collision dimensions: %s/%s" % [body.get_path(), collision.name])
+                quit(1)
+                return
             var to_world: Transform3D = collision.global_transform
+            if not to_world.origin.is_finite() or not to_world.basis.x.is_finite() or not to_world.basis.y.is_finite() or not to_world.basis.z.is_finite() or absf(to_world.basis.determinant()) < 0.000001:
+                push_error("Invalid or singular collision transform: %s/%s" % [body.get_path(), collision.name])
+                quit(1)
+                return
             var to_local: Transform3D = to_world.affine_inverse()
             # Rotated/scaled boxes need world-space vertical bounds; the
             # unrotated center +/- size.y/2 can miss tilted obstacles.
