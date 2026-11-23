@@ -176,7 +176,10 @@ func _end_touch(finger: int) -> void:
 func _notification(what: int) -> void:
     if what == NOTIFICATION_RESIZED:
         queue_redraw()
-    elif what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+    elif what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+        # Android may pause without sending a window-focus event (notification
+        # shade, incoming call, app switch). Never resume with stuck sprint,
+        # movement or a stale camera pointer.
         stick_finger = -1
         look_finger = -1
         waiting_look_fingers.clear()
