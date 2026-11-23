@@ -166,5 +166,19 @@ func _run() -> void:
         _fail("releasing backup camera finger stole primary look")
         return
     overlay._end_touch(12)
+    # Exercise HUD drawing on a tall landscape screen and at low resource
+    # values; a draw-time error must fail the headless gameplay smoke run.
+    overlay.size = Vector2(1600, 720)
+    p.health = 0.0
+    p.stamina = 47.0
+    p.battery = 100.0
+    overlay.queue_redraw()
+    await process_frame
+    if overlay._scale() <= 0.0 or overlay._layout()["save"].x > overlay.size.x:
+        _fail("HUD layout invalid at 20:9 landscape")
+        return
+    overlay.size = Vector2(1280, 720)
+    overlay.queue_redraw()
+    await process_frame
     print("PASS mobile controls: analog joystick + camera + sprint across 4 fingers with shared sprint")
     quit(0)
