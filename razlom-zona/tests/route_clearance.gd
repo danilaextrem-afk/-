@@ -14,6 +14,24 @@ func _run() -> void:
     root.add_child(route)
     await process_frame
     var points: Array = route.ROUTE_POINTS
+    # Guard the route topology before sampling: empty, duplicated or non-finite
+    # waypoints could silently skip the collision checks or break the G-4 handoff.
+    if points.size() < 6 or route.ROAD_WIDTH < 2.0 * (CAPSULE_RADIUS + SAFETY_MARGIN):
+        push_error("Route topology invalid: too few waypoints or road too narrow")
+        quit(1)
+        return
+    for i in range(points.size()):
+        var p: Vector3 = points[i]
+        if not p.is_finite():
+            push_error("Non-finite route waypoint %d" % i)
+            quit(1)
+            return
+        if i > 0:
+            var segment_length := points[i - 1].distance_to(p)
+            if segment_length < 0.1 or segment_length > 20.0:
+                push_error("Route segment %d invalid length: %f" % [i - 1, segment_length])
+                quit(1)
+                return
     var checked := 0
     for node in route.get_children():
         for body in node.get_children():
