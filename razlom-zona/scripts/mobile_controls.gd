@@ -207,6 +207,13 @@ func _draw_button(id: String, caption: String, center: Vector2) -> void:
     var font_size := maxi(12, int(15 * s))
     _draw_text(caption, center + Vector2(0, font_size * 0.31), font_size, LABEL, true)
 
+func _battery_warning_text(battery_level: float) -> String:
+    if battery_level <= 0.0:
+        return "ФОНАРЬ РАЗРЯЖЕН"
+    if battery_level <= 15.0:
+        return "НИЗКИЙ ЗАРЯД ФОНАРЯ"
+    return ""
+
 func _draw() -> void:
     if size.x < 350 or size.y < 240:
         return
@@ -245,6 +252,12 @@ func _draw() -> void:
             if value > 0.0:
                 draw_rect(Rect2(line.position, Vector2(line.size.x * value / 100.0, line.size.y)), item[2])
             draw_rect(line, Color(0.78, 0.86, 0.83, 0.8), false, maxf(1.0, s))
+        var warning := _battery_warning_text(float(player.battery))
+        if warning != "":
+            var warning_color := Color("#ff8b73") if player.battery <= 0.0 else Color("#ffd28a")
+            var warning_pos := Vector2(23, 77) * s
+            draw_rect(Rect2(warning_pos - Vector2(7, 20) * s, Vector2(244, 29) * s), Color(0.07, 0.025, 0.025, 0.82))
+            _draw_text(warning, warning_pos, maxi(13, int(16 * s)), warning_color)
     if is_instance_valid(game) and game.inventory is Dictionary:
         _draw_text("АПТ %d" % int(game.inventory.get("medkit", 0)), Vector2(27 * s, size.y - 30 * s), maxi(12, int(16 * s)), MUTED)
 
