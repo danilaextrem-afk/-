@@ -1,0 +1,22 @@
+{
+  "asset_id": "RZ_ZONA_ENV_UTILITY_POLE_01",
+  "version": "0.1.0",
+  "name": "Damaged Zalesye utility pole",
+  "triangles": 1500,
+  "vertices": 3000,
+  "components": 86,
+  "dimensions": "approx 5.2m pole height; cables extend 3.7m along Z",
+  "atlas": "128x128 PNG",
+  "materials": 1,
+  "license": "Original CC0-1.0",
+  "geometry": "Local GLB generated and round-trip validated; binary not yet committed",
+  "qa": {
+    "mesh": "PASS",
+    "uv": "PASS",
+    "nondegenerate": "PASS",
+    "godot": "NOT_TESTED",
+    "android": "NOT_TESTED"
+  },
+  "art_status": "REJECTED/NEEDS ART REWORK per #141",
+  "collision": "simplified 0.7 x 5.0 x 0.7 m box proposed; not tested"
+}
