@@ -25,10 +25,20 @@ func _run() -> void:
                 if not (collision.shape is BoxShape3D):
                     continue
                 var size: Vector3 = collision.shape.size
-                var center: Vector3 = collision.global_position
-                var to_local: Transform3D = collision.global_transform.affine_inverse()
-                # Only obstacles reaching the player body above the ground matter.
-                if center.y + size.y * 0.5 < 0.3:
+                var to_world: Transform3D = collision.global_transform
+                var to_local: Transform3D = to_world.affine_inverse()
+                # Rotated/scaled boxes need world-space vertical bounds; the
+                # unrotated center +/- size.y/2 can miss tilted obstacles.
+                var min_y := INF
+                var max_y := -INF
+                for sx in [-1.0, 1.0]:
+                    for sy in [-1.0, 1.0]:
+                        for sz in [-1.0, 1.0]:
+                            var corner: Vector3 = to_world * (size * Vector3(sx, sy, sz) * 0.5)
+                            min_y = minf(min_y, corner.y)
+                            max_y = maxf(max_y, corner.y)
+                # The standing capsule occupies approximately 0.3..1.9 m.
+                if max_y < 0.3 or min_y > 1.9:
                     continue
                 checked += 1
                 for i in range(points.size() - 1):
