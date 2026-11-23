@@ -116,7 +116,10 @@ func _begin_touch(finger: int, p: Vector2) -> void:
         stick_center = p
         stick_tip = stick_center
         player.virtual_move = Vector2.ZERO
-    elif look_finger == -1 and p.x >= size.x * 0.42:
+    elif look_finger == -1:
+        # Any free touch outside the movement zone can look around.
+        # The previous x >= 42% gate left the upper-left screen dead,
+        # especially noticeable when reaching across a landscape phone.
         look_finger = finger
     queue_redraw()
 

@@ -108,5 +108,21 @@ func _run() -> void:
     if p.virtual_move != Vector2.ZERO or overlay.stick_finger != -1:
         _fail("edge joystick remained engaged after release")
         return
+    # Upper-left area is outside the lower-left joystick zone and must
+    # support camera look rather than silently dropping the gesture.
+    var upper_left := Vector2(150, 90)
+    var yaw_before_upper_left: float = p.rotation.y
+    overlay._begin_touch(9, upper_left)
+    if overlay.look_finger != 9 or overlay.stick_finger != -1:
+        _fail("upper-left free-screen touch was not assigned to camera")
+        return
+    overlay._drag_touch(9, upper_left + Vector2(40, 0), Vector2(40, 0))
+    if absf(p.rotation.y - yaw_before_upper_left) < 0.01:
+        _fail("upper-left camera swipe did not rotate player")
+        return
+    overlay._end_touch(9)
+    if overlay.look_finger != -1:
+        _fail("upper-left camera gesture remained engaged after release")
+        return
     print("PASS mobile controls: analog joystick + camera + sprint across 4 fingers with shared sprint")
     quit(0)
