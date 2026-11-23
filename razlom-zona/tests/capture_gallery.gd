@@ -16,7 +16,7 @@ func capture() -> void:
             player.camera.look_at(Vector3(-18, 2.65, 2))
         elif name == "porch":
             player.position = Vector3(-28, 0.1, 4)
-            player.camera.look_at(Vector3(-34, 2.15, 9.4))
+            player.camera.look_at(Vector3(-32.6, 2.15, 9.5))
         elif name == "rift_checkpoint":
             # Genuine engine capture of the newly added checkpoint 07.
             player.position = Vector3(-1.5, 0.08, 2.0)

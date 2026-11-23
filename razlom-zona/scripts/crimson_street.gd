@@ -63,16 +63,16 @@ func _strip_tower_triangles(node: MeshInstance3D) -> void:
     add_child(surface)
     # House centres and yaw match the baked mesh. Collision excludes grass and cables.
     for house in [
-        [-7.6, -6.0, 0.97, 5.6, 5.5], [8.2, -4.0, -1.07, 5.8, 5.2],
+        [-7.6, -6.0, 0.97, 5.6, 5.5], [7.5, -6.4, -.68, 6.5, 4.16],
         [-9.3, -20.0, 1.35, 6.9, 5.7], [8.5, -17.0, -1.35, 4.9, 5.1],
         [-6.8, -33.0, 0.55, 5.4, 4.7], [7.1, -28.0, -1.57, 6.2, 5.0]
     ]:
         _solid(Vector3(house[0], 1.5, house[1]), Vector3(house[3], 3.0, house[4]), house[2])
-    _solid(Vector3(-3.4, .67, -5.7), Vector3(1.6, 1.34, 3.55), .33)
+    _solid(Vector3(-3.25, .67, -4.7), Vector3(1.6, 1.34, 3.55), .95)
     for x in [-4.25, 4.25]:
         for segment in [[-3, 2], [-15, -10], [-26, -21]]:
             _solid(Vector3(x, .57, (segment[0]+segment[1])*.5), Vector3(.18, 1.14, segment[1]-segment[0]), 0.0)
-    for p in [Vector3(5.53, 2.13, -2.3), Vector3(-5.0, 2.13, -30.5)]:
+    for p in [Vector3(4.08, 2.1, -5.9), Vector3(7.25, 2.1, -3.03), Vector3(-5.0, 2.13, -30.5)]:
         var light := OmniLight3D.new()
         light.position = p
         light.light_color = Color("ffad58")

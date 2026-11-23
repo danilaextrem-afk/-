@@ -77,8 +77,8 @@ func _setup_environment() -> void:
     add_child(env)
     var moon := DirectionalLight3D.new()
     moon.rotation_degrees = Vector3(-19.0, 69.0, 0.0)
-    moon.light_color = Color("89bac4")
-    moon.light_energy = 0.53
+    moon.light_color = Color("eec4ad")
+    moon.light_energy = 0.71
     moon.shadow_enabled = true
     moon.directional_shadow_max_distance = 24.0
     add_child(moon)
@@ -157,7 +157,6 @@ func _create_world() -> void:
     _house(Vector3(-3, 0, -20), Vector3(11, 8, 9), cement, roof, dark)
     _house(Vector3(30, 0, -6), Vector3(9, 6, 10), wood, roof, dark)
     _house(Vector3(28, 0, 22), Vector3(8, 5, 8), cement, roof, dark)
-    _house(Vector3(-30, 0, 22), Vector3(10, 5, 8), wood, roof, dark)
     _box("OldWarehouse", Vector3(1, 4, 29), Vector3(15, 8, 12), _material("414f50"))
     _box("WarehouseRoof", Vector3(1, 8.2, 29), Vector3(16, 0.55, 13), roof)
     var gallery := preload("res://scripts/bunker.gd").new()
