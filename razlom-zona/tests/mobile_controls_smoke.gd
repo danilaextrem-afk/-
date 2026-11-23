@@ -93,5 +93,20 @@ func _run() -> void:
     if overlay.look_finger != -1:
         _fail("near-button camera finger was not released")
         return
+    # Regression: an edge-started floating stick must not teleport inward.
+    # It should begin under the actual thumb and preserve analog direction.
+    var edge_start := Vector2(18, 700)
+    overlay._begin_touch(8, edge_start)
+    if overlay.stick_finger != 8 or overlay.stick_center.distance_to(edge_start) > 0.01:
+        _fail("edge joystick origin jumped away from the touch point")
+        return
+    overlay._drag_touch(8, edge_start + Vector2(35, -35), Vector2(35, -35))
+    if p.virtual_move.x < 0.4 or p.virtual_move.y > -0.4:
+        _fail("edge joystick drag lost its expected analog direction")
+        return
+    overlay._end_touch(8)
+    if p.virtual_move != Vector2.ZERO or overlay.stick_finger != -1:
+        _fail("edge joystick remained engaged after release")
+        return
     print("PASS mobile controls: analog joystick + camera + sprint across 4 fingers with shared sprint")
     quit(0)
