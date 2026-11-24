@@ -10,7 +10,7 @@ func capture() -> void:
     player.set_physics_process(false)
     var folder := ProjectSettings.globalize_path("res://captures")
     DirAccess.make_dir_recursive_absolute(folder)
-    for name in ["village", "last_bus", "bus_return", "forest_base", "post_office", "porch", "rift_checkpoint", "approach", "underground", "g4_final_station", "g4_radio_close", "zalesye_contours", "trackside_workshop", "watchman_encounter"]:
+    for name in ["village", "last_bus", "bus_return", "forest_base", "post_office", "porch", "rift_checkpoint", "approach", "underground", "g4_final_station", "g4_radio_close", "zalesye_contours", "trackside_workshop", "watchman_encounter", "anomaly_before", "anomaly_after"]:
         if name == "village":
             player.position = Vector3(-39, 0.1, 2)
             player.camera.look_at(Vector3(-18, 2.65, 2))
@@ -36,6 +36,31 @@ func capture() -> void:
         elif name == "approach":
             player.position = Vector3(24.7, 0.0, -16.7)
             player.camera.look_at(Vector3(24, 0.9, -24))
+        elif name == "anomaly_before" or name == "anomaly_after":
+            player.position = Vector3(13.0, .10, 11.6)
+            player.camera.look_at(Vector3(13.0, 1.55, 19.0))
+            var zone: Dictionary = game.anomaly_zones[0]
+            var field := zone["visual"] as MeshInstance3D
+            var boundary := zone["boundary"] as MeshInstance3D
+            if name == "anomaly_before":
+                field.set_meta("new_material",field.material_override)
+                field.set_meta("new_mesh",field.mesh)
+                var old_mesh := SphereMesh.new()
+                old_mesh.radius = float(zone["radius"])
+                old_mesh.height = old_mesh.radius * 2.0
+                old_mesh.radial_segments = 8
+                old_mesh.rings = 4
+                var old_material := game._material("43c8c8", true) as StandardMaterial3D
+                old_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+                old_material.albedo_color.a = .13
+                old_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+                field.mesh = old_mesh
+                field.material_override = old_material
+                boundary.visible = false
+            else:
+                field.mesh = field.get_meta("new_mesh") as Mesh
+                field.material_override = field.get_meta("new_material") as Material
+                boundary.visible = true
         elif name == "watchman_encounter":
             var watchman = game.enemies[0]
             watchman.set_physics_process(false)

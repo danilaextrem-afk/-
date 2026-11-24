@@ -92,6 +92,17 @@ func run() -> void:
             return
     if not check(brush_count >= 30 and brush_count <= 73, "Unexpected brush density"):
         return
+    if not check(game.anomaly_zones.size() == 2, "Missing anomaly fields"):
+        return
+    for zone in game.anomaly_zones:
+        var field := zone["visual"] as MeshInstance3D
+        var boundary := zone["boundary"] as MeshInstance3D
+        var field_material := field.material_override as ShaderMaterial
+        var boundary_plane := boundary.mesh as PlaneMesh
+        if not check(field_material != null and boundary.material_override is ShaderMaterial and field.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "Missing field filament or boundary material"):
+            return
+        if not check(is_equal_approx(float(field_material.get_shader_parameter("field_radius")), float(zone["radius"])) and boundary_plane.size.is_equal_approx(Vector2.ONE * float(zone["radius"]) * 2.0), "Field boundary not matched to hazard radius"):
+            return
     # The forest lane is rendered just above its unchanged collision slab.
     var lane := game.get_node_or_null("ForestAccessRoadSurface") as MeshInstance3D
     if not check(lane != null, "Missing forest road visual"):
