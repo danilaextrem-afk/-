@@ -5,6 +5,8 @@ const ALDER = preload("res://assets/zalesye/alder.glb")
 const BIRCH = preload("res://assets/zalesye/birch.glb")
 const VERGE = preload("res://assets/zalesye/verge.glb")
 const LANDFORM = preload("res://scripts/zalesye_landform.gd")
+const BRAMBLE = preload("res://assets/zalesye/bramble.gltf")
+const BRAMBLE_LOD = preload("res://assets/zalesye/bramble_lod.gltf")
 
 var cells: Dictionary = {}
 var canopy_meshes: Array[Mesh] = []
@@ -15,14 +17,17 @@ func _ready() -> void:
     var foliage := ShaderMaterial.new()
     foliage.shader = preload("res://assets/zalesye/canopy.gdshader")
     foliage.set_shader_parameter("pigment",preload("res://assets/zalesye/district.png"))
-    for packed in [SPRUCE, ALDER, BIRCH, VERGE]:
+    var shrub_foliage := foliage.duplicate() as ShaderMaterial
+    shrub_foliage.set_shader_parameter("crown_height", 1.1)
+    shrub_foliage.set_shader_parameter("sway", 0.032)
+    for packed in [SPRUCE, ALDER, BIRCH, VERGE, BRAMBLE, BRAMBLE_LOD]:
         var source: Node3D = packed.instantiate()
         var component := source.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
         var mesh: Mesh = component.mesh.duplicate()
         for i in mesh.get_surface_count():
             var material := mesh.surface_get_material(i) as BaseMaterial3D
             if material != null and material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR:
-                mesh.surface_set_material(i,foliage)
+                mesh.surface_set_material(i, shrub_foliage if canopy_meshes.size() >= 4 else foliage)
         canopy_meshes.append(mesh)
         source.free()
     # Hand-placed near silhouettes flank the entrance and the houses.
@@ -56,6 +61,24 @@ func _ready() -> void:
             Vector3(11.8,0,-15),Vector3(10,0,-18),Vector3(13,0,-22),
             Vector3(23,0,-3),Vector3(31,0,-5),Vector3(32,0,-15),Vector3(32,0,-21)]:
         _place(rng.randi_range(0,2),to_local(coord),rng.randf_range(.91,1.20),true)
+    # Layered low brush frames the road without hiding the route or doorway.
+    for p in [Vector3(-5.8,0,3.4),Vector3(6.9,0,3.2),Vector3(-7.5,0,-3.7),
+            Vector3(-5.8,0,-15.5),Vector3(8.4,0,-16.0),Vector3(5.9,0,-28.8),
+            Vector3(-7.2,0,-29.4),Vector3(8.5,0,-40.8),Vector3(-8.2,0,-44.0)]:
+        _place(4,p,rng.randf_range(.65,.92),false)
+    # Woodland has clustered undergrowth and small open pockets, not even noise.
+    for side in [-1,1]:
+        for group in range(8):
+            var z := -5.0 - float(group)*4.7
+            var x: float = side*(19.0 + 2.3*sin(z*.19))
+            for i in range(4):
+                var local := Vector3(x+rng.randf_range(-2.8,2.8),0,z+rng.randf_range(-1.8,1.8))
+                var world := to_global(local)
+                if world.x > 10.0 and world.z < 0.0 and world.z > -26.0:
+                    continue
+                if world.x > -10.0 and world.x < 4.0 and world.z < -14.0 and world.z > -26.0:
+                    continue
+                _place(4,local,rng.randf_range(.58,1.20),false)
     for key in cells:
         var batch: Array = cells[key]
         var multimesh := MultiMesh.new()
@@ -66,10 +89,21 @@ func _ready() -> void:
             multimesh.set_instance_transform(index,batch[index])
         var patch := MultiMeshInstance3D.new()
         patch.multimesh = multimesh
-        patch.visibility_range_end = 36.0 if key.z == 3 else 111.0
-        patch.visibility_range_end_margin = 3.0
+        patch.visibility_range_end = 18.0 if key.z == 4 else (36.0 if key.z == 3 else 111.0)
+        patch.visibility_range_end_margin = 0.0 if key.z == 4 else 3.0
         if key.z == 3:
             patch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        if key.z == 4:
+            patch.name = "BrambleNear_%d_%d" % [key.x,key.y]
+            var distant := MultiMeshInstance3D.new()
+            distant.name = "BrambleFar_%d_%d" % [key.x,key.y]
+            var lod := multimesh.duplicate() as MultiMesh
+            lod.mesh = canopy_meshes[5]
+            distant.multimesh = lod
+            distant.visibility_range_begin = 18.0
+            distant.visibility_range_end = 44.0
+            distant.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+            add_child(distant)
         add_child(patch)
     cells.clear()
 
