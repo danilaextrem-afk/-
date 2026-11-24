@@ -22,6 +22,15 @@ func walk() -> void:
     print("PASS new-game walk through Zalesye: ", player.position)
     # Isolated physical encounter over the map, not a change to the real level.
     var enemy = game.enemies[0]
+    if enemy.near_joints.size() != 9 or enemy.far_joints.size() != 9:
+        push_error("Missing articulated watchman joint map")
+        quit(1)
+        return
+    for joint in enemy.JOINT_NAMES:
+        if not is_instance_valid(enemy.near_joints[joint]) or not is_instance_valid(enemy.far_joints[joint]):
+            push_error("Missing watchman joint " + joint)
+            quit(1)
+            return
     enemy.set_physics_process(false)
     player.set_physics_process(false)
     game._box("EncounterTestFloor", Vector3(0,49.5,0), Vector3(12,1,12), game._material("555555"))
@@ -38,6 +47,10 @@ func walk() -> void:
         await physics_frame
     if player.health != 100.0 or enemy.windup <= 0.0 or enemy.strike_pose <= 0.0:
         push_error("Watchman failed to telegraph a strike before damage")
+        quit(1)
+        return
+    if not is_equal_approx(enemy.near_joints["ForearmR"].rotation.x, enemy.far_joints["ForearmR"].rotation.x) or enemy.near_joints["ForearmR"].rotation.x >= -.30:
+        push_error("Watchman elbow wind-up or LOD synchronization missing")
         quit(1)
         return
     player.position = Vector3(4,50.05,0)
