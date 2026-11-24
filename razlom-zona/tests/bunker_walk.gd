@@ -38,6 +38,16 @@ func run() -> void:
         if index % 2 == 1:
             if not require(is_zero_approx(float(weather.get_shader_parameter("lamp_power"))), "Failed lamp must not emit"):
                 return
+    for spec in [[0,"Switchgear"],[1,"ValveManifold"],[3,"Ventilation"]]:
+        var mount := gallery.get_node_or_null("GalleryBay_%02d/%s" % [spec[0],spec[1]]) as Node3D
+        if not require(mount != null and mount.position.x > 1.7, "Missing wall-mounted service equipment"):
+            return
+        var near_meshes := mount.get_node("Detail").find_children("*","MeshInstance3D",true,false)
+        var far_meshes := mount.get_node("LOD").find_children("*","MeshInstance3D",true,false)
+        if not require(near_meshes.size() == 1 and far_meshes.size() == 1 and near_meshes[0].visibility_range_end == 9.0 and far_meshes[0].visibility_range_begin == 9.0, "Equipment LOD mismatch"):
+            return
+        if not require(mount.get_node_or_null("EquipmentCollision") is StaticBody3D, "Missing equipment collision"):
+            return
     for enemy in game.enemies:
         enemy.queue_free()
     player.rotation.y = 0.0
