@@ -4,6 +4,7 @@ const SPRUCE = preload("res://assets/zalesye/spruce.glb")
 const ALDER = preload("res://assets/zalesye/alder.glb")
 const BIRCH = preload("res://assets/zalesye/birch.glb")
 const VERGE = preload("res://assets/zalesye/verge.glb")
+const LANDFORM = preload("res://scripts/zalesye_landform.gd")
 
 var cells: Dictionary = {}
 var canopy_meshes: Array[Mesh] = []
@@ -73,6 +74,8 @@ func _ready() -> void:
     cells.clear()
 
 func _place(species: int, origin: Vector3, factor: float, solid: bool) -> void:
+    if species != 3:
+        origin.y += LANDFORM.height_at(origin.x, origin.z)
     var key := Vector3i(floori(origin.x/14),floori(origin.z/14),species)
     if not cells.has(key):
         cells[key] = []
