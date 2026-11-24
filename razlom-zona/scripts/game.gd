@@ -11,6 +11,8 @@ const WORLD_HALF_SIZE = 46.0
 var player
 var street := preload("res://scripts/crimson_street.gd").new()
 var letter_read := false
+var bulkhead_material: ShaderMaterial
+var bulkhead_status: Label3D
 var radio := preload("res://scripts/radio_route.gd").new()
 var inventory: Dictionary = {"medkit": 0, "battery": 0, "scrap": 0}
 var collected_ids: Dictionary = {}
@@ -204,7 +206,7 @@ func _create_world() -> void:
     forecourt.name = "ZONA07_BunkerForecourt"
     forecourt.position = Vector3(24, 0, -20)
     add_child(forecourt)
-    _box("GalleryEnd", Vector3(24, -3.55, -40.13), Vector3(4.1, 3.2, 0.26), cement)
+    _create_gallery_bulkhead(cement)
     _spawn_pickup("bunker_supplies", "medkit", Vector3(24, -4.10, -38.8))
     _box("WatchPlatform", Vector3(-37, 5, -30), Vector3(5, 0.7, 5), wood)
     for x in [-39.0, -35.0]:
@@ -231,6 +233,41 @@ func _create_world() -> void:
     for i in range(5):
         var point := Vector3(-32 + i * 15, 0.55, -3.0 + float(i % 2) * 10.0)
         _spawn_pickup("scrap_%d" % i, "scrap", point)
+
+func _create_gallery_bulkhead(cement: Material) -> void:
+    # Retain the existing wall and its collider; this is a sealed terminus,
+    # not a newly promised playable doorway.
+    var wall := _box("GalleryEnd", Vector3(24, -3.55, -40.13), Vector3(4.1, 3.2, 0.26), cement)
+    var mesh := wall.get_child(0) as MeshInstance3D
+    bulkhead_material = ShaderMaterial.new()
+    bulkhead_material.shader = preload("res://assets/bunker/bulkhead.gdshader")
+    bulkhead_material.set_shader_parameter("atlas", preload("res://assets/bunker/gallery_atlas.png"))
+    mesh.material_override = bulkhead_material
+    var stencil := Label3D.new()
+    stencil.name = "SectorStencil"
+    stencil.text = "Г-4   /   ГЕРМОШЛЮЗ"
+    stencil.position = Vector3(0, 0.78, 0.144)
+    stencil.font_size = 64
+    stencil.pixel_size = 0.0032
+    stencil.modulate = Color("c2c4ae")
+    stencil.outline_size = 0
+    wall.add_child(stencil)
+    bulkhead_status = Label3D.new()
+    bulkhead_status.name = "LinkStatus"
+    bulkhead_status.position = Vector3(0, 0.50, 0.144)
+    bulkhead_status.font_size = 48
+    bulkhead_status.pixel_size = 0.0028
+    bulkhead_status.outline_size = 0
+    wall.add_child(bulkhead_status)
+    _sync_gallery_bulkhead()
+
+func _sync_gallery_bulkhead() -> void:
+    if not is_instance_valid(bulkhead_status):
+        return
+    var linked: bool = radio.stage >= radio.SITES.size()
+    bulkhead_material.set_shader_parameter("linked", 1.0 if linked else 0.0)
+    bulkhead_status.text = "КАНАЛ ВОССТАНОВЛЕН" if linked else "КАНАЛ НЕДОСТУПЕН"
+    bulkhead_status.modulate = Color("a2d6aa") if linked else Color("d0a06d")
 
 func _house(pos: Vector3, size: Vector3, wall: Material, top: Material, window: Material) -> void:
     _box("Building", pos + Vector3(0,size.y/2,0), size, wall)
@@ -336,8 +373,12 @@ func _interact() -> void:
         _show_message("«Вера, если автобус вернётся пустым, ищи меня у дежурного в Г-4. Ключ оставил на почте». Лёша, 17 октября.", 8.0)
     elif target["kind"] == "radio":
         var transmission: String = radio.tune()
+        _sync_gallery_bulkhead()
         _save_game()
-        _show_message(transmission, 6.0)
+        if radio.stage >= radio.SITES.size():
+            _show_message(transmission + "\nГ-4 • СВЯЗЬ ВОССТАНОВЛЕНА", 9.0)
+        else:
+            _show_message(transmission, 6.0)
     elif target["kind"] == "shelter":
         player.restore()
         _save_game()
@@ -406,6 +447,7 @@ func _load_save() -> void:
     street.quarter.restore_door(bool(parsed.get("post_open",false)))
     letter_read = bool(parsed.get("letter_read",false))
     radio.restore(int(parsed.get("radio_stage", 0)))
+    _sync_gallery_bulkhead()
     var pos: Array = parsed.get("position", [])
     if pos.size() == 3:
         var p := Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
@@ -496,7 +538,7 @@ func _refresh_hud() -> void:
         return
     var target := _nearest_interactable()
     if target.is_empty():
-        tip_label.text = radio.CLUES[radio.stage] if radio.stage < 3 else ""
+        tip_label.text = radio.CLUES[radio.stage] if radio.stage < 3 else "Г-4: связь восстановлена · маршрут завершён"
     elif target["kind"] == "radio":
         tip_label.text = radio.ACTIONS[radio.stage]
     elif target["kind"] == "door":
