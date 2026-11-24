@@ -1,0 +1,10 @@
+.godot/
+.import/
+*.apk
+*.aab
+*.keystore
+*.jks
+*.log
+.DS_Store
+captures/
+__pycache__/
