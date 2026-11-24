@@ -111,6 +111,19 @@ func run() -> void:
         return
     if not check(game.street.quarter.get_node_or_null("WheelRutPools") == null, "Old opaque puddle overlays remain"):
         return
+    var forest_form := game.get_node_or_null("ForestAccessLandform") as Node3D
+    if not check(forest_form != null, "Missing forest embankments"):
+        return
+    var forest_meshes := forest_form.get_node("Detailed").find_children("*", "MeshInstance3D", true, false)
+    if not check(forest_meshes.size() == 1 and forest_meshes[0].get_aabb().size.y > 1.5, "Forest slope mesh is flat"):
+        return
+    if not check(is_zero_approx(forest_form.height_at(20.8,-18.0)) and is_zero_approx(forest_form.height_at(24.0,-20.0)), "Forest terrain intrudes into playable corridor"):
+        return
+    var forest_point := Vector3(40.0,forest_form.height_at(40.0,-21.0),-21.0)
+    var forest_ray := PhysicsRayQueryParameters3D.create(forest_point + Vector3.UP*3.0, forest_point - Vector3.UP*2.0)
+    var forest_hit: Dictionary = game.get_world_3d().direct_space_state.intersect_ray(forest_ray)
+    if not check(not forest_hit.is_empty() and absf(forest_hit.position.y-forest_point.y) < .06, "Forest slope collision mismatch"):
+        return
     # The forest lane is rendered just above its unchanged collision slab.
     var lane := game.get_node_or_null("ForestAccessRoadSurface") as MeshInstance3D
     if not check(lane != null, "Missing forest road visual"):
