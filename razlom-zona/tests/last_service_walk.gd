@@ -60,11 +60,11 @@ func run() -> void:
     var landform := game.street.get_node_or_null("ZalesyeLandform") as Node3D
     if not check(landform != null, "Missing real landform"):
         return
-    var detail := landform.get_node_or_null("Detailed")
+    var terrain_detail := landform.get_node_or_null("Detailed")
     var distant := landform.get_node_or_null("Distant")
-    if not check(detail != null and distant != null, "Missing terrain geometry or LOD"):
+    if not check(terrain_detail != null and distant != null, "Missing terrain geometry or LOD"):
         return
-    var near_meshes := detail.find_children("*", "MeshInstance3D", true, false)
+    var near_meshes := terrain_detail.find_children("*", "MeshInstance3D", true, false)
     var far_meshes := distant.find_children("*", "MeshInstance3D", true, false)
     if not check(near_meshes.size() == 1 and far_meshes.size() == 1, "Invalid terrain mesh hierarchy"):
         return
