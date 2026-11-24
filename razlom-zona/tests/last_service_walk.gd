@@ -72,6 +72,8 @@ func run() -> void:
         return
     if not check(lane.get_child_count() == 0 and material.shader != null, "Unexpected forest road collision or missing shader"):
         return
+    if not check(game.bulkhead_status.text == "КАНАЛ НЕДОСТУПЕН" and float(game.bulkhead_material.get_shader_parameter("linked")) == 0.0, "Initial bulkhead state incorrect"):
+        return
     await listen(Vector3(-19,2.65,2), 48)
     await listen(game.radio.SITES[0]+Vector3(0,.6,0), 52)
     if not await walk_to(Vector2(-33.4,0.02)):
@@ -97,9 +99,13 @@ func run() -> void:
     await listen(game.radio.SITES[2], 50)
     if not tune(3):
         return
+    if not check(game.bulkhead_status.text == "КАНАЛ ВОССТАНОВЛЕН" and float(game.bulkhead_material.get_shader_parameter("linked")) == 1.0, "Final radio contact did not change bulkhead"):
+        return
     if not filming:
         game.free()
         open_game()
+    if not check(game.bulkhead_status.text == "КАНАЛ ВОССТАНОВЛЕН" and float(game.bulkhead_material.get_shader_parameter("linked")) == 1.0, "Completed bulkhead state lost on reload"):
+        return
     await listen(game.radio.SITES[2], 105)
     if check(game.radio.stage == 3,"G-4 completion lost on reload"):
         print("PASS continuous live route" if filming else "PASS bus, checkpoint and G-4; restored two saves")
