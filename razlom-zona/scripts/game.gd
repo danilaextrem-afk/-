@@ -167,6 +167,7 @@ func _create_world() -> void:
     forest_lane.material_override = lane_material
     forest_lane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(forest_lane)
+    add_child(preload("res://scripts/forest_access_landform.gd").new())
     # A fictional abandoned settlement, not a real location.
     street.name = "CrimsonStreet"
     street.position = Vector3(-39, 0, 2)
