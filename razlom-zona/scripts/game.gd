@@ -281,17 +281,34 @@ func _anomaly(pos: Vector3, radius: float, glow_material: Material) -> void:
     var mesh := SphereMesh.new()
     mesh.radius = radius
     mesh.height = radius * 2.0
-    mesh.radial_segments = 8
-    mesh.rings = 4
+    mesh.radial_segments = 24
+    mesh.rings = 12
     anomaly.mesh = mesh
-    var m: StandardMaterial3D = (glow_material as StandardMaterial3D).duplicate() as StandardMaterial3D
-    m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    m.albedo_color.a = 0.13
-    m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-    anomaly.material_override = m
+    var color := (glow_material as StandardMaterial3D).albedo_color
+    var phase := pos.x * .13 + pos.z * .19
+    var material := ShaderMaterial.new()
+    material.shader = preload("res://assets/anomaly/field_threads.gdshader")
+    material.set_shader_parameter("field_color", color)
+    material.set_shader_parameter("field_radius", radius)
+    material.set_shader_parameter("seed_phase", phase)
+    anomaly.material_override = material
+    anomaly.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     anomaly.position = pos + Vector3(0, radius * 0.40, 0)
     add_child(anomaly)
-    anomaly_zones.append({"position": pos, "radius": radius, "visual": anomaly})
+    var marker := MeshInstance3D.new()
+    marker.name = "AnomalyBoundary"
+    var plane := PlaneMesh.new()
+    plane.size = Vector2.ONE * radius * 2.0
+    marker.mesh = plane
+    var ground := ShaderMaterial.new()
+    ground.shader = preload("res://assets/anomaly/field_ground.gdshader")
+    ground.set_shader_parameter("field_color", color)
+    ground.set_shader_parameter("seed_phase", phase)
+    marker.material_override = ground
+    marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    marker.position = pos + Vector3.UP * .075
+    add_child(marker)
+    anomaly_zones.append({"position": pos, "radius": radius, "visual": anomaly, "boundary": marker})
 
 func _spawn_pickup(id: String, kind: String, pos: Vector3) -> void:
     var node := Node3D.new()
