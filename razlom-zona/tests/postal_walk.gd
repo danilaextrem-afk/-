@@ -45,6 +45,23 @@ func run() -> void:
     root.add_child(game)
     quarter = game.street.quarter
     var post: Node3D = quarter.post
+    var finishes: Array[ShaderMaterial] = []
+    for landmark in ["PostOffice", "WidowsCottage", "WaterTower", "BusShelter", "TracksideCottage"]:
+        var building := quarter.get_node_or_null(landmark) as Node3D
+        if not require(building != null, "Missing architectural landmark " + landmark):
+            return
+        var meshes := building.find_children("*", "MeshInstance3D", true, false)
+        if not require(not meshes.is_empty(), "Missing visible landmark " + landmark):
+            return
+        var finish := (meshes[0] as MeshInstance3D).material_override as ShaderMaterial
+        if not require(finish != null and finish.shader != null and finish.get_shader_parameter("district") != null, "Missing architecture finish " + landmark):
+            return
+        finishes.append(finish)
+    if not require(finishes[1] != finishes[4] and finishes[1].get_shader_parameter("timber_tint") != finishes[4].get_shader_parameter("timber_tint"), "Repeated cottages must have separate finishes"):
+        return
+    var door_meshes: Array[Node] = quarter.door.find_children("*", "MeshInstance3D", true, false)
+    if not require(not door_meshes.is_empty() and (door_meshes[0] as MeshInstance3D).material_override == null, "Door atlas unexpectedly replaced"):
+        return
     var door_view := post.to_global(Vector3(2.19,1.68,2.45))
     var note := post.to_global(Vector3(-1.03,1.02,-.44))
     if film:

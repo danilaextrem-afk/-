@@ -5,6 +5,8 @@ const DOOR := preload("res://assets/zalesye/postal_door.glb")
 const HOUSE := preload("res://assets/zalesye/widow_house.glb")
 const TOWER := preload("res://assets/zalesye/water_tower.glb")
 const STOP := preload("res://assets/zalesye/bus_shelter.glb")
+const ARCHITECTURE := preload("res://assets/zalesye/architecture_weathered.gdshader")
+const DISTRICT_ATLAS := preload("res://assets/zalesye/district.png")
 
 var post: Node3D
 var door := AnimatableBody3D.new()
@@ -15,6 +17,7 @@ var note_point := Vector3(-1.03,1.02,-.44)
 
 func _ready() -> void:
     post = _model(POST,"PostOffice",Vector3(8.65,0,-7.35),-.75)
+    _weather_building(post, Color("d9c5a5"), Color("ddd5c3"), 1.0)
     _box(post,Vector3(0,1.92,-2.45),Vector3(8.25,3.84,.21))
     for side in [-1,1]:
         _box(post,Vector3(4.03*side,1.92,0),Vector3(.19,3.84,4.88))
@@ -37,8 +40,10 @@ func _ready() -> void:
     hinge.unit_size = 2.4
     door.add_child(hinge)
     var house := _model(HOUSE,"WidowsCottage",Vector3(-9.1,0,-20),1.24)
+    _weather_building(house, Color("a7b5ab"), Color.WHITE, 6.0)
     _box(house,Vector3(0,1.47,0),Vector3(5.95,2.94,4.62))
     var tower := _model(TOWER,"WaterTower",Vector3(-5.9,0,-34.0),-.4)
+    _weather_building(tower, Color("b4a79a"), Color.WHITE, 12.0)
     var pier := StaticBody3D.new()
     tower.add_child(pier)
     var collision := CollisionShape3D.new()
@@ -49,11 +54,13 @@ func _ready() -> void:
     collision.position.y = 3
     pier.add_child(collision)
     var stop := _model(STOP,"BusShelter",Vector3(6.9,0,-17.65),-1.42)
+    _weather_building(stop, Color("b0b9a9"), Color("b8bfb2"), 19.0)
     _box(stop,Vector3(0,1.28,-.87),Vector3(3.17,2.46,.13))
     _box(stop,Vector3(0,.26,-.44),Vector3(2.49,.52,.47))
     for x in [-1.52,1.52]:
         _box(stop,Vector3(x,1.28,.81),Vector3(.12,2.56,.12))
     var far_house := _model(HOUSE,"TracksideCottage",Vector3(-13.5,0,-31.2),.48)
+    _weather_building(far_house, Color("d3a77e"), Color.WHITE, 27.0)
     _box(far_house,Vector3(0,1.47,0),Vector3(5.95,2.94,4.62))
     _model(preload("res://assets/zalesye/drainage.glb"),"RoadsideDrains",Vector3.ZERO,0)
     var pools := _model(preload("res://assets/zalesye/standing_water.glb"),"WheelRutPools",Vector3.ZERO,0)
@@ -64,6 +71,19 @@ func _ready() -> void:
         part.material_override = surface
         part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(preload("res://scripts/zalesye_grove.gd").new())
+
+func _weather_building(model: Node3D, timber: Color, plaster: Color, variation: float) -> void:
+    # Apply only to existing architectural meshes, before doors and collision
+    # objects are inserted. Keep the original atlas and sign UVs intact.
+    var finish := ShaderMaterial.new()
+    finish.shader = ARCHITECTURE
+    finish.set_shader_parameter("district", DISTRICT_ATLAS)
+    finish.set_shader_parameter("timber_tint", timber)
+    finish.set_shader_parameter("plaster_tint", plaster)
+    finish.set_shader_parameter("building_seed", variation)
+    for part in model.find_children("*", "MeshInstance3D", true, false):
+        var mesh := part as MeshInstance3D
+        mesh.material_override = finish
 
 func _model(scene: PackedScene, label: String, at: Vector3, yaw: float) -> Node3D:
     var model := scene.instantiate() as Node3D
