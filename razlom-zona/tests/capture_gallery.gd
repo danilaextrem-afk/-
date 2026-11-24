@@ -10,7 +10,7 @@ func capture() -> void:
     player.set_physics_process(false)
     var folder := ProjectSettings.globalize_path("res://captures")
     DirAccess.make_dir_recursive_absolute(folder)
-    for name in ["village", "last_bus", "bus_return", "forest_base", "post_office", "porch", "rift_checkpoint", "approach", "underground", "g4_final_station", "g4_radio_close", "zalesye_contours", "trackside_workshop", "watchman_encounter", "anomaly_before", "anomaly_after", "forest_road_depth", "base_perimeter", "industrial_admin", "industrial_warehouse"]:
+    for name in ["village", "last_bus", "bus_return", "forest_base", "post_office", "porch", "rift_checkpoint", "approach", "underground", "g4_final_station", "g4_radio_close", "zalesye_contours", "trackside_workshop", "watchman_encounter", "anomaly_before", "anomaly_after", "forest_road_depth", "base_perimeter", "industrial_admin", "industrial_warehouse", "g4_service_entry", "g4_valve_gallery", "g4_vent_gallery"]:
         if name == "village":
             player.position = Vector3(-39, 0.1, 2)
             player.camera.look_at(Vector3(-18, 2.65, 2))
@@ -20,6 +20,15 @@ func capture() -> void:
         elif name == "bus_return":
             player.position = Vector3(-27.1, .1, 1.0)
             player.camera.look_at(Vector3(-32.0, 1.50, -1.95))
+        elif name == "g4_service_entry":
+            player.position = Vector3(23.5,-.15,-20.8)
+            player.camera.look_at(Vector3(25.5,.95,-21.3))
+        elif name == "g4_valve_gallery":
+            player.position = Vector3(23.3,-1.1,-24.8)
+            player.camera.look_at(Vector3(25.5,-.05,-25.5))
+        elif name == "g4_vent_gallery":
+            player.position = Vector3(23.3,-3.0,-32.8)
+            player.camera.look_at(Vector3(25.5,-1.9,-33.2))
         elif name == "industrial_admin":
             player.position = Vector3(-3.0,.10,-8.7)
             player.camera.look_at(Vector3(-3.0,4.1,-20.0))
