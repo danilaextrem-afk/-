@@ -80,6 +80,18 @@ func run() -> void:
     var hit: Dictionary = game.get_world_3d().direct_space_state.intersect_ray(ray)
     if not check(not hit.is_empty() and absf(hit.position.y - world_point.y) < 0.06, "Terrain collision does not follow exported surface"):
         return
+    var brush_near: Array[Node] = game.street.quarter.find_children("BrambleNear_*", "MultiMeshInstance3D", true, false)
+    var brush_far: Array[Node] = game.street.quarter.find_children("BrambleFar_*", "MultiMeshInstance3D", true, false)
+    if not check(not brush_near.is_empty() and brush_near.size() == brush_far.size(), "Missing paired woodland brush batches"):
+        return
+    var brush_count := 0
+    for patch in brush_near:
+        var brush_batch := patch as MultiMeshInstance3D
+        brush_count += brush_batch.multimesh.instance_count
+        if not check(is_equal_approx(brush_batch.visibility_range_end, 18.0), "Invalid near brush range"):
+            return
+    if not check(brush_count >= 30 and brush_count <= 73, "Unexpected brush density"):
+        return
     # The forest lane is rendered just above its unchanged collision slab.
     var lane := game.get_node_or_null("ForestAccessRoadSurface") as MeshInstance3D
     if not check(lane != null, "Missing forest road visual"):
