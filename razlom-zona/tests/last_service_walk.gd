@@ -57,6 +57,29 @@ func run() -> void:
         return
     seed(2717)
     open_game()
+    var landform := game.street.get_node_or_null("ZalesyeLandform") as Node3D
+    if not check(landform != null, "Missing real landform"):
+        return
+    var detail := landform.get_node_or_null("Detailed")
+    var distant := landform.get_node_or_null("Distant")
+    if not check(detail != null and distant != null, "Missing terrain geometry or LOD"):
+        return
+    var near_meshes := detail.find_children("*", "MeshInstance3D", true, false)
+    var far_meshes := distant.find_children("*", "MeshInstance3D", true, false)
+    if not check(near_meshes.size() == 1 and far_meshes.size() == 1, "Invalid terrain mesh hierarchy"):
+        return
+    if not check(near_meshes[0].get_aabb().size.y > 1.0 and near_meshes[0].visibility_range_end == 65.0 and far_meshes[0].visibility_range_begin == 65.0, "Missing contour depth or LOD"):
+        return
+    if not check(is_zero_approx(landform.height_at(0.0,-20.0)), "Terrain intrudes on road"):
+        return
+    await physics_frame
+    await physics_frame
+    var sample := Vector3(27.0, landform.height_at(27.0,-10.0), -10.0)
+    var world_point: Vector3 = landform.to_global(sample)
+    var ray := PhysicsRayQueryParameters3D.create(world_point + Vector3.UP * 4.0, world_point - Vector3.UP * 3.0)
+    var hit: Dictionary = game.get_world_3d().direct_space_state.intersect_ray(ray)
+    if not check(not hit.is_empty() and absf(hit.position.y - world_point.y) < 0.06, "Terrain collision does not follow exported surface"):
+        return
     # The forest lane is rendered just above its unchanged collision slab.
     var lane := game.get_node_or_null("ForestAccessRoadSurface") as MeshInstance3D
     if not check(lane != null, "Missing forest road visual"):
