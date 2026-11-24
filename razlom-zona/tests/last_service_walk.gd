@@ -74,6 +74,20 @@ func run() -> void:
         return
     if not check(game.bulkhead_status.text == "КАНАЛ НЕДОСТУПЕН" and float(game.bulkhead_material.get_shader_parameter("linked")) == 0.0, "Initial bulkhead state incorrect"):
         return
+    var cabinets: Array[Node] = game.radio.find_children("G4RadioCabinet", "Node3D", true, false)
+    if not check(cabinets.size() == 1, "Missing final radio cabinet"):
+        return
+    var cabinet := cabinets[0] as Node3D
+    var detail := cabinet.get_node_or_null("CabinetDetail")
+    var lod := cabinet.get_node_or_null("CabinetLOD")
+    if not check(detail != null and lod != null and cabinet.get_node_or_null("CabinetCollision") != null, "Missing cabinet model, LOD or collision"):
+        return
+    var near_parts := detail.find_children("*", "MeshInstance3D", true, false)
+    var far_parts := lod.find_children("*", "MeshInstance3D", true, false)
+    if not check(near_parts.size() == 1 and far_parts.size() == 1, "Unexpected cabinet mesh layout"):
+        return
+    if not check(is_equal_approx(near_parts[0].visibility_range_end, 9.0) and is_equal_approx(far_parts[0].visibility_range_begin, 9.0), "Cabinet LOD misconfigured"):
+        return
     await listen(Vector3(-19,2.65,2), 48)
     await listen(game.radio.SITES[0]+Vector3(0,.6,0), 52)
     if not await walk_to(Vector2(-33.4,0.02)):
@@ -105,6 +119,8 @@ func run() -> void:
         game.free()
         open_game()
     if not check(game.bulkhead_status.text == "КАНАЛ ВОССТАНОВЛЕН" and float(game.bulkhead_material.get_shader_parameter("linked")) == 1.0, "Completed bulkhead state lost on reload"):
+        return
+    if not check(game.radio.indicators[2].emission_energy_multiplier > 0.5, "Completed radio should retain its green signal after reload"):
         return
     await listen(game.radio.SITES[2], 105)
     if check(game.radio.stage == 3,"G-4 completion lost on reload"):
