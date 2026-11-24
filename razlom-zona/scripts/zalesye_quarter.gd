@@ -3,6 +3,8 @@ extends Node3D
 const POST := preload("res://assets/zalesye/post_house.glb")
 const DOOR := preload("res://assets/zalesye/postal_door.glb")
 const HOUSE := preload("res://assets/zalesye/widow_house.glb")
+const WORKSHOP := preload("res://assets/zalesye/trackside_workshop.gltf")
+const WORKSHOP_LOD := preload("res://assets/zalesye/trackside_workshop_lod.gltf")
 const TOWER := preload("res://assets/zalesye/water_tower.glb")
 const STOP := preload("res://assets/zalesye/bus_shelter.glb")
 const ARCHITECTURE := preload("res://assets/zalesye/architecture_weathered.gdshader")
@@ -59,9 +61,17 @@ func _ready() -> void:
     _box(stop,Vector3(0,.26,-.44),Vector3(2.49,.52,.47))
     for x in [-1.52,1.52]:
         _box(stop,Vector3(x,1.28,.81),Vector3(.12,2.56,.12))
-    var far_house := _model(HOUSE,"TracksideCottage",Vector3(-13.5,0,-31.2),.48)
-    _weather_building(far_house, Color("d3a77e"), Color.WHITE, 27.0)
-    _box(far_house,Vector3(0,1.47,0),Vector3(5.95,2.94,4.62))
+    var workshop := _model(WORKSHOP,"TracksideWorkshop",Vector3(-13.5,0,-31.2),.48)
+    var distant_workshop := WORKSHOP_LOD.instantiate() as Node3D
+    distant_workshop.name = "WorkshopLOD"
+    # Set the near range before the distant child is attached.
+    for part in workshop.find_children("*", "MeshInstance3D", true, false):
+        (part as MeshInstance3D).visibility_range_end = 40.0
+    workshop.add_child(distant_workshop)
+    for part in distant_workshop.find_children("*", "MeshInstance3D", true, false):
+        (part as MeshInstance3D).visibility_range_begin = 40.0
+    _weather_building(workshop, Color("d3a77e"), Color("c0b8a6"), 27.0)
+    _box(workshop,Vector3(0,1.50,0),Vector3(5.82,3.0,4.49))
     _model(preload("res://assets/zalesye/drainage.glb"),"RoadsideDrains",Vector3.ZERO,0)
     var pools := _model(preload("res://assets/zalesye/standing_water.glb"),"WheelRutPools",Vector3.ZERO,0)
     var surface := ShaderMaterial.new()
