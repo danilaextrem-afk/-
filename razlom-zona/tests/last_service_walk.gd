@@ -103,6 +103,14 @@ func run() -> void:
             return
         if not check(is_equal_approx(float(field_material.get_shader_parameter("field_radius")), float(zone["radius"])) and boundary_plane.size.is_equal_approx(Vector2.ONE * float(zone["radius"]) * 2.0), "Field boundary not matched to hazard radius"):
             return
+    var village_road := game.street.get_node_or_null("VillageRoadSurface") as MeshInstance3D
+    if not check(village_road != null, "Missing unified village road"):
+        return
+    var village_mud := village_road.material_override as ShaderMaterial
+    if not check(village_mud != null and village_mud.get_shader_parameter("village_pools") == true and village_mud.get_shader_parameter("soil_detail") != null, "Missing integrated mud and water"):
+        return
+    if not check(game.street.quarter.get_node_or_null("WheelRutPools") == null, "Old opaque puddle overlays remain"):
+        return
     # The forest lane is rendered just above its unchanged collision slab.
     var lane := game.get_node_or_null("ForestAccessRoadSurface") as MeshInstance3D
     if not check(lane != null, "Missing forest road visual"):
