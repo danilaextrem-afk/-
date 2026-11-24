@@ -36,6 +36,8 @@ jobs:
         run: XDG_DATA_HOME="$(mktemp -d)" timeout 60s godot --headless --fixed-fps 60 -s tests/rift_gate_smoke.gd
       - name: Walk and restore the last-service radio route
         run: XDG_DATA_HOME="$(mktemp -d)" timeout 90s godot --headless --fixed-fps 60 -s tests/last_service_walk.gd
+      - name: Walk through the postal hall and reload its document
+        run: XDG_DATA_HOME="$(mktemp -d)" timeout 90s godot --headless --fixed-fps 60 -s tests/postal_walk.gd
       - name: Capture player views
         run: LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --resolution 960x540 -s tests/capture_gallery.gd -- --touch-ui
       - name: Capture two geometry views for each kit

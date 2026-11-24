@@ -3,12 +3,14 @@ extends SceneTree
 const Street = preload("res://scripts/crimson_street.gd")
 
 func _initialize() -> void:
+    verify.call_deferred()
+
+func verify() -> void:
     var street = Street.new()
     root.add_child(street)
     # Avoid depending on GPU screenshots: verify bounded, changing light output.
-    var a = OmniLight3D.new()
-    var b = OmniLight3D.new()
-    street.unstable_lamps = [a, b]
+    var a: OmniLight3D = street.unstable_lamps[0]
+    var b: OmniLight3D = street.unstable_lamps[1]
     street.set_process(false)
     var low := 100.0
     var high := 0.0

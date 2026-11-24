@@ -4,6 +4,7 @@ const STREET := preload("res://assets/village/street.glb")
 
 # Only two lamps flicker; no additional dynamic lights or shadow casters.
 var unstable_lamps: Array[OmniLight3D] = []
+var quarter := preload("res://scripts/zalesye_quarter.gd").new()
 var lamp_clock := 0.0
 var lamp_filaments: Array[MeshInstance3D] = []
 
@@ -38,17 +39,12 @@ func _ready() -> void:
     var mud := ShaderMaterial.new()
     mud.shader = preload("res://assets/village/road.gdshader")
     mud.set_shader_parameter("ground_map", preload("res://assets/village/road.png"))
-    mud.set_shader_parameter("sky_map", preload("res://assets/village/storm.jpg"))
+    mud.set_shader_parameter("sky_map", preload("res://assets/zalesye/evening.jpg"))
     surface.material_override = mud
     surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(surface)
-    # House centres and yaw match the baked mesh. Collision excludes grass and cables.
-    for house in [
-        [7.5, -6.4, -.68, 6.5, 4.16],
-        [-9.3, -20.0, 1.35, 6.9, 5.7], [8.5, -17.0, -1.35, 4.9, 5.1],
-        [-6.8, -33.0, 0.55, 5.4, 4.7], [7.1, -28.0, -1.57, 6.2, 5.0]
-    ]:
-        _solid(Vector3(house[0], 1.5, house[1]), Vector3(house[3], 3.0, house[4]), house[2])
+    quarter.name = "PostalQuarter"
+    add_child(quarter)
     var shed := Transform3D(Basis(Vector3.UP,1.06), Vector3(-8,0,-7.5))
     for piece in [[Vector3(0,1.62,-2.35),Vector3(6.4,3,.16)],
             [Vector3(-3.08,1.5,0),Vector3(.18,2.8,4.7)],
@@ -61,7 +57,7 @@ func _ready() -> void:
     for x in [-4.25, 4.25]:
         for segment in [[-3, 2], [-15, -10], [-26, -21]]:
             _solid(Vector3(x, .57, (segment[0]+segment[1])*.5), Vector3(.18, 1.14, segment[1]-segment[0]), 0.0)
-    for p in [Vector3(-4.72, 2.34, -4.95), Vector3(4.08, 2.1, -5.9), Vector3(7.25, 2.1, -3.03), Vector3(-5.0, 2.13, -30.5)]:
+    for p in [Vector3(-4.72, 2.34, -4.95), quarter.post.transform * Vector3(1.06,2.33,3.0), quarter.post.transform * Vector3(-1,2.48,-.60), Vector3(6.9,2.24,-17.65)]:
         var light := OmniLight3D.new()
         light.position = p
         light.light_color = Color("ffad58")
@@ -71,8 +67,8 @@ func _ready() -> void:
         add_child(light)
         var bulb := MeshInstance3D.new()
         var bulb_mesh := SphereMesh.new()
-        bulb_mesh.radius = 0.105
-        bulb_mesh.height = 0.21
+        bulb_mesh.radius = 0.065
+        bulb_mesh.height = 0.13
         bulb_mesh.radial_segments = 8
         bulb_mesh.rings = 4
         bulb.mesh = bulb_mesh

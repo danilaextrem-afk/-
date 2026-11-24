@@ -46,11 +46,11 @@ void fragment() {
     float fresnel = pow(1.0 - clamp(-eye.y, 0.0, 1.0), 3.0);
     vec3 sky = texture(sky_map, sky_uv).rgb;
     float cloud_signal = dot(sky, vec3(0.2126, 0.7152, 0.0722));
-    ALBEDO = dirt * (1.0 - 0.47 * wet);
+    ALBEDO = mix(dirt, vec3(dot(dirt,vec3(.25,.56,.19))),.46) * (1.0 - 0.37 * wet);
     // Keep puddles reflective without making the whole road self-illuminate.
     float pool = smoothstep(0.42, 0.85, wet);
     EMISSION = (vec3(0.032, 0.069, 0.077) * cloud_signal
-        + min(sky, vec3(0.72, 0.28, 0.30)) * 0.58)
+        + sky * 0.39)
         * pool * (0.18 + 0.72 * fresnel);
     ROUGHNESS = mix(0.96, 0.24, pool);
     SPECULAR = mix(0.12, 0.035, pool);

@@ -9,6 +9,8 @@ const SAVE_PATH = "user://razlom_zona_save_v1.json"
 const WORLD_HALF_SIZE = 46.0
 
 var player
+var street := preload("res://scripts/crimson_street.gd").new()
+var letter_read := false
 var radio := preload("res://scripts/radio_route.gd").new()
 var inventory: Dictionary = {"medkit": 0, "battery": 0, "scrap": 0}
 var collected_ids: Dictionary = {}
@@ -44,7 +46,6 @@ func _process(delta: float) -> void:
     if not is_instance_valid(player):
         return
     radio.update_sound(delta, player.global_position)
-    _animate_pickups(delta)
     _check_anomalies(delta)
     _check_death()
     if Input.is_action_just_pressed("interact"):
@@ -63,24 +64,24 @@ func _setup_environment() -> void:
     env.environment = Environment.new()
     var sky_material := ShaderMaterial.new()
     sky_material.shader = preload("res://assets/anomaly/nocturne_sky.gdshader")
-    sky_material.set_shader_parameter("panorama", preload("res://assets/village/storm.jpg"))
+    sky_material.set_shader_parameter("panorama", preload("res://assets/zalesye/evening.jpg"))
     var sky := Sky.new()
     sky.sky_material = sky_material
     env.environment.sky = sky
     env.environment.background_mode = Environment.BG_SKY
     env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.environment.ambient_light_color = Color("9e9ba1")
-    env.environment.ambient_light_energy = 0.62
+    env.environment.ambient_light_color = Color("a1afbb")
+    env.environment.ambient_light_energy = 0.43
     env.environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.environment.fog_enabled = true
-    env.environment.fog_light_color = Color("956b73")
-    env.environment.fog_density = 0.009
+    env.environment.fog_light_color = Color("758086")
+    env.environment.fog_density = 0.012
     env.environment.fog_sky_affect = 0.0
     add_child(env)
     var moon := DirectionalLight3D.new()
-    moon.rotation_degrees = Vector3(-19.0, 69.0, 0.0)
-    moon.light_color = Color("ffd09f")
-    moon.light_energy = 0.71
+    moon.rotation_degrees = Vector3(-19.0, 59.0, 0.0)
+    moon.light_color = Color("f6d2aa")
+    moon.light_energy = 0.58
     moon.shadow_enabled = true
     moon.directional_shadow_max_distance = 24.0
     add_child(moon)
@@ -134,10 +135,8 @@ func _create_world() -> void:
     var cement := _material("596161")
     var roof := _material("283a43")
     var wood := _material("4b4239")
-    var moss := _material("516d4d")
     var scrap := _material("756b5c")
     var dark := _material("172329")
-    var mint := _material("6cf0bb", true)
     var cyan := _material("43c8c8", true)
 
     # Four terrain slabs leave the descent open from z=-20 to z=-40.
@@ -159,14 +158,13 @@ func _create_world() -> void:
     var lane_material := ShaderMaterial.new()
     lane_material.shader = preload("res://assets/village/road.gdshader")
     lane_material.set_shader_parameter("ground_map", preload("res://assets/village/road.png"))
-    lane_material.set_shader_parameter("sky_map", preload("res://assets/village/storm.jpg"))
+    lane_material.set_shader_parameter("sky_map", preload("res://assets/zalesye/evening.jpg"))
     lane_material.set_shader_parameter("shoulder_start", 1.85)
     lane_material.set_shader_parameter("shoulder_end", 2.85)
     forest_lane.material_override = lane_material
     forest_lane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(forest_lane)
     # A fictional abandoned settlement, not a real location.
-    var street := preload("res://scripts/crimson_street.gd").new()
     street.name = "CrimsonStreet"
     street.position = Vector3(-39, 0, 2)
     street.rotation.y = -PI / 2.0
@@ -182,8 +180,6 @@ func _create_world() -> void:
     add_child(hero_gate)
 
     _house(Vector3(-3, 0, -20), Vector3(11, 8, 9), cement, roof, dark)
-    var woods := preload("res://assets/village/access_woods.glb").instantiate() as Node3D
-    add_child(woods)
     var guardhouse := preload("res://assets/base/guardhouse04.gltf").instantiate() as Node3D
     guardhouse.position = Vector3(26.6, 0, -9.5)
     guardhouse.rotation.y = -PI/2
@@ -214,11 +210,6 @@ func _create_world() -> void:
     for x in [-39.0, -35.0]:
         for z in [-32.0, -28.0]:
             _box("WatchLeg", Vector3(x, 2.45, z), Vector3(0.45, 4.9, 0.45), wood)
-    # Deterministic decoration positions; avoids endless terrain generation on mobile.
-    var trees: Array[Vector3] = [Vector3(-36,0,-8), Vector3(-41,0,17), Vector3(-24,0,36), Vector3(17,0,37), Vector3(38,0,37), Vector3(40,0,8), Vector3(38,0,-34), Vector3(-17,0,-37), Vector3(8,0,-38), Vector3(-41,0,-39)]
-    for pos in trees:
-        if pos.distance_to(Vector3(-39, 0, 2)) > 18.0:
-            _tree(pos, wood, moss)
     for i in range(12):
         var x := float((i * 19) % 79 - 39)
         var z := float((i * 37) % 77 - 38)
@@ -247,11 +238,6 @@ func _house(pos: Vector3, size: Vector3, wall: Material, top: Material, window: 
     for side in [-1.0, 1.0]:
         _box("DarkWindow", pos + Vector3(side * size.x * 0.3, 2.5, -size.z * 0.51), Vector3(1.1,1.3,0.06), window, false)
 
-func _tree(pos: Vector3, trunk: Material, crown: Material) -> void:
-    _box("TreeTrunk", pos + Vector3(0, 2.0, 0), Vector3(0.7,4,0.7), trunk)
-    _box("TreeCrown", pos + Vector3(0, 5.0, 0), Vector3(3.2,3.0,3.2), crown, false)
-    _box("TreeCrownUpper", pos + Vector3(0, 7.0, 0), Vector3(2.2,2.0,2.2), crown, false)
-
 func _anomaly(pos: Vector3, radius: float, glow_material: Material) -> void:
     var anomaly := MeshInstance3D.new()
     anomaly.name = "AnomalyField"
@@ -276,12 +262,12 @@ func _spawn_pickup(id: String, kind: String, pos: Vector3) -> void:
     node.position = pos
     node.set_meta("loot_id", id)
     node.set_meta("kind", kind)
-    var cube := MeshInstance3D.new()
-    var boxmesh := BoxMesh.new()
-    boxmesh.size = Vector3(0.42, 0.42, 0.42)
-    cube.mesh = boxmesh
-    cube.material_override = _material("6cf0bb", true) if kind == "medkit" else (_material("72bad6", true) if kind == "battery" else _material("b6a476"))
-    node.add_child(cube)
+    var kits := {"medkit":preload("res://assets/zalesye/medkit.glb"),
+        "battery":preload("res://assets/zalesye/battery.glb"),"scrap":preload("res://assets/zalesye/scrap.glb")}
+    var visual := (kits[kind] as PackedScene).instantiate() as Node3D
+    visual.position.y = -.46 if id != "bunker_supplies" else -.27
+    visual.rotation.y = float(id.hash() % 19)*.31
+    node.add_child(visual)
     add_child(node)
     pickups.append(node)
 
@@ -293,12 +279,6 @@ func _spawn_enemy(pos: Vector3, kind: int) -> void:
     enemy.position = pos
     add_child(enemy)
     enemies.append(enemy)
-
-func _animate_pickups(delta: float) -> void:
-    for node in pickups:
-        if not is_instance_valid(node):
-            continue
-        node.rotate_y(0.8 * delta)
 
 func _check_anomalies(delta: float) -> void:
     anomaly_damage_clock -= delta
@@ -331,6 +311,9 @@ func _nearest_interactable() -> Dictionary:
         var radio_distance: float = player.global_position.distance_to(radio.SITES[radio.stage])
         if radio_distance < minf(best_distance,2.15):
             candidate = {"kind":"radio"}
+    var postal: Dictionary = street.quarter.target(player.global_position)
+    if not postal.is_empty() and float(postal.distance) < best_distance:
+        return postal
     return candidate
 
 func _interact() -> void:
@@ -344,7 +327,14 @@ func _interact() -> void:
         else:
             _show_message("Подойди к предмету или убежищу", 2.0)
         return
-    if target["kind"] == "radio":
+    if target["kind"] == "door":
+        if not street.quarter.turn_door(player.global_position):
+            _show_message("Шагни в сторону от двери", 1.4)
+    elif target["kind"] == "letter":
+        letter_read = true
+        _save_game()
+        _show_message("«Вера, если автобус вернётся пустым, ищи меня у дежурного в Г-4. Ключ оставил на почте». Лёша, 17 октября.", 8.0)
+    elif target["kind"] == "radio":
         var transmission: String = radio.tune()
         _save_game()
         _show_message(transmission, 6.0)
@@ -395,6 +385,7 @@ func _save_game() -> void:
     var state := {"version":1, "position":[player.position.x,player.position.y,player.position.z],
         "yaw":player.rotation.y, "pitch":player.camera.rotation.x,
         "health":player.health, "stamina":player.stamina, "battery":player.battery,
+        "post_open":street.quarter.open, "letter_read":letter_read,
         "radio_stage":radio.stage, "inventory":inventory, "collected_ids":collected_ids}
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
     if file == null:
@@ -412,6 +403,8 @@ func _load_save() -> void:
     var parsed: Variant = JSON.parse_string(file.get_as_text())
     if typeof(parsed) != TYPE_DICTIONARY or parsed.get("version", -1) != 1:
         return
+    street.quarter.restore_door(bool(parsed.get("post_open",false)))
+    letter_read = bool(parsed.get("letter_read",false))
     radio.restore(int(parsed.get("radio_stage", 0)))
     var pos: Array = parsed.get("position", [])
     if pos.size() == 3:
@@ -506,6 +499,10 @@ func _refresh_hud() -> void:
         tip_label.text = radio.CLUES[radio.stage] if radio.stage < 3 else ""
     elif target["kind"] == "radio":
         tip_label.text = radio.ACTIONS[radio.stage]
+    elif target["kind"] == "door":
+        tip_label.text = "Прикрыть дверь" if street.quarter.open else "Открыть почту"
+    elif target["kind"] == "letter":
+        tip_label.text = "Перечитать письмо Вере" if letter_read else "Прочитать последнее письмо"
     elif target["kind"] == "shelter":
         tip_label.text = "Убежище · лечение и сохранение"
     else:
