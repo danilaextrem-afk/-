@@ -35,11 +35,15 @@ func _ready() -> void:
     var surface := MeshInstance3D.new()
     var plane := PlaneMesh.new()
     plane.size = Vector2(9.4, 49.0)
+    surface.name = "VillageRoadSurface"
     surface.mesh = plane
     surface.position = Vector3(0, 0.071, -20.5)
     var mud := ShaderMaterial.new()
     mud.shader = preload("res://assets/village/road.gdshader")
     mud.set_shader_parameter("ground_map", preload("res://assets/village/road.png"))
+    mud.set_shader_parameter("soil_detail", preload("res://assets/village/leaf_litter.jpg"))
+    mud.set_shader_parameter("village_pools", true)
+    mud.set_shader_parameter("lane_z_offset", -20.5)
     mud.set_shader_parameter("sky_map", preload("res://assets/zalesye/evening.jpg"))
     surface.material_override = mud
     surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
