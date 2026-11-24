@@ -160,6 +160,7 @@ func _create_world() -> void:
     var lane_material := ShaderMaterial.new()
     lane_material.shader = preload("res://assets/village/road.gdshader")
     lane_material.set_shader_parameter("ground_map", preload("res://assets/village/road.png"))
+    lane_material.set_shader_parameter("soil_detail", preload("res://assets/village/leaf_litter.jpg"))
     lane_material.set_shader_parameter("sky_map", preload("res://assets/zalesye/evening.jpg"))
     lane_material.set_shader_parameter("shoulder_start", 1.85)
     lane_material.set_shader_parameter("shoulder_end", 2.85)
