@@ -10,7 +10,7 @@ func capture() -> void:
     player.set_physics_process(false)
     var folder := ProjectSettings.globalize_path("res://captures")
     DirAccess.make_dir_recursive_absolute(folder)
-    for name in ["village", "last_bus", "bus_return", "forest_base", "post_office", "porch", "rift_checkpoint", "approach", "underground", "g4_final_station", "g4_radio_close", "zalesye_contours", "trackside_workshop"]:
+    for name in ["village", "last_bus", "bus_return", "forest_base", "post_office", "porch", "rift_checkpoint", "approach", "underground", "g4_final_station", "g4_radio_close", "zalesye_contours", "trackside_workshop", "watchman_encounter"]:
         if name == "village":
             player.position = Vector3(-39, 0.1, 2)
             player.camera.look_at(Vector3(-18, 2.65, 2))
@@ -36,6 +36,16 @@ func capture() -> void:
         elif name == "approach":
             player.position = Vector3(24.7, 0.0, -16.7)
             player.camera.look_at(Vector3(24, 0.9, -24))
+        elif name == "watchman_encounter":
+            var watchman = game.enemies[0]
+            watchman.set_physics_process(false)
+            watchman.position = Vector3(12.0,0.08,-13.5)
+            watchman.rotation.y = PI
+            watchman.windup = watchman.WINDUP_TIME * .25
+            for pose_frame in 12:
+                watchman.animate(1.0/60.0,0.0)
+            player.position = Vector3(12.0,0.1,-9.7)
+            player.camera.look_at(Vector3(12.0,1.2,-13.5))
         elif name == "trackside_workshop":
             player.position = Vector3(-12.5, 0.08, -2.5)
             player.camera.look_at(Vector3(-7.8, 2.8, -11.5))

@@ -1,11 +1,20 @@
 extends CharacterBody3D
-## Lightweight wander/chase enemy. Deliberately NOT a boss.
+## A grounded watchman encounter with a readable strike wind-up.
 var player
 var origin: Vector3
 var creature_type: int = 0
 var attack_timer: float = 0.0
+var windup := 0.0
 var wander_time: float = 0.0
 var wander_direction: Vector3 = Vector3.ZERO
+var model: Node3D
+var limbs: Array[Node3D] = []
+var phase := 0.0
+var stride_blend := 0.0
+var strike_pose := 0.0
+const REACH := 1.65
+const WINDUP_TIME := 0.46
+const RECOVERY_TIME := 1.34
 
 func _ready() -> void:
     origin = global_position
@@ -24,18 +33,41 @@ func _build_visual() -> void:
     for name_part in ["ArmL","ArmR","LegL","LegR"]:
         limbs.append(model.find_child(name_part,true,false) as Node3D)
 
-var model: Node3D
-var limbs: Array[Node3D] = []
-var phase := 0.0
-
 func animate(delta: float, pace: float) -> void:
-    phase = fmod(phase + delta*(2.0+pace*3.5), TAU)
-    var motion := sin(phase)*minf(.47,pace*.19)
-    limbs[0].rotation.x = -.16+motion
-    limbs[1].rotation.x = -.28-motion
-    limbs[2].rotation.x = -motion
-    limbs[3].rotation.x = motion
-    model.position.y = absf(cos(phase))*.019*minf(1,pace)
+    stride_blend = move_toward(stride_blend, minf(pace / 2.6, 1.0), delta * 5.5)
+    # Distance-driven cycle stops when blocked; avoid sliding feet and idle marching.
+    phase = fmod(phase + delta * pace * TAU / 1.65, TAU)
+    var motion := sin(phase) * .46 * stride_blend
+    var breathe := sin(Time.get_ticks_msec() * .002) * .012
+    var anticipation := 1.0 - windup / WINDUP_TIME if windup > 0.0 else 0.0
+    var target_pose := sin(anticipation * PI * .5) if windup > 0.0 else 0.0
+    if attack_timer > RECOVERY_TIME - .19 and windup <= 0.0:
+        target_pose = -.48
+    strike_pose = move_toward(strike_pose, target_pose, delta * 8.0)
+    if limbs.size() == 4 and is_instance_valid(limbs[0]) and is_instance_valid(limbs[1]) and is_instance_valid(limbs[2]) and is_instance_valid(limbs[3]):
+        limbs[0].rotation.x = -.16 + motion - maxf(strike_pose,0.0)*.9
+        limbs[1].rotation.x = -.28 - motion - strike_pose*1.42
+        limbs[0].rotation.z = -.07 - maxf(strike_pose,0.0)*.17
+        limbs[1].rotation.z = .08 + maxf(strike_pose,0.0)*.25
+        limbs[2].rotation.x = -motion
+        limbs[3].rotation.x = motion
+    model.position.y = absf(sin(phase))*.025*stride_blend + breathe
+    model.rotation.x = lerpf(model.rotation.x, .08*stride_blend - strike_pose*.13, minf(1.0,delta*8.0))
+    model.rotation.z = sin(phase)*.025*stride_blend
+
+func _can_reach() -> bool:
+    if not is_instance_valid(player) or not player.alive:
+        return false
+    var offset: Vector3 = player.global_position - global_position
+    if absf(offset.y) > .85 or Vector2(offset.x,offset.z).length() > REACH:
+        return false
+    return _has_line_of_sight()
+
+func _has_line_of_sight() -> bool:
+    var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP*1.05, player.global_position + Vector3.UP*.85)
+    query.exclude = [get_rid()]
+    var hit := get_world_3d().direct_space_state.intersect_ray(query)
+    return hit.is_empty() or hit.get("collider") == player
 
 func _physics_process(delta: float) -> void:
     if not is_instance_valid(player) or not player.alive:
@@ -46,10 +78,18 @@ func _physics_process(delta: float) -> void:
     var distance := flat.length()
     var direction := Vector3.ZERO
     var chase_distance := 12.0 if creature_type == 0 else 9.0
-    if distance < chase_distance and distance > 1.35 and attack_timer < 1.20:
+    var can_see := distance < chase_distance and absf(to_player.y) < 2.0 and _has_line_of_sight()
+    if windup > 0.0:
+        windup = maxf(0.0, windup - delta)
+        if windup <= 0.0:
+            if _can_reach():
+                player.hit(12.0 if creature_type == 0 else 8.0)
+            attack_timer = RECOVERY_TIME
+    elif attack_timer <= 0.0 and can_see and _can_reach():
+        windup = WINDUP_TIME
+    elif can_see and distance > 1.35 and attack_timer < .6:
         direction = flat.normalized()
-        look_at(global_position + direction, Vector3.UP)
-    elif distance >= chase_distance:
+    elif not can_see and attack_timer <= 0.0:
         wander_time -= delta
         if wander_time <= 0.0:
             wander_time = randf_range(2.0, 4.0)
@@ -58,12 +98,20 @@ func _physics_process(delta: float) -> void:
         if global_position.distance_to(origin) < 7.0:
             direction = wander_direction
         else:
-            direction = (origin - global_position).normalized()
-    velocity.x = direction.x * (2.6 if creature_type == 0 else 3.5)
-    velocity.z = direction.z * (2.6 if creature_type == 0 else 3.5)
-    velocity.y -= 18.0 * delta
+            var home := origin - global_position
+            home.y = 0.0
+            direction = home.normalized()
+    var facing := flat if windup > 0.0 and distance > .05 else direction
+    if facing.length_squared() > .001:
+        rotation.y = lerp_angle(rotation.y, atan2(-facing.x,-facing.z), minf(1.0,delta*7.0))
+    var speed := (2.6 if creature_type == 0 else 3.5) if can_see else 1.25
+    velocity.x = move_toward(velocity.x, direction.x * speed, delta*9.0)
+    velocity.z = move_toward(velocity.z, direction.z * speed, delta*9.0)
+    if windup > 0.0 or attack_timer > .6:
+        velocity.x = 0.0
+        velocity.z = 0.0
+    velocity.y = -.2 if is_on_floor() else velocity.y - 18.0 * delta
     move_and_slide()
-    animate(delta,Vector2(velocity.x,velocity.z).length())
-    if distance < 1.65 and attack_timer <= 0.0:
-        player.hit(12.0 if creature_type == 0 else 8.0)
-        attack_timer = 1.8
+    var movement := get_position_delta()
+    var pace := Vector2(movement.x,movement.z).length()/maxf(delta,.0001) if is_on_floor() else 0.0
+    animate(delta,pace)
