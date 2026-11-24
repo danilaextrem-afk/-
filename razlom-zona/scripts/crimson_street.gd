@@ -25,6 +25,7 @@ func _process(delta: float) -> void:
 
 
 func _ready() -> void:
+    add_child(preload("res://scripts/zalesye_landform.gd").new())
     var bus := preload("res://assets/transport/last_bus.glb").instantiate() as Node3D
     bus.position = Vector3(-3.95, .03, -7.1)
     bus.rotation.y = -.40

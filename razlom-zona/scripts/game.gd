@@ -72,20 +72,20 @@ func _setup_environment() -> void:
     env.environment.sky = sky
     env.environment.background_mode = Environment.BG_SKY
     env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.environment.ambient_light_color = Color("a1afbb")
-    env.environment.ambient_light_energy = 0.43
+    env.environment.ambient_light_color = Color("b5b8b0")
+    env.environment.ambient_light_energy = 0.50
     env.environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.environment.fog_enabled = true
-    env.environment.fog_light_color = Color("758086")
-    env.environment.fog_density = 0.012
+    env.environment.fog_light_color = Color("8e9793")
+    env.environment.fog_density = 0.0085
     env.environment.fog_sky_affect = 0.0
     add_child(env)
     var moon := DirectionalLight3D.new()
-    moon.rotation_degrees = Vector3(-19.0, 59.0, 0.0)
-    moon.light_color = Color("f6d2aa")
-    moon.light_energy = 0.58
+    moon.rotation_degrees = Vector3(-26.0, 59.0, 0.0)
+    moon.light_color = Color("f2d4b0")
+    moon.light_energy = 0.87
     moon.shadow_enabled = true
-    moon.directional_shadow_max_distance = 24.0
+    moon.directional_shadow_max_distance = 36.0
     add_child(moon)
 
 func _material(hex: String, glowing: bool = false, transparent: bool = false) -> StandardMaterial3D:
