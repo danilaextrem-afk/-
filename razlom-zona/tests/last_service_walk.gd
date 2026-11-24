@@ -80,6 +80,22 @@ func run() -> void:
     var hit: Dictionary = game.get_world_3d().direct_space_state.intersect_ray(ray)
     if not check(not hit.is_empty() and absf(hit.position.y - world_point.y) < 0.06, "Terrain collision does not follow exported surface"):
         return
+    var spruce_near: Array[Node] = game.street.quarter.find_children("SpruceNear_*","MultiMeshInstance3D",true,false)
+    var spruce_far: Array[Node] = game.street.quarter.find_children("SpruceFar_*","MultiMeshInstance3D",true,false)
+    if not check(not spruce_near.is_empty() and spruce_near.size() == spruce_far.size(), "Missing spruce LOD batches"):
+        return
+    for patch in spruce_near:
+        if not check(patch.visibility_range_end == 29.0, "Invalid near spruce LOD"):
+            return
+    for patch in spruce_far:
+        if not check(patch.visibility_range_begin == 29.0, "Invalid distant spruce LOD"):
+            return
+    for i in 12:
+        var cluster := game.get_node_or_null("Rubble_%d" % i) as Node3D
+        if not check(cluster != null and cluster.has_node("Detail") and cluster.has_node("LOD"), "Missing broken stone cluster"):
+            return
+        if not check(cluster.find_children("*","StaticBody3D",true,false).size() == 1, "Missing rubble collision"):
+            return
     var brush_near: Array[Node] = game.street.quarter.find_children("BrambleNear_*", "MultiMeshInstance3D", true, false)
     var brush_far: Array[Node] = game.street.quarter.find_children("BrambleFar_*", "MultiMeshInstance3D", true, false)
     if not check(not brush_near.is_empty() and brush_near.size() == brush_far.size(), "Missing paired woodland brush batches"):

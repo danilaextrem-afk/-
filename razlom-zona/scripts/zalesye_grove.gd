@@ -1,6 +1,7 @@
 extends Node3D
 ## Cluster trees by 14 m cells so the renderer can cull stands independently.
-const SPRUCE = preload("res://assets/zalesye/spruce.glb")
+const SPRUCE = preload("res://assets/zalesye/spruce_rework.gltf")
+const SPRUCE_LOD = preload("res://assets/zalesye/spruce_rework_lod.gltf")
 const ALDER = preload("res://assets/zalesye/alder.glb")
 const BIRCH = preload("res://assets/zalesye/birch.glb")
 const VERGE = preload("res://assets/zalesye/verge.glb")
@@ -21,14 +22,14 @@ func _ready() -> void:
     var shrub_foliage := foliage.duplicate() as ShaderMaterial
     shrub_foliage.set_shader_parameter("crown_height", 1.1)
     shrub_foliage.set_shader_parameter("sway", 0.032)
-    for packed in [SPRUCE, ALDER, BIRCH, VERGE, BRAMBLE, BRAMBLE_LOD]:
+    for packed in [SPRUCE, ALDER, BIRCH, VERGE, BRAMBLE, BRAMBLE_LOD, SPRUCE_LOD]:
         var source: Node3D = packed.instantiate()
         var component := source.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
         var mesh: Mesh = component.mesh.duplicate()
         for i in mesh.get_surface_count():
             var material := mesh.surface_get_material(i) as BaseMaterial3D
             if material != null and material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR:
-                mesh.surface_set_material(i, shrub_foliage if canopy_meshes.size() >= 4 else foliage)
+                mesh.surface_set_material(i, shrub_foliage if canopy_meshes.size() == 4 or canopy_meshes.size() == 5 else foliage)
         canopy_meshes.append(mesh)
         source.free()
     # Hand-placed near silhouettes flank the entrance and the houses.
@@ -103,8 +104,8 @@ func _ready() -> void:
             multimesh.set_instance_transform(index,batch[index])
         var patch := MultiMeshInstance3D.new()
         patch.multimesh = multimesh
-        patch.visibility_range_end = 18.0 if key.z == 4 else (36.0 if key.z == 3 else 111.0)
-        patch.visibility_range_end_margin = 0.0 if key.z == 4 else 3.0
+        patch.visibility_range_end = 18.0 if key.z == 4 else (36.0 if key.z == 3 else (29.0 if key.z == 0 else 111.0))
+        patch.visibility_range_end_margin = 0.0 if key.z == 4 or key.z == 0 else 3.0
         if key.z == 3:
             patch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
         if key.z == 4:
@@ -118,6 +119,17 @@ func _ready() -> void:
             distant.visibility_range_end = 44.0
             distant.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
             add_child(distant)
+        if key.z == 0:
+            patch.name = "SpruceNear_%d_%d" % [key.x,key.y]
+            var far_spruce := MultiMeshInstance3D.new()
+            far_spruce.name = "SpruceFar_%d_%d" % [key.x,key.y]
+            var far_batch := multimesh.duplicate() as MultiMesh
+            far_batch.mesh = canopy_meshes[6]
+            far_spruce.multimesh = far_batch
+            far_spruce.visibility_range_begin = 29.0
+            far_spruce.visibility_range_end = 111.0
+            far_spruce.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+            add_child(far_spruce)
         add_child(patch)
     cells.clear()
 

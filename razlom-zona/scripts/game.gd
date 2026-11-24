@@ -218,7 +218,7 @@ func _create_world() -> void:
         var z := float((i * 37) % 77 - 38)
         if absf(x-18.0) < 2.5 and z < 0:
             x -= 4.5
-        _box("Rubble_%d" % i, Vector3(x, 0.14, z), Vector3(0.8 + float(i % 3), 0.28, 0.8), scrap)
+        _rubble_cluster(i, Vector3(x,0,z))
     for i in range(8):
         var z := -33.0 + 8.0 * float(i)
         if absf(z) < 8.0:
@@ -234,6 +234,37 @@ func _create_world() -> void:
     for i in range(5):
         var point := Vector3(-32 + i * 15, 0.55, -3.0 + float(i % 2) * 10.0)
         _spawn_pickup("scrap_%d" % i, "scrap", point)
+
+func _rubble_cluster(index: int, at: Vector3) -> void:
+    # Use the old obstacle footprint but show broken, irregular stone clusters.
+    var dimensions := Vector3(.8+float(index%3),.28,.8)
+    var cluster := Node3D.new()
+    cluster.name = "Rubble_%d" % index
+    cluster.position = at
+    add_child(cluster)
+    var height := maxf(preload("res://scripts/forest_access_landform.gd").height_at(at.x,at.z),preload("res://scripts/zalesye_landform.gd").height_at(street.to_local(at).x,street.to_local(at).z))
+    cluster.position.y = height
+    for low in [false,true]:
+        var packed: PackedScene = preload("res://assets/zalesye/broken_stones_lod.gltf") if low else preload("res://assets/zalesye/broken_stones.gltf")
+        var model := packed.instantiate() as Node3D
+        model.name = "LOD" if low else "Detail"
+        model.scale = Vector3(dimensions.x,.92,1.1)
+        cluster.add_child(model)
+        for part in model.find_children("*","MeshInstance3D",true,false):
+            var mesh := part as MeshInstance3D
+            if low:
+                mesh.visibility_range_begin = 18.0
+                mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+            else:
+                mesh.visibility_range_end = 18.0
+    var body := StaticBody3D.new()
+    var collider := CollisionShape3D.new()
+    var shape := BoxShape3D.new()
+    shape.size = dimensions
+    collider.shape = shape
+    collider.position.y = .14
+    body.add_child(collider)
+    cluster.add_child(body)
 
 func _create_gallery_bulkhead(cement: Material) -> void:
     # Retain the existing wall and its collider; this is a sealed terminus,
