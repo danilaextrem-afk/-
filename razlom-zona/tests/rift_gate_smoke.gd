@@ -43,6 +43,22 @@ func verify() -> void:
         push_error("Missing real shader portal plane")
         quit(1)
         return
+    var backdrop := gate.get_node_or_null("AnomalyDarkJaggedDepth_NoCollision") as MeshInstance3D
+    var fracture := gate.get_node_or_null("PixelFracturePlane_NonCollision") as MeshInstance3D
+    if backdrop == null or fracture == null:
+        push_error("Missing fracture layers")
+        quit(1)
+        return
+    var haze := backdrop.material_override as StandardMaterial3D
+    var shader_mat := fracture.material_override as ShaderMaterial
+    if haze == null or haze.transparency != BaseMaterial3D.TRANSPARENCY_ALPHA or haze.albedo_color.a > 0.15:
+        push_error("Opaque rift backdrop hides route beyond checkpoint")
+        quit(1)
+        return
+    if shader_mat == null or shader_mat.shader == null or fracture.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+        push_error("Fracture must remain a non-shadowing visual effect")
+        quit(1)
+        return
     var text: Label3D = gate.get_node_or_null("SignZONA07") as Label3D
     if text == null or text.text != "ЗОНА-07":
         push_error("Missing authored scene signage")
