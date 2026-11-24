@@ -17,6 +17,27 @@ func run() -> void:
     var game = load("res://scenes/main.tscn").instantiate()
     root.add_child(game)
     var player = game.player
+    var gallery := game.get_node_or_null("BunkerGallery") as Node3D
+    if not require(gallery != null and gallery.get_child_count() == 5, "Five gallery bays required"):
+        return
+    for index in range(5):
+        var bay := gallery.get_node_or_null("GalleryBay_%02d" % index) as Node3D
+        if not require(bay != null, "Missing bay"):
+            return
+        var meshes := bay.find_children("*", "MeshInstance3D", true, false)
+        if not require(not meshes.is_empty(), "Missing original gallery geometry"):
+            return
+        var visual := meshes[0] as MeshInstance3D
+        var weather := visual.material_override as ShaderMaterial
+        if not require(weather != null, "Missing weathered atlas"):
+            return
+        if not require(is_equal_approx(float(weather.get_shader_parameter("section_id")), float(index)), "Incorrect section material"):
+            return
+        if not require((bay.get_node_or_null("ServiceLight") != null) == (index % 2 == 0), "Unexpected light count"):
+            return
+        if index % 2 == 1:
+            if not require(is_zero_approx(float(weather.get_shader_parameter("lamp_power"))), "Failed lamp must not emit"):
+                return
     for enemy in game.enemies:
         enemy.queue_free()
     player.rotation.y = 0.0
