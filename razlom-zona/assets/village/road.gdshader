@@ -2,7 +2,10 @@ shader_type spatial;
 render_mode cull_disabled;
 uniform sampler2D ground_map : source_color, filter_nearest, repeat_disable;
 uniform sampler2D sky_map : source_color, filter_linear, repeat_enable;
+uniform float shoulder_start = 2.65;
+uniform float shoulder_end = 4.45;
 varying vec3 world_position;
+varying vec2 road_position;
 
 float cell_hash(vec2 cell) {
     return fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
@@ -10,6 +13,7 @@ float cell_hash(vec2 cell) {
 
 void vertex() {
     world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+    road_position = VERTEX.xz;
 }
 
 void fragment() {
@@ -19,10 +23,13 @@ void fragment() {
     float grain = cell_hash(floor(p * 32.0));
     float patch = cell_hash(floor(p * 3.0));
     // Two irregular wheel ruts and a raised, relatively dry centre strip.
-    float drift = sin(p.y * 0.34) * 0.18 + sin(p.y * 0.81) * 0.06;
-    float track_distance = abs(abs(p.x - drift) - 1.05);
+    // The street is rotated 90 degrees in the world; track coordinates
+    // must follow the local plane, not world X.
+    vec2 lane = floor(road_position * 32.0) / 32.0;
+    float drift = sin(lane.y * 0.34) * 0.18 + sin(lane.y * 0.81) * 0.06;
+    float track_distance = abs(abs(lane.x - drift) - 1.05);
     float rut = 1.0 - smoothstep(0.17, 0.39, track_distance);
-    float shoulder = smoothstep(2.65, 4.45, abs(p.x));
+    float shoulder = smoothstep(shoulder_start, shoulder_end, abs(lane.x));
     float wet = clamp(soil.a * (0.72 + 0.28 * rut) + rut * patch * 0.24, 0.0, 1.0);
     wet *= 1.0 - shoulder * 0.58;
     float grit = step(0.90, grain) * (1.0 - wet) * (0.35 + 0.65 * shoulder);
