@@ -1,6 +1,8 @@
 extends Node3D
 ## The last service left a narrow-band link from Zalesye to the G-4 gallery.
 const RECEIVER := preload("res://assets/transport/field_receiver.glb")
+const CABINET := preload("res://assets/bunker/g4_radio_cabinet.gltf")
+const CABINET_LOD := preload("res://assets/bunker/g4_radio_cabinet_lod.gltf")
 const CALL := preload("res://assets/sound/relay_call.ogg")
 const CONTACT := preload("res://assets/sound/relay_contact.ogg")
 const SITES := [
@@ -34,7 +36,9 @@ func _ready() -> void:
         receiver.position = SITES[index]
         receiver.rotation.y = YAW[index]
         add_child(receiver)
-        if index > 0:
+        if index == 2:
+            _mount_final_cabinet(receiver)
+        elif index > 0:
             var post := MeshInstance3D.new()
             var pole := CylinderMesh.new()
             pole.top_radius = .052
@@ -71,16 +75,45 @@ func _ready() -> void:
         wind.play()
     restore(stage)
 
+func _mount_final_cabinet(receiver: Node3D) -> void:
+    var mount := Node3D.new()
+    mount.name = "G4RadioCabinet"
+    mount.position = Vector3(0, -1.09, 0)
+    receiver.add_child(mount)
+    var detailed := CABINET.instantiate() as Node3D
+    detailed.name = "CabinetDetail"
+    mount.add_child(detailed)
+    var distant := CABINET_LOD.instantiate() as Node3D
+    distant.name = "CabinetLOD"
+    mount.add_child(distant)
+    for part in detailed.find_children("*", "MeshInstance3D", true, false):
+        var visual := part as MeshInstance3D
+        visual.visibility_range_end = 9.0
+    for part in distant.find_children("*", "MeshInstance3D", true, false):
+        var visual := part as MeshInstance3D
+        visual.visibility_range_begin = 9.0
+    # A compact physical proxy, outside the tested central walk lane.
+    var body := StaticBody3D.new()
+    body.name = "CabinetCollision"
+    var collision := CollisionShape3D.new()
+    var shape := BoxShape3D.new()
+    shape.size = Vector3(0.80, 0.92, 0.43)
+    collision.shape = shape
+    collision.position = Vector3(0, 0.46, -0.035)
+    body.add_child(collision)
+    mount.add_child(body)
+
 func restore(value: int) -> void:
     stage = clampi(value,0,SITES.size())
     beacon.stop()
     if stage < SITES.size():
         beacon.position = SITES[stage]
     for index in indicators.size():
-        var color := Color("ffad44") if index == stage else Color("3c4d44")
+        var completed := index == SITES.size() - 1 and stage == SITES.size()
+        var color := Color("78c994") if completed else (Color("ffad44") if index == stage else Color("3c4d44"))
         indicators[index].albedo_color = color
         indicators[index].emission = color
-        indicators[index].emission_energy_multiplier = 1.8 if index == stage else 0.08
+        indicators[index].emission_energy_multiplier = 1.8 if index == stage else (0.9 if completed else 0.08)
     call_timer = 1.4
 
 func update_sound(delta: float, listener: Vector3) -> void:
