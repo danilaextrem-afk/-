@@ -88,9 +88,26 @@ func run() -> void:
         return
     if not check(is_equal_approx(near_parts[0].visibility_range_end, 9.0) and is_equal_approx(far_parts[0].visibility_range_begin, 9.0), "Cabinet LOD misconfigured"):
         return
+    var foley = game.player.boot_foley
+    if not check(foley.bank.size() == 3, "Missing footstep surface bank"):
+        return
+    for surface in ["mud", "forest", "concrete"]:
+        var samples: Array = foley.bank[surface]
+        if not check(samples.size() == 3 and samples[0].data.size() > 8000 and samples[0].data != samples[1].data, "Missing distinct original Foley samples"):
+            return
+    if not check(foley.surface_at(Vector3(-30,0,2)) == "mud" and foley.surface_at(Vector3(22,0,-12)) == "forest" and foley.surface_at(Vector3(24,-3,-34)) == "concrete", "Incorrect surface classification"):
+        return
+    var initial_steps: int = foley.step_count
+    for frame in 20:
+        foley.advance(0.0, true, false, Vector3.ZERO)
+        foley.advance(0.2, false, false, Vector3.ZERO)
+    if not check(foley.step_count == initial_steps, "Footsteps while idle or airborne"):
+        return
     await listen(Vector3(-19,2.65,2), 48)
     await listen(game.radio.SITES[0]+Vector3(0,.6,0), 52)
     if not await walk_to(Vector2(-33.4,0.02)):
+        return
+    if not check(game.player.boot_foley.surface_counts["mud"] > 0, "Actual movement did not produce street footsteps"):
         return
     await listen(game.radio.SITES[0], 36)
     if not tune(1):
@@ -110,6 +127,8 @@ func run() -> void:
     for point in [Vector2(9,2.6),Vector2(20.8,2.6),Vector2(20.8,-18.0),Vector2(24,-18),Vector2(24,-35.0),Vector2(24.5,-35.5)]:
         if not await walk_to(point):
             return
+    if not check(game.player.boot_foley.surface_counts["concrete"] > 0, "Actual bunker traversal did not produce concrete footsteps"):
+        return
     await listen(game.radio.SITES[2], 50)
     if not tune(3):
         return
