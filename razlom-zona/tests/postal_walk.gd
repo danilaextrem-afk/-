@@ -46,7 +46,7 @@ func run() -> void:
     quarter = game.street.quarter
     var post: Node3D = quarter.post
     var finishes: Array[ShaderMaterial] = []
-    for landmark in ["PostOffice", "WidowsCottage", "WaterTower", "BusShelter", "TracksideCottage"]:
+    for landmark in ["PostOffice", "WidowsCottage", "WaterTower", "BusShelter", "TracksideWorkshop"]:
         var building := quarter.get_node_or_null(landmark) as Node3D
         if not require(building != null, "Missing architectural landmark " + landmark):
             return
@@ -57,7 +57,21 @@ func run() -> void:
         if not require(finish != null and finish.shader != null and finish.get_shader_parameter("district") != null, "Missing architecture finish " + landmark):
             return
         finishes.append(finish)
-    if not require(finishes[1] != finishes[4] and finishes[1].get_shader_parameter("timber_tint") != finishes[4].get_shader_parameter("timber_tint"), "Repeated cottages must have separate finishes"):
+    if not require(finishes[1] != finishes[4] and finishes[1].get_shader_parameter("timber_tint") != finishes[4].get_shader_parameter("timber_tint"), "Distinct buildings must have separate finishes"):
+        return
+    var workshop := quarter.get_node_or_null("TracksideWorkshop") as Node3D
+    var workshop_lod := workshop.get_node_or_null("WorkshopLOD") as Node3D
+    if not require(workshop_lod != null, "Missing workshop LOD"):
+        return
+    var workshop_parts := workshop.find_children("*", "MeshInstance3D", true, false)
+    var distant_parts := workshop_lod.find_children("*", "MeshInstance3D", true, false)
+    if not require(workshop_parts.size() == 2 and distant_parts.size() == 1, "Missing workshop geometry"):
+        return
+    var near_count := 0
+    for part in workshop_parts:
+        if is_equal_approx(part.visibility_range_end, 40.0):
+            near_count += 1
+    if not require(distant_parts[0].visibility_range_begin == 40.0 and near_count == 1, "Incorrect workshop LOD"):
         return
     var door_meshes: Array[Node] = quarter.door.find_children("*", "MeshInstance3D", true, false)
     if not require(not door_meshes.is_empty() and (door_meshes[0] as MeshInstance3D).material_override == null, "Door atlas unexpectedly replaced"):

@@ -25,7 +25,7 @@ func capture() -> void:
     cam.far = 400
     var folder := ProjectSettings.globalize_path("res://captures/models")
     DirAccess.make_dir_recursive_absolute(folder)
-    var files := ["transport/last_bus.glb","transport/field_torch.glb","transport/field_receiver.glb","transport/watchman.glb","village/access_woods.glb","base/guardhouse04.gltf","bunker/g4_radio_cabinet.gltf","bunker/g4_radio_cabinet_lod.gltf","zalesye/zalesye_landform.gltf","zalesye/zalesye_landform_lod.gltf","zalesye/bramble.gltf","zalesye/bramble_lod.gltf"]
+    var files := ["transport/last_bus.glb","transport/field_torch.glb","transport/field_receiver.glb","transport/watchman.glb","village/access_woods.glb","base/guardhouse04.gltf","bunker/g4_radio_cabinet.gltf","bunker/g4_radio_cabinet_lod.gltf","zalesye/zalesye_landform.gltf","zalesye/zalesye_landform_lod.gltf","zalesye/bramble.gltf","zalesye/bramble_lod.gltf","zalesye/trackside_workshop.gltf","zalesye/trackside_workshop_lod.gltf"]
     for kit in ["post_house","postal_door","bus_shelter","widow_house","water_tower","alder","birch","spruce","verge","field_lamp","battery","medkit","scrap","drainage","standing_water"]:
         files.append("zalesye/"+kit+".glb")
     for file in files:
