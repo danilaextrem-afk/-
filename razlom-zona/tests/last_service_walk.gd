@@ -124,6 +124,18 @@ func run() -> void:
     var forest_hit: Dictionary = game.get_world_3d().direct_space_state.intersect_ray(forest_ray)
     if not check(not forest_hit.is_empty() and absf(forest_hit.position.y-forest_point.y) < .06, "Forest slope collision mismatch"):
         return
+    var skyline := game.get_node_or_null("IndustrialSkyline") as Node3D
+    if not check(skyline != null and skyline.get_child_count() == 2, "Missing industrial landmarks"):
+        return
+    for landmark in skyline.get_children():
+        var close_parts := landmark.get_node("Detail").find_children("*","MeshInstance3D",true,false)
+        var far_parts := landmark.get_node("LOD").find_children("*","MeshInstance3D",true,false)
+        if not check(close_parts.size() == 1 and far_parts.size() == 1 and close_parts[0].get_aabb().size.y > 8.5, "Industrial landmark geometry missing"):
+            return
+        if not check(close_parts[0].visibility_range_end == 42.0 and far_parts[0].visibility_range_begin == 42.0, "Industrial landmark LOD mismatch"):
+            return
+        if not check(landmark.get_node_or_null("Shell") is StaticBody3D, "Missing landmark collider"):
+            return
     var perimeter := game.get_node_or_null("BasePerimeter") as Node3D
     if not check(perimeter != null and perimeter.get_child_count() == 4, "Missing intact and collapsed base perimeter"):
         return

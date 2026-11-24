@@ -183,7 +183,7 @@ func _create_world() -> void:
     hero_gate.rotation.y = -PI / 2.0
     add_child(hero_gate)
 
-    _house(Vector3(-3, 0, -20), Vector3(11, 8, 9), cement, roof, dark)
+    add_child(preload("res://scripts/industrial_skyline.gd").new())
     var guardhouse := preload("res://assets/base/guardhouse04.gltf").instantiate() as Node3D
     guardhouse.position = Vector3(26.6, 0, -9.5)
     guardhouse.rotation.y = -PI/2
@@ -198,8 +198,6 @@ func _create_world() -> void:
     guardhouse.add_child(shell)
     add_child(preload("res://scripts/base_perimeter.gd").new())
     _house(Vector3(28, 0, 22), Vector3(8, 5, 8), cement, roof, dark)
-    _box("OldWarehouse", Vector3(1, 4, 29), Vector3(15, 8, 12), _material("414f50"))
-    _box("WarehouseRoof", Vector3(1, 8.2, 29), Vector3(16, 0.55, 13), roof)
     var gallery := preload("res://scripts/bunker.gd").new()
     gallery.name = "BunkerGallery"
     gallery.position = Vector3(24, 0, -20)
