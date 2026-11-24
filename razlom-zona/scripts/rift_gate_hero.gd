@@ -72,9 +72,9 @@ func _make_materials() -> void:
     _mat("dry_grass", "8b7e58")
     _mat("wet", "182f35")
     _mat("sign", "514f4b", 0.45)
-    _glow("cyan", "3ee5d1", 2.3)
-    _glow("magenta", "9839f0", 2.1)
-    _glow("pale_cyan", "7afdf2", 2.9)
+    _glow("cyan", "479e98", 0.65)
+    _glow("magenta", "87649b", 0.55)
+    _glow("pale_cyan", "aad5c5", 0.95)
 
 func _box(label: String, location: Vector3, dimensions: Vector3, material: String, yaw: float = 0.0) -> MeshInstance3D:
     var node := MeshInstance3D.new()
@@ -246,6 +246,11 @@ func _rift_void_geometry() -> void:
     m.mesh = st.commit()
     var void_mat: StandardMaterial3D = _materials["void"]
     void_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+    # Faint haze only: the road beyond the rift must remain visible.
+    void_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    void_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    void_mat.albedo_color = Color(0.035, 0.055, 0.070, 0.08)
+    m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     m.material_override = void_mat
     add_child(m)
 
@@ -262,6 +267,7 @@ func _anomaly() -> void:
     var sh := ShaderMaterial.new()
     sh.shader = preload("res://assets/anomaly/rift_surface.gdshader")
     pane.material_override = sh
+    pane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(pane)
 
     # Three-dimensional crystalline edges, irregular local highlights
@@ -284,7 +290,7 @@ func _anomaly() -> void:
     _rift_light.name = "RiftBounceCyan"
     _rift_light.position = Vector3(-1.1, 2.0, -.64)
     _rift_light.light_color = Color("#41dacf")
-    _rift_light.light_energy = 2.6
+    _rift_light.light_energy = 1.7
     _rift_light.omni_range = 7.0
     _rift_light.shadow_enabled = false
     add_child(_rift_light)
@@ -292,7 +298,7 @@ func _anomaly() -> void:
     _edge_light.name = "RiftBounceViolet"
     _edge_light.position = Vector3(1.7, 2.9, 1.0)
     _edge_light.light_color = Color("#8d3cce")
-    _edge_light.light_energy = 1.55
+    _edge_light.light_energy = 0.85
     _edge_light.omni_range = 4.5
     _edge_light.shadow_enabled = false
     add_child(_edge_light)
@@ -360,6 +366,6 @@ func _collision_only() -> void:
 func _process(delta: float) -> void:
     _time += delta
     if is_instance_valid(_rift_light):
-        _rift_light.light_energy = 2.25 + sin(_time * 1.5) * .32
+        _rift_light.light_energy = 1.5 + sin(_time * 1.5) * .22
     if is_instance_valid(_edge_light):
-        _edge_light.light_energy = 1.3 + sin(_time * 2.3 + 1.4) * .22
+        _edge_light.light_energy = 0.8 + sin(_time * 2.3 + 1.4) * .16
