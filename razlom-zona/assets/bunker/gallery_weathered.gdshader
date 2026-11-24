@@ -1,8 +1,8 @@
 shader_type spatial;
 render_mode cull_back;
 uniform sampler2D atlas : source_color, filter_nearest, repeat_disable;
-uniform vec3 section_tint : source_color = vec3(0.8, 0.82, 0.79);
-uniform vec3 lamp_tint : source_color = vec3(0.8, 0.94, 0.81);
+uniform vec4 section_tint : source_color = vec4(0.8, 0.82, 0.79, 1.0);
+uniform vec4 lamp_tint : source_color = vec4(0.8, 0.94, 0.81, 1.0);
 uniform float lamp_power = 0.8;
 uniform float section_id = 0.0;
 varying vec3 bay_pos;
@@ -30,12 +30,12 @@ void fragment() {
     float dirt = h(floor(vec2(p.x + p.z * 0.11, p.z) * 15.0));
     float wet = floor_tile * (1.0 - smoothstep(0.12, 0.48, abs(p.x)))
         * smoothstep(0.38, 0.83, h(vec2(floor(p.z * 3.0), section_id + 7.0)));
-    vec3 color = base * mix(vec3(1.0), section_tint, concrete + floor_tile);
+    vec3 color = base * mix(vec3(1.0), section_tint.rgb, concrete + floor_tile);
     color *= 1.0 - 0.22 * streak - 0.26 * damp - 0.12 * floor_tile * dirt;
     color = mix(color, color * vec3(0.68, 0.83, 0.75), damp * 0.5);
     color *= 1.0 - 0.16 * wet;
-    ALBEDO = mix(color, lamp_tint, lamp * 0.7);
+    ALBEDO = mix(color, lamp_tint.rgb * (0.22 + 0.78 * lamp_power), lamp * 0.85);
     ROUGHNESS = mix(0.91 - 0.15 * rust_tile, 0.34, wet);
     SPECULAR = mix(0.22, 0.48, wet);
-    EMISSION = lamp_tint * lamp * lamp_power;
+    EMISSION = lamp_tint.rgb * lamp * lamp_power;
 }
