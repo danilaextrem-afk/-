@@ -148,6 +148,23 @@ func _create_world() -> void:
     _box("BuriedRoof", Vector3(24, -0.12, -37), Vector3(4, 0.24, 6), earth)
     _box("MainRoad", Vector3(0, 0.025, 2), Vector3(88, 0.06, 7), pavement)
     _box("SideRoad", Vector3(18, 0.03, -12), Vector3(6, 0.05, 48), pavement)
+    # The forest access road uses the same world-space pixel material as Zalesye.
+    # This visual layer leaves the existing walkable collision and ramp untouched.
+    var forest_lane := MeshInstance3D.new()
+    forest_lane.name = "ForestAccessRoadSurface"
+    var lane_mesh := PlaneMesh.new()
+    lane_mesh.size = Vector2(6.0, 48.0)
+    forest_lane.mesh = lane_mesh
+    forest_lane.position = Vector3(18.0, 0.061, -12.0)
+    var lane_material := ShaderMaterial.new()
+    lane_material.shader = preload("res://assets/village/road.gdshader")
+    lane_material.set_shader_parameter("ground_map", preload("res://assets/village/road.png"))
+    lane_material.set_shader_parameter("sky_map", preload("res://assets/village/storm.jpg"))
+    lane_material.set_shader_parameter("shoulder_start", 1.85)
+    lane_material.set_shader_parameter("shoulder_end", 2.85)
+    forest_lane.material_override = lane_material
+    forest_lane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    add_child(forest_lane)
     # A fictional abandoned settlement, not a real location.
     var street := preload("res://scripts/crimson_street.gd").new()
     street.name = "CrimsonStreet"
