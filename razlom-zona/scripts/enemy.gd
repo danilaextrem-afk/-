@@ -9,6 +9,10 @@ var wander_time: float = 0.0
 var wander_direction: Vector3 = Vector3.ZERO
 var model: Node3D
 var limbs: Array[Node3D] = []
+var distant_model: Node3D
+var near_joints: Dictionary = {}
+var far_joints: Dictionary = {}
+const JOINT_NAMES := ["ArmL","ArmR","LegL","LegR","ForearmL","ForearmR","ShinL","ShinR","Head"]
 var phase := 0.0
 var stride_blend := 0.0
 var strike_pose := 0.0
@@ -28,10 +32,20 @@ func _ready() -> void:
     _build_visual()
 
 func _build_visual() -> void:
-    model = preload("res://assets/transport/watchman.glb").instantiate() as Node3D
+    model = preload("res://assets/transport/watchman_rework.gltf").instantiate() as Node3D
+    model.name = "WatchmanDetail"
     add_child(model)
+    distant_model = preload("res://assets/transport/watchman_rework_lod.gltf").instantiate() as Node3D
+    distant_model.name = "WatchmanLOD"
+    add_child(distant_model)
+    for name_part in JOINT_NAMES:
+        near_joints[name_part] = model.find_child(name_part,true,false) as Node3D
+        far_joints[name_part] = distant_model.find_child(name_part,true,false) as Node3D
     for name_part in ["ArmL","ArmR","LegL","LegR"]:
-        limbs.append(model.find_child(name_part,true,false) as Node3D)
+        limbs.append(near_joints[name_part])
+    # Switch the whole model together, so individual articulated pieces cannot
+    # disappear at slightly different distances from the camera.
+    distant_model.visible = false
 
 func animate(delta: float, pace: float) -> void:
     stride_blend = move_toward(stride_blend, minf(pace / 2.6, 1.0), delta * 5.5)
@@ -54,6 +68,24 @@ func animate(delta: float, pace: float) -> void:
     model.position.y = absf(sin(phase))*.025*stride_blend + breathe
     model.rotation.x = lerpf(model.rotation.x, .08*stride_blend - strike_pose*.13, minf(1.0,delta*8.0))
     model.rotation.z = sin(phase)*.025*stride_blend
+    var knee_l := maxf(0.0, sin(phase)) * .65 * stride_blend
+    var knee_r := maxf(0.0, -sin(phase)) * .65 * stride_blend
+    if is_instance_valid(near_joints.get("ShinL")):
+        near_joints["ShinL"].rotation.x = knee_l
+        near_joints["ShinR"].rotation.x = knee_r
+        near_joints["ForearmL"].rotation.x = -.18 - maxf(strike_pose,0.0)*.36 - .13*stride_blend
+        near_joints["ForearmR"].rotation.x = -.24 - maxf(strike_pose,0.0)*.73 - .16*stride_blend
+        near_joints["Head"].rotation.x = -.07*stride_blend + strike_pose*.09
+    for joint_name in JOINT_NAMES:
+        if is_instance_valid(near_joints.get(joint_name)) and is_instance_valid(far_joints.get(joint_name)):
+            far_joints[joint_name].rotation = near_joints[joint_name].rotation
+    distant_model.transform = model.transform
+    var observer := get_viewport().get_camera_3d()
+    if is_instance_valid(observer):
+        var d := observer.global_position.distance_to(global_position)
+        var show_far := d > (21.0 if model.visible else 19.0)
+        model.visible = not show_far
+        distant_model.visible = show_far
 
 func _can_reach() -> bool:
     if not is_instance_valid(player) or not player.alive:
