@@ -124,6 +124,18 @@ func run() -> void:
     var forest_hit: Dictionary = game.get_world_3d().direct_space_state.intersect_ray(forest_ray)
     if not check(not forest_hit.is_empty() and absf(forest_hit.position.y-forest_point.y) < .06, "Forest slope collision mismatch"):
         return
+    var perimeter := game.get_node_or_null("BasePerimeter") as Node3D
+    if not check(perimeter != null and perimeter.get_child_count() == 4, "Missing intact and collapsed base perimeter"):
+        return
+    for section in perimeter.get_children():
+        var detail_parts := section.get_node("Detail").find_children("*","MeshInstance3D",true,false)
+        var distant_parts := section.get_node("LOD").find_children("*","MeshInstance3D",true,false)
+        if not check(detail_parts.size() == 1 and distant_parts.size() == 1, "Invalid base fence mesh"):
+            return
+        if not check(detail_parts[0].visibility_range_end == 28.0 and distant_parts[0].visibility_range_begin == 28.0, "Invalid base fence LOD"):
+            return
+        if not check(section.find_children("*","StaticBody3D",true,false).size() == 3, "Missing base fence collision"):
+            return
     # The forest lane is rendered just above its unchanged collision slab.
     var lane := game.get_node_or_null("ForestAccessRoadSurface") as MeshInstance3D
     if not check(lane != null, "Missing forest road visual"):

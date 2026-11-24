@@ -196,6 +196,7 @@ func _create_world() -> void:
     collider.position.y = 1.69
     shell.add_child(collider)
     guardhouse.add_child(shell)
+    add_child(preload("res://scripts/base_perimeter.gd").new())
     _house(Vector3(28, 0, 22), Vector3(8, 5, 8), cement, roof, dark)
     _box("OldWarehouse", Vector3(1, 4, 29), Vector3(15, 8, 12), _material("414f50"))
     _box("WarehouseRoof", Vector3(1, 8.2, 29), Vector3(16, 0.55, 13), roof)
