@@ -57,6 +57,21 @@ func run() -> void:
         return
     seed(2717)
     open_game()
+    # The forest lane is rendered just above its unchanged collision slab.
+    var lane := game.get_node_or_null("ForestAccessRoadSurface") as MeshInstance3D
+    if not check(lane != null, "Missing forest road visual"):
+        return
+    var slab := game.get_node_or_null("SideRoad") as Node3D
+    if not check(slab != null, "Missing forest road collision slab"):
+        return
+    var plane := lane.mesh as PlaneMesh
+    var material := lane.material_override as ShaderMaterial
+    if not check(plane != null and material != null, "Invalid forest road mesh or material"):
+        return
+    if not check(plane.size.is_equal_approx(Vector2(6.0, 48.0)) and absf(lane.position.y - slab.position.y - 0.031) < 0.001, "Forest road visual misaligned"):
+        return
+    if not check(lane.get_child_count() == 0 and material.shader != null, "Unexpected forest road collision or missing shader"):
+        return
     await listen(Vector3(-19,2.65,2), 48)
     await listen(game.radio.SITES[0]+Vector3(0,.6,0), 52)
     if not await walk_to(Vector2(-33.4,0.02)):
