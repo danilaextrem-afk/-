@@ -5,6 +5,7 @@ const ALDER = preload("res://assets/zalesye/alder.glb")
 const BIRCH = preload("res://assets/zalesye/birch.glb")
 const VERGE = preload("res://assets/zalesye/verge.glb")
 const LANDFORM = preload("res://scripts/zalesye_landform.gd")
+const FOREST_FORM = preload("res://scripts/forest_access_landform.gd")
 const BRAMBLE = preload("res://assets/zalesye/bramble.gltf")
 const BRAMBLE_LOD = preload("res://assets/zalesye/bramble_lod.gltf")
 
@@ -79,6 +80,19 @@ func _ready() -> void:
                 if world.x > -10.0 and world.x < 4.0 and world.z < -14.0 and world.z > -26.0:
                     continue
                 _place(4,local,rng.randf_range(.58,1.20),false)
+    # Staggered forest silhouettes on the outside of the access road.
+    # Keep the base and the tested road corridor open, including the encounter.
+    var forest_rng := RandomNumberGenerator.new()
+    forest_rng.seed = 71029
+    for side in [-1,1]:
+        for group in range(7):
+            var z := -5.8-float(group)*4.4
+            var x := 11.7 if side < 0 else 34.3
+            for i in range(3):
+                var world := Vector3(x+forest_rng.randf_range(-1.6,2.0),0,z+forest_rng.randf_range(-1.4,1.4))
+                if world.distance_to(Vector3(12.0,0,-13.5)) < 3.1:
+                    continue
+                _place(forest_rng.randi_range(0,2),to_local(world),forest_rng.randf_range(.78,1.19),false)
     for key in cells:
         var batch: Array = cells[key]
         var multimesh := MultiMesh.new()
@@ -109,7 +123,8 @@ func _ready() -> void:
 
 func _place(species: int, origin: Vector3, factor: float, solid: bool) -> void:
     if species != 3:
-        origin.y += LANDFORM.height_at(origin.x, origin.z)
+        var world := to_global(origin)
+        origin.y += maxf(LANDFORM.height_at(origin.x, origin.z), FOREST_FORM.height_at(world.x, world.z))
     var key := Vector3i(floori(origin.x/14),floori(origin.z/14),species)
     if not cells.has(key):
         cells[key] = []
