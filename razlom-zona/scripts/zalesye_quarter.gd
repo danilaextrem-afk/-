@@ -73,13 +73,7 @@ func _ready() -> void:
     _weather_building(workshop, Color("d3a77e"), Color("c0b8a6"), 27.0)
     _box(workshop,Vector3(0,1.50,0),Vector3(5.82,3.0,4.49))
     _model(preload("res://assets/zalesye/drainage.glb"),"RoadsideDrains",Vector3.ZERO,0)
-    var pools := _model(preload("res://assets/zalesye/standing_water.glb"),"WheelRutPools",Vector3.ZERO,0)
-    var surface := ShaderMaterial.new()
-    surface.shader = preload("res://assets/zalesye/ditch_water.gdshader")
-    surface.set_shader_parameter("clouds",preload("res://assets/zalesye/evening.jpg"))
-    for part in pools.find_children("*","MeshInstance3D",true,false):
-        part.material_override = surface
-        part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    # Pools are rendered in the road material, rather than floating overlays.
     add_child(preload("res://scripts/zalesye_grove.gd").new())
 
 func _weather_building(model: Node3D, timber: Color, plaster: Color, variation: float) -> void:
