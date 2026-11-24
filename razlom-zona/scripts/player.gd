@@ -13,6 +13,7 @@ const WALK_SPEED: float = 4.5
 const RUN_SPEED: float = 7.5
 const LOOK_SENSITIVITY: float = 0.0026
 
+var boot_foley := preload("res://scripts/boot_foley.gd").new()
 var hand: Node3D
 var stride := 0.0
 var camera: Camera3D
@@ -22,6 +23,7 @@ var touch_drag_active: bool = false
 
 func _ready() -> void:
     name = "Player"
+    add_child(boot_foley)
     var shape := CollisionShape3D.new()
     var capsule := CapsuleShape3D.new()
     capsule.radius = 0.35
@@ -81,7 +83,10 @@ func _physics_process(delta: float) -> void:
         velocity.y -= 18.0 * delta
     move_and_slide()
 
-    var pace := Vector2(velocity.x, velocity.z).length() if is_on_floor() else 0.0
+    var displacement := get_position_delta()
+    var travel := Vector2(displacement.x, displacement.z).length()
+    boot_foley.advance(travel, is_on_floor(), running, global_position)
+    var pace := travel / maxf(delta, 0.0001) if is_on_floor() else 0.0
     stride = fmod(stride + pace * delta * 1.65, TAU)
     var sway := Vector3(sin(stride)*.010, cos(stride*2.0)*.006, 0) * minf(1.0,pace/4)
     hand.position = hand.position.lerp(Vector3(.255,-.237,-.47)+sway, minf(1.0,delta*14))
