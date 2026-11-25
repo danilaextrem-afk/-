@@ -16,6 +16,14 @@ const LOOK_SENSITIVITY: float = 0.0026
 var boot_foley := preload("res://scripts/boot_foley.gd").new()
 var hand: Node3D
 var stride := 0.0
+var motion_blend := 0.0
+var look_lag := Vector2.ZERO
+var hand_base := Vector3(.255,-.237,-.47)
+var hand_rotation := Vector3(5,12,-6)
+var lamp_level := 1.0
+var lamp_elapsed := 0.0
+var lens: MeshInstance3D
+var lens_finish: StandardMaterial3D
 var camera: Camera3D
 var torch: SpotLight3D
 var flashlight_on: bool = true
@@ -39,18 +47,38 @@ func _ready() -> void:
     add_child(camera)
 
     hand = preload("res://assets/zalesye/field_lamp.glb").instantiate() as Node3D
-    hand.position = Vector3(.255,-.237,-.47)
-    hand.rotation_degrees = Vector3(5,12,-6)
+    hand.position = hand_base
+    hand.rotation_degrees = hand_rotation
     camera.add_child(hand)
     torch = SpotLight3D.new()
     torch.name = "Flashlight"
     torch.light_color = Color("e4d8ba")
-    torch.light_energy = 1.15
-    torch.spot_range = 16.0
-    torch.spot_angle = 29.0
+    torch.light_energy = 1.65
+    torch.spot_range = 17.0
+    torch.spot_angle = 32.0
     torch.spot_angle_attenuation = .77
     torch.shadow_enabled = false
     camera.add_child(torch)
+    lens = MeshInstance3D.new()
+    lens.name = "LampLens"
+    var lens_mesh := CylinderMesh.new()
+    lens_mesh.top_radius = .048
+    lens_mesh.bottom_radius = .048
+    lens_mesh.height = .003
+    lens_mesh.radial_segments = 20
+    lens_mesh.rings = 1
+    lens.mesh = lens_mesh
+    lens.position = Vector3(0,0,-.180)
+    lens.rotation.x = PI*.5
+    lens.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    lens_finish = StandardMaterial3D.new()
+    lens_finish.albedo_color = Color("a5b7a9")
+    lens_finish.roughness = .3
+    lens_finish.emission_enabled = true
+    lens_finish.emission = Color("f4dfb4")
+    lens.material_override = lens_finish
+    hand.add_child(lens)
+    _update_lamp(0.0, 0.0, false)
 
     if not OS.has_feature("mobile"):
         Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -88,13 +116,32 @@ func _physics_process(delta: float) -> void:
     boot_foley.advance(travel, is_on_floor(), running, global_position)
     var pace := travel / maxf(delta, 0.0001) if is_on_floor() else 0.0
     stride = fmod(stride + pace * delta * 1.65, TAU)
-    var sway := Vector3(sin(stride)*.010, cos(stride*2.0)*.006, 0) * minf(1.0,pace/4)
-    hand.position = hand.position.lerp(Vector3(.255,-.237,-.47)+sway, minf(1.0,delta*14))
+    _update_lamp(delta, pace, running)
     if flashlight_on:
         battery = maxf(0.0, battery - 0.12 * delta)
         if battery <= 0.0:
             flashlight_on = false
     torch.visible = flashlight_on and battery > 0.0
+
+func _update_lamp(delta: float, pace: float, running: bool) -> void:
+    lamp_elapsed += delta
+    motion_blend = move_toward(motion_blend, clampf(pace / WALK_SPEED,0.0,1.0), delta*6.5)
+    look_lag = look_lag.lerp(Vector2.ZERO,minf(1.0,delta*9.0))
+    var stride_strength := motion_blend * (1.35 if running else 1.0)
+    var breath := sin(lamp_elapsed*1.8)*.0025
+    var sway := Vector3(sin(stride)*.015,cos(stride*2.0)*.009,absf(sin(stride))*.010)*stride_strength
+    var target := hand_base+sway+Vector3(look_lag.x*.00065,look_lag.y*.00055+breath,0.0)
+    hand.position = hand.position.lerp(target,minf(1.0,delta*12.0))
+    var angle := hand_rotation+Vector3(look_lag.y*.16,sin(stride)*1.8*stride_strength+look_lag.x*.17,-sin(stride)*1.5*stride_strength)
+    hand.rotation_degrees = hand.rotation_degrees.lerp(angle,minf(1.0,delta*12.0))
+    # Light originates at the visible lens; aim converges near the centre of view.
+    torch.position = camera.to_local(hand.to_global(Vector3(0,0,-.185)))
+    torch.look_at(camera.to_global(Vector3(look_lag.x*.008,-.06+look_lag.y*.008,-8.0)),camera.global_basis.y)
+    var power := 0.0 if not flashlight_on or battery <= 0.0 else lerpf(.38,1.0,smoothstep(0.0,18.0,battery))
+    lamp_level = move_toward(lamp_level,power,delta*8.0)
+    torch.light_energy = 1.65*lamp_level
+    lens_finish.emission_energy_multiplier = 1.9*lamp_level if flashlight_on else 0.0
+    lens_finish.albedo_color = Color("b9c3ad") if flashlight_on else Color("354440")
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed and not event.echo:
@@ -112,6 +159,7 @@ func look_from_touch(relative: Vector2) -> void:
     _look(relative)
 
 func _look(delta_pixels: Vector2) -> void:
+    look_lag = (look_lag+delta_pixels*.28).limit_length(14.0)
     rotate_y(-delta_pixels.x * LOOK_SENSITIVITY)
     camera.rotation.x = clampf(camera.rotation.x - delta_pixels.y * LOOK_SENSITIVITY, -1.35, 1.35)
 
@@ -119,6 +167,9 @@ func toggle_flashlight() -> void:
     if battery > 0.0:
         flashlight_on = not flashlight_on
         torch.visible = flashlight_on
+        if not flashlight_on:
+            lens_finish.emission_energy_multiplier = 0.0
+            lens_finish.albedo_color = Color("354440")
 
 func hit(damage: float) -> void:
     health = maxf(0.0, health - damage)

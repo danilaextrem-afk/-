@@ -195,6 +195,21 @@ func run() -> void:
         return
     if not check(is_equal_approx(near_parts[0].visibility_range_end, 9.0) and is_equal_approx(far_parts[0].visibility_range_begin, 9.0), "Cabinet LOD misconfigured"):
         return
+    var lamp_player = game.player
+    if not check(lamp_player.torch.global_position.distance_to(lamp_player.lens.global_position) < .02, "Flashlight beam must originate at physical lens"):
+        return
+    lamp_player.toggle_flashlight()
+    if not check(not lamp_player.torch.visible and is_zero_approx(lamp_player.lens_finish.emission_energy_multiplier), "Flashlight toggle did not extinguish lens"):
+        return
+    lamp_player.toggle_flashlight()
+    lamp_player.battery = 4.0
+    lamp_player._update_lamp(1.0,0.0,false)
+    if not check(lamp_player.torch.light_energy < 1.3 and lamp_player.torch.light_energy > .4, "Low battery flashlight brightness incorrect"):
+        return
+    lamp_player.battery = 100.0
+    lamp_player._update_lamp(1.0,0.0,false)
+    if not check(is_equal_approx(lamp_player.torch.light_energy,1.65), "Flashlight did not regain brightness"):
+        return
     var foley = game.player.boot_foley
     if not check(foley.bank.size() == 3, "Missing footstep surface bank"):
         return

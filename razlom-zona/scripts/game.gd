@@ -209,10 +209,7 @@ func _create_world() -> void:
     add_child(forecourt)
     _create_gallery_bulkhead(cement)
     _spawn_pickup("bunker_supplies", "medkit", Vector3(24, -4.10, -38.8))
-    _box("WatchPlatform", Vector3(-37, 5, -30), Vector3(5, 0.7, 5), wood)
-    for x in [-39.0, -35.0]:
-        for z in [-32.0, -28.0]:
-            _box("WatchLeg", Vector3(x, 2.45, z), Vector3(0.45, 4.9, 0.45), wood)
+    _watch_post(wood, cement, roof, scrap)
     for i in range(12):
         var x := float((i * 19) % 79 - 39)
         var z := float((i * 37) % 77 - 38)
@@ -223,7 +220,7 @@ func _create_world() -> void:
         var z := -33.0 + 8.0 * float(i)
         if absf(z) < 8.0:
             continue
-        _box("FenceEast_%d" % i, Vector3(44, 1.0, z), Vector3(0.25, 2.0, 6.0), wood)
+        _east_fence_section(i, z, wood, cement, scrap)
     # A translucent anomalous field is a danger, NOT a boss arena.
     _anomaly(Vector3(13, 0, 19), 4.6, cyan)
     _anomaly(Vector3(-21, 0, -27), 3.8, _material("c75a9e", true))
@@ -234,6 +231,61 @@ func _create_world() -> void:
     for i in range(5):
         var point := Vector3(-32 + i * 15, 0.55, -3.0 + float(i % 2) * 10.0)
         _spawn_pickup("scrap_%d" % i, "scrap", point)
+
+
+# Authored in-engine architecture, with original blocker footprints.
+func _detail_beam(label: String, a: Vector3, b: Vector3, width: float, mat: Material) -> void:
+    var delta := b - a
+    var piece := _box(label, (a + b) * 0.5, Vector3(width, delta.length(), width), mat, false)
+    piece.quaternion = Quaternion(Vector3.UP, delta.normalized())
+
+func _watch_post(wood: Material, cement: Material, roof: Material, metal: Material) -> void:
+    var center := Vector3(-37, 0, -30)
+    var weathered := _material("6b6150")
+    var pale := _material("827664")
+    var darkwood := _material("37362f")
+    var deck := _box("WatchPlatform", center + Vector3(0, 5, 0), Vector3(5, 0.7, 5), wood)
+    (deck.get_child(0) as MeshInstance3D).visible = false
+    for i in range(13):
+        var x := -2.28 + float(i) * 0.38
+        _box("WatchDeckBoard_%d" % i, center + Vector3(x, 5.24, 0), Vector3(0.365, 0.22, 4.94), weathered if i % 3 == 0 else wood, false)
+    for side in [-1.0, 1.0]:
+        _box("WatchDeckGirder", center + Vector3(side * 1.85, 4.88, 0), Vector3(0.28, 0.44, 4.98), darkwood, false)
+        for end in [-1.0, 1.0]:
+            var base := center + Vector3(side * 2.0, 0, end * 2.0)
+            _box("WatchLeg", base + Vector3(0, 2.45, 0), Vector3(0.45, 4.9, 0.45), wood)
+            _box("WatchFooting", base + Vector3(0, 0.17, 0), Vector3(0.62, 0.34, 0.62), cement, false)
+            _box("WatchBoltCollar", base + Vector3(0, 0.48, 0), Vector3(0.49, 0.13, 0.49), metal, false)
+            _box("WatchRoofPost", base + Vector3(0, 6.25, 0), Vector3(0.19, 1.8, 0.19), darkwood, false)
+        _detail_beam("WatchCrossBrace", center + Vector3(side * 2, 0.7, -2), center + Vector3(side * 2, 4.65, 2), 0.18, weathered)
+        _detail_beam("WatchCrossBrace", center + Vector3(side * 2, 0.7, 2), center + Vector3(side * 2, 4.65, -2), 0.18, darkwood)
+        _detail_beam("WatchRail", center + Vector3(side * 2.25, 6.0, -2.2), center + Vector3(side * 2.25, 6.0, 2.2), 0.12, pale)
+        _detail_beam("WatchRail", center + Vector3(-2.25, 6.0, side * 2.2), center + Vector3(2.25, 6.0, side * 2.2), 0.12, weathered)
+        _detail_beam("WatchCrossBrace", center + Vector3(-2, 0.7, side * 2), center + Vector3(2, 4.65, side * 2), 0.18, darkwood)
+        var sheet := _box("WatchRoofSlope", center + Vector3(side * 1.24, 7.36, 0), Vector3(2.64, 0.12, 5.3), roof, false)
+        sheet.rotation.z = -side * 0.22
+        for i in range(5):
+            var z := -2.35 + float(i) * 1.17
+            _detail_beam("WatchRoofSeam", center + Vector3(side * 0.04, 7.70, z), center + Vector3(side * 2.52, 7.15, z), 0.065, metal)
+    _box("WatchRoofRidge", center + Vector3(0, 7.72, 0), Vector3(0.18, 0.15, 5.32), metal, false)
+
+func _east_fence_section(index: int, z: float, wood: Material, cement: Material, metal: Material) -> void:
+    var base := Vector3(44, 0, z)
+    var blocker := _box("FenceEast_%d" % index, base + Vector3(0, 1, 0), Vector3(0.25, 2, 6), wood)
+    (blocker.get_child(0) as MeshInstance3D).visible = false
+    var faded := _material("71695a")
+    var dark := _material("403e35")
+    for i in range(12):
+        var offset := -2.75 + float(i) * 0.5
+        var h := 2.02 + float((index * 3 + i * 7) % 5) * 0.035
+        _box("FenceWeatheredBoard", base + Vector3(0, h * 0.5, offset), Vector3(0.16, h, 0.50), faded if (i + index) % 3 == 0 else wood, false)
+    for side in [-1.0, 1.0]:
+        var post := base + Vector3(0, 0, side * 2.88)
+        _box("FenceConcreteFoot", post + Vector3(0, 0.18, 0), Vector3(0.31, 0.36, 0.33), cement, false)
+        _box("FenceUpright", post + Vector3(0, 1.15, 0), Vector3(0.24, 2.3, 0.24), dark, false)
+    for h in [0.48, 1.57]:
+        _box("FenceRearRail", base + Vector3(0.13, h, 0), Vector3(0.11, 0.13, 5.95), dark, false)
+    _detail_beam("FenceRepairBrace", base + Vector3(0.15, 0.48, -2.8), base + Vector3(0.15, 1.57, 2.8), 0.09, metal)
 
 func _rubble_cluster(index: int, at: Vector3) -> void:
     # Use the old obstacle footprint but show broken, irregular stone clusters.
