@@ -10,10 +10,22 @@ func capture() -> void:
     player.set_physics_process(false)
     var folder := ProjectSettings.globalize_path("res://captures")
     DirAccess.make_dir_recursive_absolute(folder)
-    for name in ["village", "last_bus", "bus_return", "forest_base", "post_office", "porch", "rift_checkpoint", "approach", "underground", "g4_final_station", "g4_radio_close", "zalesye_contours", "trackside_workshop", "watchman_encounter", "anomaly_before", "anomaly_after", "forest_road_depth", "base_perimeter", "industrial_admin", "industrial_warehouse", "g4_service_entry", "g4_valve_gallery", "g4_vent_gallery"]:
+    for name in ["village", "last_bus", "bus_return", "forest_base", "post_office", "porch", "rift_checkpoint", "approach", "underground", "g4_final_station", "g4_radio_close", "zalesye_contours", "trackside_workshop", "watchman_encounter", "anomaly_before", "anomaly_after", "forest_road_depth", "base_perimeter", "industrial_admin", "industrial_warehouse", "g4_service_entry", "g4_valve_gallery", "g4_vent_gallery", "lookout_front", "lookout_side", "east_fence_front", "east_fence_oblique"]:
         if name == "village":
             player.position = Vector3(-39, 0.1, 2)
             player.camera.look_at(Vector3(-18, 2.65, 2))
+        elif name == "lookout_front":
+            player.position = Vector3(-37.0, 0.1, -20.0)
+            player.camera.look_at(Vector3(-37.0, 4.1, -30.0))
+        elif name == "lookout_side":
+            player.position = Vector3(-27.0, 0.1, -27.0)
+            player.camera.look_at(Vector3(-37.0, 4.1, -30.0))
+        elif name == "east_fence_front":
+            player.position = Vector3(39.0, 0.1, 15.0)
+            player.camera.look_at(Vector3(44.0, 1.2, 15.0))
+        elif name == "east_fence_oblique":
+            player.position = Vector3(38.0, 0.1, 10.0)
+            player.camera.look_at(Vector3(44.0, 1.2, 17.0))
         elif name == "last_bus":
             player.position = Vector3(-38.3, .12, 1.9)
             player.camera.look_at(Vector3(-32.8, 1.60, -1.5))
