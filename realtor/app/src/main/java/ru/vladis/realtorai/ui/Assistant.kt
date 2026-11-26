@@ -29,6 +29,8 @@ import ru.vladis.realtorai.data.Property
     var pMenu by remember { mutableStateOf(false) }
     var cMenu by remember { mutableStateOf(false) }
     val clip = LocalClipboardManager.current
+    val speech = rememberLocalSpeech()
+
     val state = rememberLazyListState()
     LaunchedEffect(vm.chat.size) { if (vm.chat.isNotEmpty()) state.animateScrollToItem(vm.chat.size - 1) }
     Column(Modifier.fillMaxSize().imePadding().padding(horizontal = 16.dp)) {
@@ -89,10 +91,17 @@ import ru.vladis.realtorai.data.Property
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
                     Text(msg, Modifier.widthIn(max = 320.dp).background(if (mine) Color0 else Surface2, RoundedCornerShape(16.dp)).padding(12.dp),
                         color = if (mine) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.onSurface)
-                    if (!mine) TextButton({ clip.setText(AnnotatedString(msg)) }) { Text("Копировать") }
+                    if (!mine) Row {
+                        TextButton({ clip.setText(AnnotatedString(msg)) }) { Text("Копировать") }
+                        if (speech != null) TextButton({ speech.speak(msg.take(3500), android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "reply-$i") }) { Text("Озвучить") }
+                    }
                 }
             }
-            if (vm.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+            if (vm.busy) item {
+                if (vm.streamingAnswer.isNotBlank()) Text(vm.streamingAnswer)
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+                if (vm.cancellableGeneration) TextButton(vm::stopGeneration) { Text("Остановить генерацию") }
+            }
             vm.error?.let { e -> item { Text(e, color = MaterialTheme.colorScheme.error) } }
         }
         VoiceInput({ words -> text = listOf(text, words).filter { it.isNotBlank() }.joinToString(" ") }, { vm.error = it })

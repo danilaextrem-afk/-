@@ -15,7 +15,11 @@ import okhttp3.Request
 
 internal object NativeQwen {
     init { System.loadLibrary("realtor_inference") }
-    external fun generate(file: String, prompt: ByteArray): ByteArray
+    external fun generate(file: String, prompt: ByteArray, sink: NativeTokenSink?): ByteArray?
+}
+
+internal class NativeTokenSink(private val onUpdate: (ByteArray) -> Boolean) {
+    @androidx.annotation.Keep fun update(value: ByteArray): Boolean = onUpdate(value)
 }
 
 object DeviceModel {
@@ -101,7 +105,7 @@ object DeviceModel {
             check(part.renameTo(file(ctx, spec))) { "Не удалось сохранить модель" }
         } }
 
-    suspend fun answer(ctx: Context, system: String, messages: List<Pair<String, String>>): String =
+    suspend fun answer(ctx: Context, system: String, messages: List<Pair<String, String>>, onPartial: ((String) -> Unit)? = null): String =
         generationLock.withLock { withContext(Dispatchers.IO) {
             val spec = selected(ctx)
             check(installed(ctx, spec)) { "Скачайте выбранную модель" }
@@ -116,7 +120,14 @@ object DeviceModel {
                 val modelPrompt = if (spec.file.startsWith("DeepSeek"))
                     "<｜begin▁of▁sentence｜><｜User｜>$safe<｜Assistant｜><think>\n"
                 else formatted
-                NativeQwen.generate(file(ctx,spec).path, modelPrompt.toByteArray()).decodeToString()
+                val job = currentCoroutineContext()
+                val sink = NativeTokenSink { bytes ->
+                    if (job.isActive && bytes.isNotEmpty()) onPartial?.invoke(bytes.decodeToString().trimEnd('�'))
+                    job.isActive
+                }
+                val bytes = NativeQwen.generate(file(ctx, spec).path, modelPrompt.toByteArray(), sink)
+                job.ensureActive()
+                checkNotNull(bytes).decodeToString()
             } else {
                 val options = LlmInference.LlmInferenceOptions.builder().setModelPath(file(ctx,spec).path).setMaxTokens(1024).build()
                 LlmInference.createFromOptions(ctx, options).use { it.generateResponse(prompt) }

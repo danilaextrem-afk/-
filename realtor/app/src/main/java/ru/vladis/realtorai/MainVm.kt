@@ -163,7 +163,11 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun clearChat() { chat.clear(); error = null }
+    private var generationJob: kotlinx.coroutines.Job? = null
+    var streamingAnswer by mutableStateOf(""); private set
+    val cancellableGeneration get() = busy && activeModel.file.endsWith(".gguf")
+    fun stopGeneration() { generationJob?.cancel() }
+    fun clearChat() { if (!busy) { chat.clear(); error = null } }
 
     fun ask(mode: String, text: String, p: Property?, c: Client?) {
         if (!deviceReady) { error = "Сначала скачайте локальную модель"; return }
@@ -180,12 +184,17 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             append(text.take(400))
         }
         val hist = chat.toList() + ("user" to content)
+        if (busy) return
         chat.add("user" to text); error = null; busy = true
-        viewModelScope.launch {
-            runCatching { DeviceModel.answer(ctx, system, hist) }
-                .onSuccess { chat.add("assistant" to it) }
-                .onFailure { error = it.message }
-            busy = false
+        generationJob = viewModelScope.launch {
+            try {
+                val answer = DeviceModel.answer(ctx, system, hist) { partial ->
+                    viewModelScope.launch { if (generationJob?.isActive == true) streamingAnswer = partial }
+                }
+                chat.add("assistant" to answer)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { error = e.localizedMessage }
+            finally { busy = false; streamingAnswer = "" }
         }
     }
 
