@@ -86,7 +86,7 @@ object AgentPlan {
 }
 
 internal data class AgentAction(val tool: AgentTool, val args: JsonObject)
-internal data class AgentProgress(val adaptive: Boolean, val pending: List<AgentAction>, val steps: List<String>)
+internal data class AgentProgress(val adaptive: Boolean, val pending: List<AgentAction>, val steps: List<String>, val used: List<AgentAction>? = null)
 internal data class AgentDecision(val action: AgentAction?, val question: String? = null, val finish: String? = null)
 
 internal object AgentProtocol {
@@ -184,7 +184,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                 val action = progress.pending.first()
                 val report = execute(action, db, job, progress.steps.size)
                 progress = progress.copy(pending = progress.pending.drop(1),
-                    steps = progress.steps + (action.tool.label + "\n" + report.take(2200)))
+                    steps = progress.steps + (action.tool.label + "\n" + report.take(2200)), used = progress.used.orEmpty() + action)
                 if (dao.checkpoint(job.id, AgentProtocol.save(progress), progress.steps.joinToString("\n\n"), "running") == 0) return Result.success()
             }
             Result.success()
@@ -202,11 +202,17 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
 
     private suspend fun decide(job: AgentJob, progress: AgentProgress, prior: String): AgentDecision {
         val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market}: market primary или secondary; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Передавай только известные параметры. Если критически не хватает данных, ask."""
-        val brief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Клиент ID: ${job.clientId ?: "нет"}. Память: $prior. Результаты: ${progress.steps.map { it.take(310) }.joinToString().takeLast(510)}"
-        val messages = listOf("user" to brief)
-        val first = DeviceModel.answer(applicationContext, system, messages)
-        return try { AgentProtocol.parse(first) } catch (_: RuntimeException) {
-            AgentProtocol.parse(DeviceModel.answer(applicationContext, system, listOf("user" to ("Исправь формат. " + brief).take(1200))))
+        val observed = progress.steps.zip(progress.used.orEmpty()) { result, call ->
+            "${call.tool} ${call.args}: ${result.substringAfter('\n').take(180)}"
+        }.joinToString("\n").takeLast(570)
+        val brief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Клиент ID: ${job.clientId ?: "нет"}.\nВыполнено:\n$observed\nПамять: $prior"
+        fun validate(raw: String): AgentDecision = AgentProtocol.parse(raw).also {
+            require(it.action == null || it.action !in progress.used.orEmpty()) { "Модель повторила выполненный вызов" }
+        }
+        val first = DeviceModel.answer(applicationContext, system, listOf("user" to brief))
+        return try { validate(first) } catch (_: RuntimeException) {
+            val correction = "Последний ответ недопустим или повторяет выполненное. Верни следующий шаг, уточнение или итог.\n"
+            validate(DeviceModel.answer(applicationContext, system, listOf("user" to (correction + brief).take(1200))))
         }
     }
 
