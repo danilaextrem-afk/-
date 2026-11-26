@@ -86,7 +86,11 @@ class HunterVm(app: Application) : AndroidViewModel(app) {
     }
 
     /** Локальный предотбор — без Groq. */
-    fun matchLocal(c: Client) { picks = Facts.prefilter(c.budget, deals.value); aiText = null }
+    fun matchLocal(c: Client) { picks = Facts.prefilter(c.budget, deals.value.filter { d ->
+        val o = d.o
+        (c.budget <= 0 || o.price <= c.budget) && (c.desiredRooms == 0 || o.rooms == c.desiredRooms) &&
+            o.area >= c.minArea && (c.searchArea.isNullOrBlank() || (o.address + " " + o.district).contains(c.searchArea.trim(), true))
+    }); aiText = null }
     fun matchAi(c: Client) = work {
         runCatching { HunterAi.match(ctx, c, picks) }.onSuccess { aiText = it }.onFailure { log = "ИИ: ${err(it)}" }
     }

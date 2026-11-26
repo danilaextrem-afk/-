@@ -14,6 +14,8 @@ object HunterAi {
     private val cache = HashMap<Int, String>()
 
     private suspend fun ask(ctx: Context, system: String, user: String): String {
+        if (ru.vladis.realtorai.ai.DeviceModel.installed(ctx))
+            return ru.vladis.realtorai.ai.DeviceModel.answer(ctx, system, listOf("user" to user))
         val key = (system + user).hashCode()
         cache[key]?.let { return it }
         val st = Store(ctx); if (st.apiKey.isBlank()) return "Локальная сводка (без языковой модели):\n" + user + "\n\nПроверьте детали и согласуйте следующий шаг."

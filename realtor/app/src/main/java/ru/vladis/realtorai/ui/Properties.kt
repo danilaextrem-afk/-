@@ -21,6 +21,8 @@ import ru.vladis.realtorai.data.pricePerSqm
 
 @Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit) {
     val props by vm.properties.collectAsState()
+    val listings by vm.listings.collectAsState()
+    val covers = remember(listings) { listings.filter { it.propertyId != null && it.cover.isNotBlank() }.associate { it.propertyId to it.cover } }
     var q by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("Все") }
     var rooms by remember { mutableStateOf("Любые") }
@@ -46,6 +48,9 @@ import ru.vladis.realtorai.data.pricePerSqm
         if (list.isEmpty()) item { Text("Объектов нет. Добавьте вручную или импортируйте объявление.", color = Muted) }
         items(list, key = { it.id }) { p ->
             AppCard(onClick = { edit = p }) {
+                covers[p.id]?.let { path ->
+                    ru.vladis.realtorai.publish.Thumb(path, Modifier.fillMaxWidth().height(160.dp))
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(p.title, fontWeight = FontWeight.SemiBold, maxLines = 2)

@@ -56,7 +56,7 @@ import ru.vladis.realtorai.local.OfflineLogic
     val r = rate.replace(',', '.').toDoubleOrNull(); val y = years.toIntOrNull()
     val payment = if (p != null && d in 0..p && r != null && y != null && y in 1..50) OfflineLogic.mortgage(p-d,r,y*12) else null
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { WorkspaceHeader("Sales Assistant", "РАБОТА С КЛИЕНТАМИ • ОФЛАЙН", back) }
+        item { WorkspaceHeader("Продажи", "Sales Assistant", back) }
         item { AppCard {
             Text("Ипотека и комиссия", style = MaterialTheme.typography.titleLarge)
             Text("Аннуитетный расчёт без страховок и сборов", color = Muted)
@@ -82,7 +82,8 @@ import ru.vladis.realtorai.local.OfflineLogic
             Box { OutlinedButton({ cMenu = true }, Modifier.fillMaxWidth()) { Text(clients.find { it.id == clientId }?.name ?: "Выбрать клиента") }
                 DropdownMenu(cMenu, { cMenu = false }) { clients.forEach { c -> DropdownMenuItem({ Text(c.name) }, { clientId = c.id; cMenu = false }) } } }
             Box { OutlinedButton({ pMenu = true }, Modifier.fillMaxWidth()) { Text(props.find { it.id == propertyId }?.title ?: "Выбрать объект") }
-                DropdownMenu(pMenu, { pMenu = false }) { props.filter { it.status == "active" }.forEach { p -> DropdownMenuItem({ Text(p.title) }, { propertyId = p.id; pMenu = false }) } } }
+                DropdownMenu(pMenu, { pMenu = false }) { props.filter { it.status == "active" }.forEach { p -> DropdownMenuItem({ Text(p.title) }, { propertyId = p.id; price = p.price.takeIf { it > 0 }?.toString().orEmpty(); pMenu = false }) } } }
+            VoiceInput({ words -> transcript = listOf(transcript, words).filter(String::isNotBlank).joinToString(" "); suggestions = emptyList() }, { suggestions = listOf(it) })
             Field(transcript, { transcript = it; suggestions = emptyList() }, "Текст переписки / разговора", single = false)
             Button({ suggestions = SalesTools.conversation(transcript) }, enabled = transcript.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Найти следующие шаги") }
             suggestions.forEach { Text("• $it", color = Muted) }
@@ -121,7 +122,7 @@ import ru.vladis.realtorai.local.OfflineLogic
     val list = active.filter { selected == "Все" || it.role == if (selected == "Покупатели") "buyer" else "owner" }
         .sortedByDescending { OfflineLogic.priority(it.stage, it.budget, it.phone.isNotBlank()) }
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { WorkspaceHeader("Lead Center", "ЛИДЫ • ВОРОНКА • CRM", back) }
+        item { WorkspaceHeader("Лиды", "Lead Center", back) }
         item { AppCard {
             Text("Условный прогноз комиссии", color = Muted)
             Text(forecast.rub(), color = Lime, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)

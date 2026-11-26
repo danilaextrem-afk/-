@@ -24,6 +24,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     private val store = Store(app)
     private fun <T> Flow<T>.state(init: T) = stateIn(viewModelScope, SharingStarted.Eagerly, init)
 
+    val listings = db.publications().listings().state(emptyList())
     val properties = dao.properties().state(emptyList())
     val clients = dao.clients().state(emptyList())
     val tasks = dao.tasks().state(emptyList())
@@ -60,7 +61,19 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     }
     fun saveClient(c: Client) = viewModelScope.launch { dao.saveClient(c) }
     fun deleteClient(c: Client) = viewModelScope.launch { dao.deleteInteractions(c.id); dao.deleteClient(c) }
-    fun addInteraction(clientId: Long, text: String) = viewModelScope.launch { dao.saveInteraction(Interaction(clientId = clientId, text = text)) }
+    fun addInteraction(clientId: Long, text: String) = viewModelScope.launch {
+        val whenDue = ru.vladis.realtorai.local.MeetingPlan.parse(text, System.currentTimeMillis(), java.time.ZoneId.systemDefault())
+        val reminder = db.withTransaction {
+            dao.saveInteraction(Interaction(clientId = clientId, text = text))
+            if (whenDue == null || !ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(ctx)) return@withTransaction null
+            val client = dao.allClients().firstOrNull { it.id == clientId } ?: return@withTransaction null
+            val title = "${text.substringBefore(' ').trimEnd(':')} · ${client.name}"
+            if (dao.allTasks().any { it.title == title && it.dueAt == whenDue && it.kind == "meeting" }) return@withTransaction null
+            val meeting = TaskItem(title = title, dueAt = whenDue, kind = "meeting")
+            meeting.copy(id = dao.saveTask(meeting))
+        }
+        reminder?.let { Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
+    }
     fun saveTask(t: TaskItem) = viewModelScope.launch {
         val id = dao.saveTask(t)
         if (t.done) Reminder.cancel(ctx, id) else Reminder.schedule(ctx, id, t.title, t.dueAt)

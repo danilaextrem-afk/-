@@ -95,7 +95,10 @@ class AutoVm(app: Application): AndroidViewModel(app) {
     var link by remember { mutableStateOf("") }
     val file = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { vm.importFile(it) } }
     val now=System.currentTimeMillis()
-    val due=tasks.filter { !it.done && it.dueAt <= now }
+    val start = java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
+    val end = start.plusDays(1).toInstant().toEpochMilli()
+    val due = tasks.filter { !it.done && it.dueAt < end }
+    val todayRuns = history.filter { it.at >= start.toInstant().toEpochMilli() }
     val matches=clients.map { it to AutoRules.matches(it,properties) }.filter { it.second.isNotEmpty() }
     LaunchedEffect(Unit) { vm.refreshStatus() }
     LazyColumn(contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
@@ -141,6 +144,10 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                 OutlinedButton(onClick={file.launch("*/*")},enabled=!vm.busy,modifier=Modifier.fillMaxWidth()) { Text("Импорт CSV / JSON") }
             }
         }
+        item { AppCard {
+            Text("Отчёт за сегодня", style = MaterialTheme.typography.titleLarge)
+            Text("Запусков в журнале: ${todayRuns.size} · задач до конца дня: ${due.size} · клиентов с подбором: ${matches.size}", color = Muted)
+        } }
         if (history.isNotEmpty()) item { Title("Журнал запусков") }
         items(history, key = { "run-" + it.id }) { entry ->
             AppCard {

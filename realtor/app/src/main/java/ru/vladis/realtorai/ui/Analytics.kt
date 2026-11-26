@@ -19,7 +19,8 @@ import ru.vladis.realtorai.data.pricePerSqm
 
 @Composable fun Analytics(vm: MainVm, back: () -> Unit) {
     val props by vm.properties.collectAsState()
-    val ranked = props.filter { it.area > 0 && it.price > 0 }.sortedBy { it.pricePerSqm() }
+    var segment by remember { mutableStateOf("Все объекты") }
+    val ranked = props.filter { segment == "Все объекты" || it.type == if (segment == "Новостройки") "primary" else "secondary" }.filter { it.area > 0 && it.price > 0 }.sortedBy { it.pricePerSqm() }
     var sel by remember { mutableStateOf(setOf<Long>()) }
     var price by remember { mutableStateOf("") }
     var agency by remember { mutableStateOf(vm.agencyPct.toString()) }
@@ -46,6 +47,7 @@ import ru.vladis.realtorai.data.pricePerSqm
         item {
             AppCard {
                 Text("Цена за м²", fontWeight = FontWeight.SemiBold)
+                Chips(listOf("Все объекты", "Новостройки", "Вторичка"), segment) { segment = it }
                 if (ranked.isEmpty()) Text("Нужны объекты с ценой и площадью", color = Muted)
                 else {
                     listOf("primary" to "Первичка", "secondary" to "Вторичка").forEach { (k, n) ->
@@ -53,7 +55,7 @@ import ru.vladis.realtorai.data.pricePerSqm
                         if (l.isNotEmpty()) Text("$n, среднее: ${(l.sumOf { it.pricePerSqm() } / l.size).rub()}/м²", color = Muted)
                     }
                     Spacer(Modifier.height(8.dp))
-                    val max = ranked.last().pricePerSqm().toFloat()
+                    val max = ranked.last().pricePerSqm().toFloat().coerceAtLeast(1f)
                     ranked.take(10).forEach { p ->
                         val frac by animateFloatAsState((p.pricePerSqm() / max).coerceIn(0.05f, 1f), label = "bar")
                         Text("${p.title.take(28)} — ${p.pricePerSqm().rub()}", style = MaterialTheme.typography.bodySmall)

@@ -90,9 +90,10 @@ private val statusText = mapOf("published" to "опубликовано (под�
         if (ls.isEmpty()) item { Text("Карточек нет. Создайте новую или возьмите объект из списка «Недвижимость».", color = Muted) }
         items(ls, key = { it.id }) { l ->
             AppCard(onClick = { open(l.id) }) {
+                if (l.cover.isNotBlank()) Thumb(l.cover, Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(l.id in sel, { sel = if (it) sel + l.id else sel - l.id }, enabled = l.status != "sold")
-                    if (l.cover.isNotBlank()) Thumb(l.cover, Modifier.size(56.dp).clip(RoundedCornerShape(10.dp)))
+
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text(l.title.ifBlank { l.address.ifBlank { "Новая карточка" } }, fontWeight = FontWeight.SemiBold, maxLines = 2)
@@ -181,7 +182,7 @@ private val statusText = mapOf("published" to "опубликовано (под�
                     }
                 }
             }
-            Text("Нажмите на фото — сделать обложкой (лаймовая рамка)", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("Нажмите на фото — сделать обложкой (изумрудная рамка)", color = Muted, style = MaterialTheme.typography.bodySmall)
         }
         item { OutlinedButton({ pick.launch("image/*") }) { Text("Добавить фото (${cur.photoList().size})") } }
         item { Chips(listOf("Вторичка", "Первичка"), market) { market = it } }

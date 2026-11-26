@@ -61,7 +61,7 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     val shown = sale.filter { Filters.matches(it.o, flt) && (!flt.onlyBelowMarket || it.below) && (!hideDups || it.repr) && (!favOnly || it.o.favorite) }
         .sortedWith(compareByDescending<Deal> { it.discount ?: -1.0 })
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("AI Deal Hunter") }
+        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("Поиск сделок") }
         Chips(listOf("Лента", "Карта", "Фильтры", "Данные", "Подбор"), tab) { tab = it }
         if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         vm.log?.let { Text(it, color = Lime, style = MaterialTheme.typography.bodySmall) }

@@ -30,6 +30,14 @@ class AutoRulesTest {
         val flat = Property(title="Квартира", price=8000000, rooms=2, area=50.0, address="Москва, Даниловский")
         assertEquals(listOf(flat), AutoRules.matches(client, listOf(flat, flat.copy(rooms=3), flat.copy(area=40.0), flat.copy(address="Арбат"))))
     }
+    @Test fun plansOnlyFutureUnambiguousAppointments() {
+        val zone = java.time.ZoneId.of("Europe/Moscow")
+        fun parse(s: String) = ru.vladis.realtorai.local.MeetingPlan.parse(s, 0L, zone)
+        assertNotNull(parse("Показ 28.11.2026 в 15:00"))
+        assertNull(parse("Встреча 31.02.2027 в 10:00"))
+        assertNull(parse("Отменили показ 28.11.2026 в 15:00"))
+        assertNull(parse("Предложить встречу завтра"))
+    }
     @Test fun matchActiveBuyersOnly() {
         val c=Client(name="Клиент",budget=6000000)
         val props=listOf(Property(title="Да",price=5000000),Property(title="Дорого",price=7000000),Property(title="Архив",price=2000000,status="archived"),Property(title="Неизвестно"))

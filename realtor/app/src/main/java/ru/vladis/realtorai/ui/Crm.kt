@@ -146,6 +146,7 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
                 IconButton(enabled = note.isNotBlank(), onClick = { vm.addInteraction(c.id, note.trim()); note = "" }) { Icon(Icons.Default.Send, "Добавить", tint = Lime) }
             }
         }
+        item { Text("Автопилот добавляет встречу в календарь из записи вида «Показ 30.11.2026 в 15:00».", color = Muted, style = MaterialTheme.typography.bodySmall) }
         items(history, key = { it.id }) { h -> AppCard { Text(fmtDate(h.at), color = Muted, style = MaterialTheme.typography.bodySmall); Text(h.text) } }
         item { TextButton({ vm.deleteClient(c); back() }) { Text("Удалить клиента", color = MaterialTheme.colorScheme.error) } }
     }
