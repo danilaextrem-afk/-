@@ -24,6 +24,21 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Fix Deal Hunter JVM setter conflict
+        run: |
+          python3 - <<'PY'
+          import pathlib,re
+          root=pathlib.Path('realtor/app/src')
+          changed=0
+          for p in root.rglob('*.kt'):
+              old=p.read_text(encoding='utf-8')
+              new=re.sub(r'\bsetMonitoring\b','changeMonitoring',old)
+              if new!=old:
+                  p.write_text(new,encoding='utf-8')
+                  print('Patched',p)
+                  changed+=1
+          assert changed, 'Expected monitoring method not found'
+          PY
       - name: Use preinstalled Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
