@@ -22,7 +22,7 @@ def find(label):
                 x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
                 adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
                 break
-            if label in (node.get("text"), node.get("content-desc")):
+            if label in (node.get("text", "").strip(), node.get("content-desc", "").strip()):
                 return [int(n) for n in re.findall(r"\d+", node.get("bounds"))]
         time.sleep(0.3)
     raise RuntimeError("Экран не содержит элемент " + label)
@@ -46,6 +46,22 @@ for tab, heading, name in [
 def tap(label):
     x1, y1, x2, y2 = find(label)
     adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
+
+tap("Главная")
+tap("Поручить агенту")
+capture("agent", "Поручения агенту")
+tap("Составь план на неделю")
+tap("Запустить план")
+find("Журнал поручений")
+tap("Объекты")
+tap("Объект")
+tap("Название")
+adb("shell", "input", "text", "Owner%20workflow%20QA")
+adb("shell", "input", "keyevent", "KEYCODE_BACK")
+tap("Сохранить")
+tap("Сопровождение")
+tap("Начать сопровождение")
+capture("owner", "Подтвердить этап")
 
 tap("Главная")
 tap("Настроить поиск")
