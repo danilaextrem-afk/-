@@ -1,6 +1,6 @@
 package ru.vladis.realtorai.ai
 
-data class ModelSpec(val label: String, val file: String, val size: Long, val sha: String, val url: String)
+data class ModelSpec(val label: String, val file: String, val size: Long, val sha: String, val url: String, val profile: String = "Локальный диалог", val minimumFreeMb: Long = size / 1_000_000 + 600)
 
 val models = listOf(
     ModelSpec("Qwen 2.5 · 0.5B", "qwen-0.5b-q8.task", 546660344L,
@@ -15,4 +15,12 @@ val models = listOf(
     ModelSpec("Qwen3 · 8B · эксперимент", "Qwen3-8B-Q4_K_M.gguf", 5027783488L,
         "d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785",
         "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/7c41481f57cb95916b40956ab2f0b139b296d974/Qwen3-8B-Q4_K_M.gguf"),
+    ModelSpec("Qwen3 · 14B · эксперимент", "Qwen3-14B-Q4_K_M.gguf", 9001752960L,
+        "500a8806e85ee9c83f3ae08420295592451379b4f8cf2d0f41c15dffeb6b81f0",
+        "https://huggingface.co/Qwen/Qwen3-14B-GGUF/resolve/530227a7d994db8eca5ab5ced2fb692b614357fd/Qwen3-14B-Q4_K_M.gguf",
+        "Эксперимент. Загрузка весов требует большого запаса физической памяти.", 10100),
+    ModelSpec("DeepSeek R1 Distill · 7B · эксперимент", "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf", 4683073504L,
+        "731ece8d06dc7eda6f6572997feb9ee1258db0784827e642909d9b565641937b",
+        "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF/resolve/361004151d4f4f6b446dc5e6d46fbf4422a80d5f/DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
+        "Альтернативный режим рассуждений. Возможны длинные ответы.", 5500),
 )

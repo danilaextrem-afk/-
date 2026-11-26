@@ -111,13 +111,50 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         activeModel = spec
         deviceReady = true
     }
+    var modelRevision by mutableIntStateOf(0); private set
+    var modelSpeed by mutableStateOf(""); private set
+    var benchmark by mutableStateOf(""); private set
+    fun recommendedModel() = DeviceModel.recommended(ctx)
+    fun removeModel(spec: ModelSpec) = viewModelScope.launch {
+        try {
+            DeviceModel.remove(ctx, spec)
+            activeModel = DeviceModel.selected(ctx)
+            deviceReady = DeviceModel.installed(ctx)
+            modelRevision++
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (e: Exception) { error = e.localizedMessage }
+    }
+    fun benchmarkModel() {
+        if (busy || !deviceReady) return
+        busy = true
+        benchmark = "Выполняется локальный тест"
+        viewModelScope.launch {
+            val start = android.os.SystemClock.elapsedRealtime()
+            try {
+                val output = DeviceModel.answer(ctx, "Ответь по-русски в трёх предложениях.", listOf("user" to "Как риелтору подготовить квартиру к показу?"))
+                val seconds = (android.os.SystemClock.elapsedRealtime() - start).coerceAtLeast(1) / 1000.0
+                benchmark = String.format(java.util.Locale.getDefault(), "%.1f с · %.1f символов/с с загрузкой модели", seconds, output.length / seconds)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { benchmark = e.localizedMessage.orEmpty() }
+            finally { busy = false }
+        }
+    }
     fun pauseModel() { downloadJob?.cancel() }
     fun installModel(spec: ModelSpec) {
         if (downloading != null) return
-        downloading = spec; modelProgress = 0; error = null
+        downloading = spec; modelProgress = 0; error = null; modelSpeed = ""
+        val initial = partialModel(spec)
+        val started = android.os.SystemClock.elapsedRealtime()
         downloadJob = viewModelScope.launch {
             try {
-                DeviceModel.download(ctx, spec) { withContext(Dispatchers.Main) { modelProgress = it } }
+                DeviceModel.download(ctx, spec) { progress ->
+                    val seconds = (android.os.SystemClock.elapsedRealtime() - started).coerceAtLeast(1) / 1000.0
+                    val speed = (spec.size * progress / 100 - initial).coerceAtLeast(0) / 1_000_000.0 / seconds
+                    withContext(Dispatchers.Main) {
+                        modelProgress = progress
+                        modelSpeed = String.format(java.util.Locale.getDefault(), "%.1f МБ/с", speed)
+                    }
+                }
                 chooseModel(spec)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e

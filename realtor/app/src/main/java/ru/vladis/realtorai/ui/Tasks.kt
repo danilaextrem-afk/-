@@ -23,6 +23,13 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
 
 /** Календарь в виде повестки: задачи и встречи сгруппированы по дням. */
 @Composable fun Tasks(vm: MainVm) {
+    val context = LocalContext.current
+    var notifications by remember {
+        mutableStateOf(android.os.Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED)
+    }
+    val permission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { notifications = it }
     val tasks by vm.tasks.collectAsState()
     var filter by remember { mutableStateOf("Предстоящие") }
     var adding by remember { mutableStateOf(false) }
@@ -31,6 +38,9 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
     val groups = shown.groupBy { headFmt.format(Date(it.dueAt)) }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { Title("Задачи и встречи") }
+        if (!notifications && android.os.Build.VERSION.SDK_INT >= 33) item {
+            OutlinedButton({ permission.launch(android.Manifest.permission.POST_NOTIFICATIONS) }) { Text("Включить напоминания") }
+        }
         item { Chips(listOf("Предстоящие", "Встречи", "Выполнено"), filter) { filter = it } }
         item { Button({ adding = true }) { Text("+ Задача / встреча") } }
         if (shown.isEmpty()) item { AppCard { Text(when (filter) { "Встречи" -> "Встречи пока не назначены"; "Выполнено" -> "Завершённые задачи появятся здесь"; else -> "Все задачи выполнены или ещё не запланированы" }, color = Muted) } }

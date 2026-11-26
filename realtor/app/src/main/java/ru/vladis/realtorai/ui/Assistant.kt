@@ -40,15 +40,23 @@ import ru.vladis.realtorai.data.Property
         OutlinedButton({ manager = true }) { Text(if (vm.deviceReady) vm.activeModel.label else "Скачать локальную модель") }
         if (manager) AlertDialog(onDismissRequest = { manager = false }, title = { Text("Модели на устройстве") },
             text = { LazyColumn {
+                item {
+                    Text("Рекомендуется при текущей памяти: " + vm.recommendedModel().label, color = Lime)
+                    if (vm.deviceReady) TextButton(vm::benchmarkModel, enabled = !vm.busy) { Text("Тест производительности") }
+                    if (vm.benchmark.isNotBlank()) Text(vm.benchmark, color = Muted)
+                }
                 items(ru.vladis.realtorai.ai.models.size) { i ->
                     val spec = ru.vladis.realtorai.ai.models[i]
                     Text(spec.label, style = MaterialTheme.typography.titleMedium)
-                    Text("${spec.size / 1_000_000} МБ", color = Muted)
+                    Text("${spec.size / 1_000_000} МБ · свободно от ${spec.minimumFreeMb} МБ ОЗУ", color = Muted)
+                    Text(spec.profile, color = Muted)
+                    val present = remember(spec, vm.modelRevision, vm.downloading, vm.activeModel) { vm.hasModel(spec) }
                     if (vm.downloading == spec) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
-                        TextButton(vm::pauseModel) { Text("Пауза · ${vm.modelProgress}%") }
-                    } else if (vm.hasModel(spec)) {
+                        TextButton(vm::pauseModel) { Text("Пауза · ${vm.modelProgress}% · ${vm.modelSpeed}") }
+                    } else if (present) {
                         TextButton({ vm.chooseModel(spec) }, enabled = vm.activeModel != spec && !vm.busy) { Text(if (vm.activeModel == spec) "Активна" else "Использовать") }
+                        TextButton({ vm.removeModel(spec) }, enabled = !vm.busy && vm.downloading == null) { Text("Удалить веса " + spec.label) }
                     } else TextButton({ vm.installModel(spec) }, enabled = vm.downloading == null) {
                         Text(if (vm.partialModel(spec) > 0) "Продолжить загрузку" else "Скачать")
                     }

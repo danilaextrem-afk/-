@@ -32,6 +32,25 @@ object DeviceModel {
     fun installed(ctx: Context, spec: ModelSpec = selected(ctx)) = file(ctx, spec).length() == spec.size
     fun partial(ctx: Context, spec: ModelSpec) = File(ctx.noBackupFilesDir, spec.file + ".part").length()
 
+    fun availableMemory(ctx: Context): Long = ActivityManager.MemoryInfo().also {
+        ctx.getSystemService(ActivityManager::class.java).getMemoryInfo(it)
+    }.availMem / 1_000_000
+
+    fun recommended(ctx: Context): ModelSpec =
+        models.take(3).lastOrNull { it.minimumFreeMb + 500 <= availableMemory(ctx) } ?: models.first()
+
+    suspend fun remove(ctx: Context, spec: ModelSpec) = downloadLock.withLock {
+        generationLock.withLock { withContext(Dispatchers.IO) {
+            for (file in listOf(file(ctx, spec), File(ctx.noBackupFilesDir, spec.file + ".part"))) {
+                if (file.exists()) check(file.delete()) { "Не удалось удалить модель" }
+            }
+            if (selected(ctx) == spec) {
+                val fallback = models.firstOrNull { installed(ctx, it) }
+                if (fallback == null) prefs(ctx).edit().remove("model").apply() else select(ctx, fallback)
+            }
+        } }
+    }
+
     suspend fun download(ctx: Context, spec: ModelSpec = selected(ctx), progress: suspend (Int) -> Unit) =
         downloadLock.withLock { withContext(Dispatchers.IO) {
             if (installed(ctx, spec)) return@withContext
@@ -88,13 +107,16 @@ object DeviceModel {
             check(installed(ctx, spec)) { "Скачайте выбранную модель" }
             if (Build.VERSION.SDK_INT >= 29) check(ctx.getSystemService(PowerManager::class.java).currentThermalStatus < PowerManager.THERMAL_STATUS_SEVERE) { "Устройство перегрето. Повторите после охлаждения." }
             val mem = ActivityManager.MemoryInfo().also { ctx.getSystemService(ActivityManager::class.java).getMemoryInfo(it) }
-            check(!mem.lowMemory && (spec == models.first() || mem.availMem > spec.size + 400_000_000L)) { "Свободной памяти мало. Выберите меньшую модель." }
+            check(!mem.lowMemory && (spec == models.first() || mem.availMem / 1_000_000 > spec.minimumFreeMb)) { "Свободной памяти мало. Выберите меньшую модель." }
             val history = messages.dropLast(1).takeLast(2).joinToString("\n") { it.second.take(160) }
             val prompt = system.take(580) + "\n" + history + "\n" + messages.last().second.take(1200)
             val answer = if (spec.file.endsWith(".gguf")) {
                 val safe = prompt.replace("<|", "‹|")
                 val formatted = "<|im_start|>user\n$safe /no_think<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
-                NativeQwen.generate(file(ctx,spec).path, formatted.toByteArray()).decodeToString()
+                val modelPrompt = if (spec.file.startsWith("DeepSeek"))
+                    "<｜begin▁of▁sentence｜><｜User｜>$safe<｜Assistant｜><think>\n"
+                else formatted
+                NativeQwen.generate(file(ctx,spec).path, modelPrompt.toByteArray()).decodeToString()
             } else {
                 val options = LlmInference.LlmInferenceOptions.builder().setModelPath(file(ctx,spec).path).setMaxTokens(1024).build()
                 LlmInference.createFromOptions(ctx, options).use { it.generateResponse(prompt) }
