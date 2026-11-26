@@ -8,7 +8,7 @@
 #include <vector>
 
 extern "C" JNIEXPORT jbyteArray JNICALL
-Java_ru_vladis_realtorai_ai_NativeQwen_generate(JNIEnv* env, jobject, jstring file, jbyteArray input, jobject tokenSink) {
+Java_ru_vladis_realtorai_ai_NativeQwen_generate(JNIEnv* env, jobject, jstring file, jbyteArray input, jobject tokenSink, jboolean largeModel) {
     try {
         static std::once_flag init;
         std::call_once(init, llama_backend_init);
@@ -16,6 +16,7 @@ Java_ru_vladis_realtorai_ai_NativeQwen_generate(JNIEnv* env, jobject, jstring fi
         if (!path) return nullptr;
         auto mp = llama_model_default_params();
         mp.n_gpu_layers = 0;
+        if (largeModel) mp.use_extra_bufts = false;
         std::unique_ptr<llama_model, decltype(&llama_model_free)> model(llama_model_load_from_file(path, mp), llama_model_free);
         env->ReleaseStringUTFChars(file, path);
         if (!model) throw std::runtime_error("Не удалось загрузить веса GGUF");
@@ -38,6 +39,7 @@ Java_ru_vladis_realtorai_ai_NativeQwen_generate(JNIEnv* env, jobject, jstring fi
         auto cp = llama_context_default_params();
         cp.n_ctx = 2048;
         cp.n_batch = 256;
+        if (largeModel) cp.n_ubatch = 128;
         cp.n_threads = cp.n_threads_batch = 4;
         std::unique_ptr<llama_context, decltype(&llama_free)> ctx(llama_init_from_model(model.get(), cp), llama_free);
         if (!ctx) throw std::runtime_error("Недостаточно памяти для контекста модели");

@@ -115,7 +115,8 @@ internal object AgentProtocol {
             AgentTool.TASK -> setOf("title","date")
             else -> emptySet()
         }
-        require(args.keySet().all { it in allowed } && args.entrySet().all { it.value.isJsonPrimitive })
+        require(args.keySet().all { it in allowed } && args.entrySet().all { it.value.isJsonPrimitive || it.value.isJsonNull })
+        args.entrySet().removeIf { it.value.isJsonNull }
         return AgentDecision(AgentAction(tool,args))
     }
 }
@@ -200,7 +201,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     }
 
     private suspend fun decide(job: AgentJob, progress: AgentProgress, prior: String): AgentDecision {
-        val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market}: market primary или secondary; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Если данных критически не хватает, ask."""
+        val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market}: market primary или secondary; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Передавай только известные параметры. Если критически не хватает данных, ask."""
         val brief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Клиент ID: ${job.clientId ?: "нет"}. Память: $prior. Результаты: ${progress.steps.map { it.take(310) }.joinToString().takeLast(510)}"
         val messages = listOf("user" to brief)
         val first = DeviceModel.answer(applicationContext, system, messages)
@@ -219,7 +220,11 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             val rooms = number("rooms")
             val area = arg("area")
             val minArea = arg("minArea").ifBlank { "0" }.toDouble()
-            val market = arg("market")
+            val market = when (arg("market").lowercase()) {
+                "новостройки", "новостройка", "первичка" -> "primary"
+                "вторичка", "вторичная" -> "secondary"
+                else -> arg("market")
+            }
             db.dao().allProperties().asSequence().filter {
                 it.status == "active" && it.price in 1..budget && it.area >= minArea &&
                     (rooms == null || it.rooms.toLong() == rooms) && (market.isBlank() || it.type == market) &&

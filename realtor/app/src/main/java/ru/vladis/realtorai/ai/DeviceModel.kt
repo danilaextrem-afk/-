@@ -15,7 +15,7 @@ import okhttp3.Request
 
 internal object NativeQwen {
     init { System.loadLibrary("realtor_inference") }
-    external fun generate(file: String, prompt: ByteArray, sink: NativeTokenSink?): ByteArray?
+    external fun generate(file: String, prompt: ByteArray, sink: NativeTokenSink?, largeModel: Boolean): ByteArray?
 }
 
 internal class NativeTokenSink(private val onUpdate: (ByteArray) -> Boolean) {
@@ -160,7 +160,7 @@ object DeviceModel {
                     if (job.isActive && bytes.isNotEmpty()) onPartial?.invoke(bytes.decodeToString().trimEnd('�'))
                     job.isActive
                 }
-                val bytes = NativeQwen.generate(file(ctx, spec).path, modelPrompt.toByteArray(), sink)
+                val bytes = NativeQwen.generate(file(ctx, spec).path, modelPrompt.toByteArray(), sink, spec.size >= 4_500_000_000L)
                 job.ensureActive()
                 checkNotNull(bytes).decodeToString()
             } else {
