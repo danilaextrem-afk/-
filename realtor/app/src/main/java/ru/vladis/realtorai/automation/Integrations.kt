@@ -1,12 +1,12 @@
 package ru.vladis.realtorai.automation
 
 import ru.vladis.realtorai.data.Client
-import ru.vladis.realtorai.data.Property
+import ru.vladis.realtorai.hunter.Offer
 
-/** Точки расширения. Реальных интеграций НЕТ — реестры пусты, используется ручной импорт. */
+
 interface ListingSource {
     val name: String
-    suspend fun search(query: String): List<Property>
+    suspend fun search(query: String): List<Offer>
 }
 
 interface CrmConnector {
@@ -16,6 +16,6 @@ interface CrmConnector {
 }
 
 object IntegrationRegistry {
-    val listingSources = mutableListOf<ListingSource>()
+    val listingSources = listOf(AuctionSource("bankruptcy", "Банкротные торги"), AuctionSource("bank_collateral", "Банковские залоги"))
     val crmConnectors = mutableListOf<CrmConnector>()
 }

@@ -59,7 +59,7 @@ import ru.vladis.realtorai.data.Property
         }
         LazyColumn(Modifier.weight(1f).padding(vertical = 8.dp), state = state, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (vm.chat.isEmpty()) item { Text(
-                if (vm.hasKey || vm.deviceReady) "Выберите режим, при необходимости прикрепите объект/клиента и опишите задачу." else "Локальный режим: шаблоны, подбор по базе и проверочные списки. Не языковая модель.", color = Muted) }
+                if (vm.hasKey || vm.deviceReady) "Выберите режим, при необходимости прикрепите объект/клиента и опишите задачу." else "Скачайте модель один раз. Сообщения и данные CRM обрабатываются на телефоне.", color = Muted) }
             items(vm.chat.size) { i ->
                 val (role, msg) = vm.chat[i]
                 val mine = role == "user"
@@ -75,7 +75,7 @@ import ru.vladis.realtorai.data.Property
         VoiceInput({ words -> text = listOf(text, words).filter { it.isNotBlank() }.joinToString(" ") }, { vm.error = it })
         Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Field(text, { text = it }, "Сообщение", Modifier.weight(1f), single = false)
-            IconButton(enabled = text.isNotBlank() && !vm.busy, onClick = { vm.ask(mode, text.trim(), pSel, cSel); text = "" }) {
+            IconButton(enabled = text.isNotBlank() && vm.deviceReady && !vm.busy, onClick = { vm.ask(mode, text.trim(), pSel, cSel); text = "" }) {
                 Icon(Icons.Default.Send, "Отправить", tint = Lime)
             }
         }

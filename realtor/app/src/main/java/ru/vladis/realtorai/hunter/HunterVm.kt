@@ -51,19 +51,13 @@ class HunterVm(app: Application) : AndroidViewModel(app) {
     fun deleteSub(s: Subscription) = viewModelScope.launch { dao.deleteSub(s) }
     fun refreshNow() = work {
         val s = HuntRun.refreshAll(ctx); if (ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(ctx)) ru.vladis.realtorai.autopilot.AutopilotEngine.sync(ctx, s.errors); val n = HuntRun.notifyDeals(ctx, s)
-        log = if (subs.value.isEmpty()) "Нет подписок на фиды — данные берутся только из импорта." else
+        log =
             "Новых: ${s.newIds.size}, снижений цены: ${s.dropIds.size}, подходящих под фильтры: $n" + (if (s.errors.isNotEmpty()) ". Ошибки: ${s.errors.joinToString()}" else "")
     }
-    /** Подключённые официальные источники (IntegrationRegistry.listingSources). Сейчас пусто — реальных интеграций нет. */
     fun searchSources(query: String) = work {
-        val srcs = IntegrationRegistry.listingSources
-        if (srcs.isEmpty()) { log = "Нет подключённых источников. Используйте импорт файла, фида или текста."; return@work }
-        var added = 0
-        srcs.forEach { s -> runCatching { s.search(query) }.onSuccess { ps ->
-            added += HunterImport.ingest(dao, ps.map { p -> Offer(source = s.name, externalId = p.url, url = p.url, title = p.title, address = p.address,
-                market = p.type, price = p.price, area = p.area, rooms = p.rooms, floor = p.floor, fingerprint = "") }).newIds.size
-        }.onFailure { log = "${s.name}: ${err(it)}" } }
-        if (log == null) log = "Из источников добавлено: $added"
+        val result = HuntRun.searchCatalog(dao, query)
+        ru.vladis.realtorai.autopilot.AutopilotEngine.syncIfEnabled(ctx)
+        log = (listOf("Добавлено: ${result.newIds.size} · снижений цены: ${result.dropIds.size}") + result.errors).joinToString("\n")
     }
 
     fun toggleFav(o: Offer) = viewModelScope.launch { dao.saveOffer(o.copy(favorite = !o.favorite)) }
@@ -89,7 +83,7 @@ class HunterVm(app: Application) : AndroidViewModel(app) {
     fun matchLocal(c: Client) { picks = Facts.prefilter(c.budget, deals.value.filter { d ->
         val o = d.o
         (c.budget <= 0 || o.price <= c.budget) && (c.desiredRooms == 0 || o.rooms == c.desiredRooms) &&
-            o.area >= c.minArea && (c.searchArea.isNullOrBlank() || (o.address + " " + o.district).contains(c.searchArea.trim(), true))
+            (c.preferredMarket == null || c.preferredMarket == o.market) && o.area >= c.minArea && (c.searchArea.isNullOrBlank() || (o.address + " " + o.district).contains(c.searchArea.trim(), true))
     }); aiText = null }
     fun matchAi(c: Client) = work {
         runCatching { HunterAi.match(ctx, c, picks) }.onSuccess { aiText = it }.onFailure { log = "ИИ: ${err(it)}" }

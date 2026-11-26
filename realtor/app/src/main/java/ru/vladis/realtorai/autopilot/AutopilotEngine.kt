@@ -26,11 +26,14 @@ object AutoRules {
             "${normalize(address)}|${Math.round(area * 10)}|$rooms|$floor" else null
     fun sourceKey(o: Offer): String? = o.externalId.trim().takeIf { it.isNotEmpty() }?.let { "[AUTO-SOURCE:${o.source.trim().replace("\n"," ").take(100)}:${it.replace("\n"," ").take(250)}]" }
     fun valid(o: Offer) = o.active && o.deal == "sale" && o.price > 0 && o.area.isFinite() && o.area > 0
+    fun preferenceScore(c: Client, details: String): Int = c.wishes.orEmpty().split(',')
+        .map { it.trim().lowercase(Locale.ROOT) }.distinct().count { it.isNotEmpty() && details.contains(it, true) }
+
     fun matches(c: Client, props: List<Property>): List<Property> =
         if (c.role != "buyer" || c.budget <= 0 || c.stage in listOf("deal","lost")) emptyList()
         else props.filter { it.status == "active" && it.price in 1..c.budget &&
             (c.desiredRooms == 0 || it.rooms == c.desiredRooms) &&
-            it.area >= c.minArea && (c.searchArea.isNullOrBlank() || it.address.contains(c.searchArea.trim(), ignoreCase = true)) }.sortedWith(compareByDescending<Property> { it.favorite }.thenBy { it.price }).take(5)
+            (c.preferredMarket == null || c.preferredMarket == it.type) && it.area >= c.minArea && (c.searchArea.isNullOrBlank() || (it.address + " " + it.description.lineSequence().firstOrNull { line -> line.startsWith("Район:") }.orEmpty()).contains(c.searchArea.trim(), ignoreCase = true)) }.sortedWith(compareByDescending<Property> { preferenceScore(c, it.title + " " + it.description + " " + it.address) }.thenByDescending { it.favorite }.thenBy { it.price }).take(5)
     fun isDuplicate(o: Offer, p: Property): Boolean {
         val u = urlKey(o.url)
         val a = addressKey(o.address,o.area,o.rooms,o.floor)
@@ -51,12 +54,12 @@ object AutopilotEngine {
     fun report(ctx: Context) = prefs(ctx).getString("report", "Автопилот ещё не запускался.").orEmpty()
     fun lastRun(ctx: Context) = prefs(ctx).getLong("lastRun", 0)
     data class Report(val added: Int, val duplicates: Int, val skipped: Int, val changedPrices: Int, val sources: Int, val errors: List<String> = emptyList(), val planned: Int = 0) {
-        fun summary() = "Добавлено в CRM: $added · уже в базе: $duplicates · пропущено: $skipped · расхождений цен: $changedPrices · фидов: $sources · задач создано: $planned" + if(errors.isEmpty()) "" else "\nОшибки: " + errors.joinToString("; ")
+        fun summary() = "Добавлено в CRM: $added · уже в базе: $duplicates · пропущено: $skipped · расхождений цен: $changedPrices · источников: $sources · задач создано: $planned" + if(errors.isEmpty()) "" else "\nОшибки: " + errors.joinToString("; ")
     }
     suspend fun sync(ctx: Context, errors: List<String> = emptyList()): Report = mutex.withLock {
         val hunter = HunterDb.get(ctx)
         val offers = hunter.allOffers()
-        val sources = hunter.allSubs().size
+        val sources = hunter.allSubs().size + ru.vladis.realtorai.automation.IntegrationRegistry.listingSources.size
         val db = WorkspaceDb.get(ctx)
         val result = db.withTransaction {
             val dao = db.dao()
@@ -81,8 +84,9 @@ object AutopilotEngine {
                 if (same != null) {
                     duplicates++
                     if (same.price != o.price) prices++
-                    if (same.ownerId == null && owner != null) {
-                        val linked = same.copy(ownerId = owner.id)
+                    val tracksSource = marker != null && same.description.lineSequence().any { it == marker }
+                    if ((same.ownerId == null && owner != null) || (tracksSource && same.price != o.price)) {
+                        val linked = same.copy(ownerId = same.ownerId ?: owner?.id, price = if (tracksSource) o.price else same.price)
                         dao.saveProperty(linked)
                         existing[existing.indexOf(same)] = linked
                     }
@@ -91,7 +95,7 @@ object AutopilotEngine {
                 val p = Property(ownerId = owner?.id, title = o.title.ifBlank { o.address.ifBlank { "Объект из импорта" } }, address = o.address, type = o.market,
                     price = o.price, area = o.area, rooms = o.rooms, floor = o.floor,
                     url = o.url.takeIf { link != null }.orEmpty(),
-                    description = listOfNotNull("Источник: " + o.source, marker).joinToString("\n"))
+                    description = listOfNotNull("Источник: " + o.source, o.district.takeIf { it.isNotBlank() }?.let { "Район: $it" }, marker).joinToString("\n"))
                 val id = dao.saveProperty(p)
                 if (enabled(ctx)) {
                     val listing = ru.vladis.realtorai.publish.Listing(propertyId = id, address = p.address,

@@ -41,7 +41,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
     var lastRun by mutableStateOf(AutopilotEngine.lastRun(ctx)); private set
     fun toggle(on: Boolean) {
         AutopilotEngine.setEnabled(ctx,on); active=on
-        if(on) runNow(false)
+        if(on) runNow()
     }
     fun refreshStatus() {
         report = AutopilotEngine.report(ctx); lastRun = AutopilotEngine.lastRun(ctx)
@@ -116,11 +116,11 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                 Row(verticalAlignment=Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(if(vm.active) "Автопилот включён" else "Автопилот выключен",fontWeight=FontWeight.Bold,color=Color.White,style=MaterialTheme.typography.titleLarge)
-                        Text("Источники: ${sources.size} · без API-ключей",color=Color(0xFFBBDAD2))
+                        Text("Источники: ${sources.size + 2} · без API-ключей",color=Color(0xFFBBDAD2))
                     }
                     Switch(checked=vm.active,onCheckedChange={vm.toggle(it)})
                 }
-                Text(if(sources.isEmpty()) "Подключите разрешённый CSV/JSON-фид либо импортируйте объявления. Сейчас автоматического интернет-поиска нет." else "Фиды обновляются в фоне примерно каждые 6 часов при доступной сети. Подходящие объявления добавляются в CRM.",color=Color.White)
+                Text("Поиск квартир на банкротных торгах и в банковском залоге через Торги.Открыто. Обновление каждые 6 часов при доступной сети.",color=Color.White)
                 Button(onClick={vm.runNow()},enabled=!vm.busy,modifier=Modifier.fillMaxWidth()) { Text(if(vm.busy) "Обработка…" else "Запустить сейчас") }
             }
         }
@@ -135,7 +135,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
         }
         item {
             AppCard {
-                Text("Добавить объявления автоматически",style=MaterialTheme.typography.titleLarge)
+                Text("Импорт объявлений",style=MaterialTheme.typography.titleLarge)
                 Text("Вставьте ссылку или текст. Проверяем цену, площадь и дубли; неполные данные не выдумываем.",color=Muted)
                 Text("Для импорта собственника из фида укажите owner_name, owner_phone и crm_allowed=true только при наличии разрешения на перенос контакта в CRM.",color=Muted,style=MaterialTheme.typography.bodySmall)
                 Field(link,{link=it},"Ссылка (необязательно)")
@@ -155,6 +155,11 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                 Text(entry.summary)
             }
         }
+        val found = properties.filter { it.description.startsWith("Источник: Торги.Открыто") }
+        if (found.isNotEmpty()) item { AppCard {
+            Text("Найденные на торгах · ${found.size}", style = MaterialTheme.typography.titleLarge)
+            found.take(3).forEach { Text(it.title.take(90) + " · " + it.price.rub()) }
+        } }
         item { Title("План действий") }
         item {
             Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {

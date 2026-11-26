@@ -18,9 +18,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextStyle
 import java.util.Locale
 
-val Graphite = Color(0xFF0E1514)
-val Surface1 = Color(0xFF182220)
-val Surface2 = Color(0xFF23332F)
+val Graphite = Color(0xFF0E1723)
+val Surface1 = Color(0xFF182737)
+val Surface2 = Color(0xFF25394A)
 val Lime = Color(0xFF61DFAC)
 val Muted = Color(0xFFADC0B9)
 
@@ -41,8 +41,8 @@ val Muted = Color(0xFFADC0B9)
     content = content)
 
 @Composable fun AppCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) =
-    Card(modifier.fillMaxWidth().animateContentSize(), shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, Color(0xFF30443C)),
+    Card(modifier.fillMaxWidth().animateContentSize(), shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color(0xFF374957)),
         colors = CardDefaults.cardColors(containerColor = Surface1)) {
         Column(Modifier.then(if (onClick != null) Modifier.clickable { onClick() } else Modifier).padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp), content = content)
     }

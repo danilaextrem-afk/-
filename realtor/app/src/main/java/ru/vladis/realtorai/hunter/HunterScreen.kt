@@ -169,7 +169,7 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         } }
         item { AppCard {
             Text("Подключённые источники", fontWeight = FontWeight.SemiBold)
-            Text("Реализации ListingSource (официальные API) регистрируются в IntegrationRegistry; сейчас их нет.", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("Торги.Открыто · банкротные торги и банковские залоги. Найдите квартиры по названию города или улице.", color = Muted, style = MaterialTheme.typography.bodySmall)
             Field(q, { q = it }, "Запрос к источникам"); OutlinedButton({ vm.searchSources(q) }, enabled = q.isNotBlank()) { Text("Искать в источниках") }
         } }
         item { OutlinedButton({ vm.geocodeMissing() }, enabled = !vm.busy) { Text("Определить координаты по адресам (для карты)") } }

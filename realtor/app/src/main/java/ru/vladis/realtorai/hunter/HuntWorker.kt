@@ -18,9 +18,30 @@ object HuntRun {
     private val http = OkHttpClient.Builder().callTimeout(60, TimeUnit.SECONDS).build()
     data class Summary(val newIds: List<Long>, val dropIds: List<Long>, val errors: List<String>)
 
-    /** Обновляет все подписки на фиды. Если подписок нет — ничего не делает (данные только из импорта). */
+    suspend fun searchCatalog(dao: HunterDao, query: String): Summary {
+        val added = mutableListOf<Long>()
+        val drops = mutableListOf<Long>()
+        val errors = mutableListOf<String>()
+        for (source in ru.vladis.realtorai.automation.IntegrationRegistry.listingSources) {
+            try {
+                val result = HunterImport.ingest(dao, source.search(query))
+                added += result.newIds
+                drops += result.dropIds
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                errors += "${source.name}: ${e.message}"
+            }
+        }
+        return Summary(added, drops, errors)
+    }
+
     suspend fun refreshAll(ctx: Context): Summary {
-        val dao = HunterDb.get(ctx); val newIds = mutableListOf<Long>(); val drops = mutableListOf<Long>(); val errs = mutableListOf<String>()
+        val dao = HunterDb.get(ctx)
+        val catalog = searchCatalog(dao, "")
+        val newIds = catalog.newIds.toMutableList()
+        val drops = catalog.dropIds.toMutableList()
+        val errs = catalog.errors.toMutableList()
         for (s in dao.allSubs()) {
             runCatching {
                 val text = withContext(Dispatchers.IO) {

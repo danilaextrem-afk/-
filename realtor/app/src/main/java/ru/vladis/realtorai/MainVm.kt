@@ -111,45 +111,30 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun clearChat() { chat.clear(); error = null }
 
     fun ask(mode: String, text: String, p: Property?, c: Client?) {
-        if (!hasKey && !deviceReady) {
-            chat.add("user" to text)
-            chat.add("assistant" to ru.vladis.realtorai.local.OfflineAssistant.answer(mode, text, p, c, properties.value))
-            error = null; return
-        }
+        if (!deviceReady) { error = "Сначала скачайте локальную модель"; return }
         var content = text
         p?.let { content += "\n\nОбъект: ${it.title}, ${it.address}, ${it.price} ₽, ${it.area} м², ${it.rooms} комн., этаж ${it.floor}. ${it.description.take(600)}" }
         c?.let { content += "\n\nКлиент: ${it.name}, бюджет ${it.budget} ₽, ${it.notes}" }
         var system = Prompts.BASE + " " + (Prompts.modes.firstOrNull { it.first == mode }?.second ?: "")
-        if (mode == "Подбор") system += "\nОбъекты:\n" + properties.value.filter { it.status == "active" }.take(40)
+        if (mode == "Подбор") system += "\nОбъекты:\n" + (c?.let { ru.vladis.realtorai.autopilot.AutoRules.matches(it, properties.value) } ?: properties.value.filter { it.status == "active" }).take(5)
             .joinToString("\n") { "- ${it.title}; ${it.address}; ${it.price} ₽; ${it.area} м²; ${it.rooms}к; ${if (it.type == "primary") "первичка" else "вторичка"}" }
         val hist = chat.toList() + ("user" to content)
         chat.add("user" to text); error = null; busy = true
         viewModelScope.launch {
-            runCatching { if (deviceReady) DeviceModel.answer(ctx, system, hist) else Groq.chat(store.apiKey, model, system, hist) }
+            runCatching { DeviceModel.answer(ctx, system, hist) }
                 .onSuccess { chat.add("assistant" to it) }
                 .onFailure { error = it.message }
             busy = false
         }
     }
 
-    // ---- Резервная копия (API-ключ в копию не попадает) ----
-    suspend fun exportJson(): String = withContext(Dispatchers.IO) {
-        Gson().toJson(Backup(dao.allProperties(), dao.allClients(), dao.allInteractions(), dao.allTasks()))
+    suspend fun exportBackup(uri: android.net.Uri) = withContext(Dispatchers.IO) {
+        checkNotNull(ctx.contentResolver.openOutputStream(uri, "wt")).use { WorkspaceBackup.write(ctx, db, it) }
     }
-    suspend fun importJson(s: String) = withContext(Dispatchers.IO) {
-        val b = Gson().fromJson(s, Backup::class.java)
-        val previous = db.withTransaction {
-            val previousTasks = dao.allTasks()
-            dao.clearInteractions()
-            dao.clearTasks()
-            dao.clearClients()
-            dao.clearProperties()
-        b.properties.forEach { dao.saveProperty(it) }; b.clients.forEach { dao.saveClient(it) }
-        b.interactions.forEach { dao.saveInteraction(it) }
-            b.tasks.forEach { dao.saveTask(it) }
-            previousTasks
-        }
+
+    suspend fun importBackup(uri: android.net.Uri) = withContext(Dispatchers.IO) {
+        val previous = checkNotNull(ctx.contentResolver.openInputStream(uri)).use { WorkspaceBackup.read(ctx, db, it) }
         previous.forEach { Reminder.cancel(ctx, it.id) }
-        b.tasks.filterNot { it.done }.forEach { Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
+        dao.allTasks().filterNot { it.done }.forEach { Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
     }
 }

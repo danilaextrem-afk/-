@@ -27,18 +27,16 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
     var agency by remember { mutableStateOf(vm.agencyPct.toString()) }
     var share by remember { mutableStateOf(vm.sharePct.toString()) }
     var status by remember { mutableStateOf("") }
-    val exp = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+    val exp = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) scope.launch {
-            val s = vm.exportJson()
-            withContext(Dispatchers.IO) { ctx.contentResolver.openOutputStream(uri)?.use { it.write(s.toByteArray()) } }
-            status = "Экспорт выполнен"
+            runCatching { vm.exportBackup(uri) }.onSuccess { status = "Копия сохранена" }
+                .onFailure { status = "Ошибка сохранения: ${it.message}" }
         }
     }
     val imp = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
             runCatching {
-                val s = withContext(Dispatchers.IO) { ctx.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() } }
-                vm.importJson(s)
+                vm.importBackup(uri)
             }.onSuccess { status = "Данные восстановлены" }.onFailure { status = "Ошибка импорта файла" }
         }
     }
@@ -67,12 +65,12 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
         item {
             AppCard {
                 Text("Резервная копия", fontWeight = FontWeight.SemiBold)
-                Text("JSON без API-ключа", color = Muted)
+                Text("Рабочая база и фотографии", color = Muted)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton({ exp.launch("realtor-ai-backup.json") }) { Text("Экспорт") }
+                    OutlinedButton({ exp.launch("realtor-ai.zip") }) { Text("Экспорт") }
                     OutlinedButton({ imp.launch(arrayOf("application/json", "*/*")) }) { Text("Импорт") }
                 }
-                Text("Импорт заменяет данные основной CRM; карточки публикаций и база поиска в эту копию не входят", color = Muted, style = MaterialTheme.typography.bodySmall)
+                Text("Архив восстанавливает CRM, поиск, историю цен, публикации, фотографии и журнал. Старая JSON-копия восстанавливает только CRM.", color = Muted, style = MaterialTheme.typography.bodySmall)
             }
         }
         item {
