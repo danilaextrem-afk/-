@@ -66,7 +66,7 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            TextButton(back) { Text("Назад к объектам") }
+            TextButton(back) { Text("Назад") }
             ScreenHeading("Сопровождение собственника", property?.title ?: "Карточка объекта")
         }
         if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }

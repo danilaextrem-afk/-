@@ -199,12 +199,13 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
 
 @Composable fun PriceChart(p: List<PricePoint>) {
     if (p.size < 2) return
+    val accent = Lime
     Canvas(Modifier.fillMaxWidth().height(80.dp)) {
         val mn = p.minOf { it.price }; val rng = max(1L, p.maxOf { it.price } - mn)
         val path = Path(); p.forEachIndexed { i, pt ->
             val x = size.width * i / (p.size - 1); val y = size.height * (1 - (pt.price - mn).toFloat() / rng) * 0.9f + size.height * 0.05f
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y) }
-        drawPath(path, Lime, style = Stroke(4f))
+        drawPath(path, accent, style = Stroke(4f))
     }
 }
 
@@ -296,15 +297,26 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) map.onResume() else if (e == Lifecycle.Event.ON_PAUSE) map.onPause() }
         owner.lifecycle.addObserver(obs); onDispose { owner.lifecycle.removeObserver(obs); map.onDetach() }
     }
-    AndroidView({ map }, modifier) { m ->
-        m.overlays.clear()
-        deals.filter { it.o.lat != null && it.o.lon != null }.forEach { d ->
-            val mk = Marker(m); mk.position = GeoPoint(d.o.lat!!, d.o.lon!!)
-            mk.title = d.o.price.rub(); mk.snippet = d.o.address
-            mk.icon = mk.icon.mutate().also { it.setTint((if (d.below) Lime else Muted).toArgb()) }
-            mk.setOnMarkerClickListener { _, _ -> onOpen(d.o.id); true }
-            m.overlays.add(mk)
+    val markerAccent = Lime.toArgb()
+    val markerNeutral = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    Box(modifier) {
+        AndroidView({ map }, Modifier.fillMaxSize()) { m ->
+            m.overlays.clear()
+            deals.filter { it.o.lat?.isFinite() == true && it.o.lon?.isFinite() == true }.forEach { d ->
+                val marker = Marker(m)
+                marker.position = GeoPoint(d.o.lat!!, d.o.lon!!)
+                marker.title = d.o.price.rub()
+                marker.snippet = d.o.address
+                marker.icon = marker.icon.mutate().also { it.setTint(if (d.below) markerAccent else markerNeutral) }
+                marker.setOnMarkerClickListener { _, _ -> onOpen(d.o.id); true }
+                m.overlays.add(marker)
+            }
+            m.invalidate()
         }
-        m.invalidate()
+        val position = deals.firstOrNull { it.o.lat?.isFinite() == true && it.o.lon?.isFinite() == true }?.o
+        if (position != null) FilledTonalButton({
+            map.controller.animateTo(GeoPoint(position.lat!!, position.lon!!))
+            map.controller.setZoom(13.0)
+        }, Modifier.align(Alignment.TopEnd).padding(10.dp)) { Text("К объектам") }
     }
 }

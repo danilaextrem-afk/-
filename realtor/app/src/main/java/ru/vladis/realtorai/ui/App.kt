@@ -2,6 +2,12 @@ package ru.vladis.realtorai.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.platform.LocalContext
@@ -50,11 +56,29 @@ import ru.vladis.realtorai.MainVm
         Triple("ai", "ИИ", Icons.Default.Star))
     val wide = LocalConfiguration.current.screenWidthDp >= 700
     Scaffold(containerColor = Graphite, bottomBar = {
-        if (!wide) NavigationBar(containerColor = Surface1) {
-            tabs.forEach { (id, label, icon) ->
-                NavigationBarItem(selected = tab == id && sub == null && clientId == null,
-                    onClick = { if (tab != id || sub != null) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); tab = id; sub = null; clientId = null },
-                    icon = { Icon(icon, null) }, label = { Text(label) }, colors = NavigationBarItemDefaults.colors(indicatorColor = Surface2, selectedIconColor = Lime, selectedTextColor = Lime, unselectedIconColor = Muted, unselectedTextColor = Muted))
+        if (!wide) Surface(color = Graphite) {
+            Surface(shape = RoundedCornerShape(22.dp), color = Surface1,
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp)) {
+                Row(Modifier.fillMaxWidth().selectableGroup().padding(5.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    tabs.forEach { (id, label, icon) ->
+                        val selected = tab == id && sub == null && clientId == null
+                        Column(
+                            Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
+                                .selectable(selected, role = Role.Tab, onClick = {
+                                    if (!selected) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    tab = id; sub = null; clientId = null
+                                }).padding(vertical = 5.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Surface(shape = RoundedCornerShape(13.dp),
+                                color = if (selected) MaterialTheme.colorScheme.primaryContainer else Surface1) {
+                                Icon(icon, null, Modifier.padding(horizontal = 11.dp, vertical = 5.dp).size(19.dp),
+                                    tint = if (selected) Lime else Muted)
+                            }
+                            Text(label, style = MaterialTheme.typography.labelSmall, color = if (selected) Lime else Muted)
+                        }
+                    }
+                }
             }
         }
     }) { pad ->

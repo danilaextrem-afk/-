@@ -73,7 +73,7 @@ fun Home(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Home, null, tint = Lime, modifier = Modifier.size(21.dp))
+                    Icon(androidx.compose.ui.res.painterResource(ru.vladis.realtorai.R.drawable.ic_realtor), null, tint = Color.Unspecified, modifier = Modifier.size(38.dp))
                 }
                 Text("Realtor AI", Modifier.padding(start = 10.dp).weight(1f), style = MaterialTheme.typography.titleLarge)
                 IconButton(openSettings) { Icon(Icons.Default.Settings, "Настройки") }

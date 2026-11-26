@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import ru.vladis.realtorai.ui.App
-import ru.vladis.realtorai.ui.RealtorTheme
 
 class MainActivity : ComponentActivity() {
     private val vm: MainVm by viewModels()
