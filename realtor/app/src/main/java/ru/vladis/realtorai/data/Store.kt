@@ -1,0 +1,29 @@
+package ru.vladis.realtorai.data
+
+import android.content.Context
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+
+/** API-ключ хранится в EncryptedSharedPreferences (Android Keystore). Остальные настройки — обычные prefs. */
+class Store(ctx: Context) {
+    private val secure = EncryptedSharedPreferences.create(
+        ctx, "secure", MasterKey.Builder(ctx).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
+    private val plain = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    var apiKey: String
+        get() = "" // local-only build: cloud AI disabled
+        set(v) { secure.edit().putString("groq_key", v).apply() }
+    var model: String
+        get() = plain.getString("model", "llama-3.3-70b-versatile") ?: "llama-3.3-70b-versatile"
+        set(v) { plain.edit().putString("model", v).apply() }
+    /** Комиссия агентства, % от цены объекта */
+    var agencyPct: Double
+        get() = plain.getFloat("agency", 3f).toDouble()
+        set(v) { plain.edit().putFloat("agency", v.toFloat()).apply() }
+    /** Доля агента от комиссии агентства, % */
+    var sharePct: Double
+        get() = plain.getFloat("share", 40f).toDouble()
+        set(v) { plain.edit().putFloat("share", v.toFloat()).apply() }
+}

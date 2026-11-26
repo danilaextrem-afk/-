@@ -4,7 +4,7 @@ on:
   push:
     branches: [realtorai-build-04]
     paths:
-      - realtor-build.b64
+      - "realtor/**"
       - .github/workflows/realtor-android.yml
 permissions:
   contents: read
@@ -14,38 +14,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Restore exact Android source
-        run: |
-          base64 --decode realtor-build.b64 > /tmp/realtor-build.tgz
-          echo '3c01036d6c96aa4399d2bd28f4994cfbc6368a00236dfcadabd630be914b2e1d  /tmp/realtor-build.tgz' | sha256sum -c -
-          mkdir -p realtor
-          tar -xzf /tmp/realtor-build.tgz -C realtor
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Fix Deal Hunter JVM setter conflict
-        run: |
-          python3 - <<'PY'
-          import pathlib,re
-          root=pathlib.Path('realtor/app/src')
-          changed=0
-          for p in root.rglob('*.kt'):
-              old=p.read_text(encoding='utf-8')
-              new=re.sub(r'\bsetMonitoring\b','changeMonitoring',old)
-              if new!=old:
-                  p.write_text(new,encoding='utf-8')
-                  print('Patched',p)
-                  changed+=1
-          assert changed, 'Expected monitoring method not found'
-          PY
-      - name: Integrate native Autopilot module
-        run: |
-          python3 overlay/patch.py
-          mkdir -p realtor/app/src/main/java/ru/vladis/realtorai/autopilot
-          mkdir -p realtor/app/src/test/java/ru/vladis/realtorai/autopilot
-          cp overlay/AutopilotEngine.kt overlay/AutopilotScreen.kt realtor/app/src/main/java/ru/vladis/realtorai/autopilot/
-          cp overlay/AutoRulesTest.kt realtor/app/src/test/java/ru/vladis/realtorai/autopilot/
       - name: Use preinstalled Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
