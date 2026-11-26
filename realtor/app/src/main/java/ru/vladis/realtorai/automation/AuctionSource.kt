@@ -33,12 +33,12 @@ class AuctionSource(private val channel: String, label: String) : ListingSource 
         val id = row.value("id") ?: return null
         val end = row.value("biddingEnd")?.let { runCatching { Instant.parse(it) }.getOrNull() }
         if (end != null && end <= Instant.now()) return null
-        if (row.value("status") !in setOf("announced", "active", "accepting", "published")
+        if (row.value("status") !in setOf("announced", "in_progress", "accepting_bids", "active", "accepting", "published")
             || row.value("currency") != "RUB" || row.value("transactionType") in setOf("rent", "lease")) return null
         val price = row.value("currentPrice") ?: row.value("startPrice")
         val attrs = row.get("realEstateAttrs")?.takeIf { it.isJsonObject }?.asJsonObject
         return Offer(source = name, externalId = id, url = "https://torgiopen.ru/lot/$id",
-            title = row.value("title") ?: return null, address = row.value("address").orEmpty(),
+            housingKind = attrs?.value("subcategory"), title = row.value("title") ?: return null, address = row.value("address").orEmpty(),
             price = price?.toDoubleOrNull()?.toLong() ?: return null,
             area = row.value("areaSqm")?.toDoubleOrNull() ?: return null,
             rooms = attrs?.value("rooms")?.toIntOrNull() ?: 0,

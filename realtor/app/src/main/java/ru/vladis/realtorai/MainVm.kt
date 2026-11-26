@@ -112,12 +112,18 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     fun ask(mode: String, text: String, p: Property?, c: Client?) {
         if (!deviceReady) { error = "Сначала скачайте локальную модель"; return }
-        var content = text
-        p?.let { content += "\n\nОбъект: ${it.title}, ${it.address}, ${it.price} ₽, ${it.area} м², ${it.rooms} комн., этаж ${it.floor}. ${it.description.take(600)}" }
-        c?.let { content += "\n\nКлиент: ${it.name}, бюджет ${it.budget} ₽, ${it.notes}" }
-        var system = Prompts.BASE + " " + (Prompts.modes.firstOrNull { it.first == mode }?.second ?: "")
-        if (mode == "Подбор") system += "\nОбъекты:\n" + (c?.let { ru.vladis.realtorai.autopilot.AutoRules.matches(it, properties.value) } ?: properties.value.filter { it.status == "active" }).take(5)
-            .joinToString("\n") { "- ${it.title}; ${it.address}; ${it.price} ₽; ${it.area} м²; ${it.rooms}к; ${if (it.type == "primary") "первичка" else "вторичка"}" }
+        val system = Prompts.BASE + " " + (Prompts.modes.firstOrNull { it.first == mode }?.second ?: "")
+        val content = buildString {
+            c?.let { appendLine("Клиент: ${it.name.take(50)}; бюджет ${it.budget} ₽; ${listOfNotNull(it.searchArea, it.desiredKind, it.wishes).joinToString().take(100)}. ${it.notes.take(80)}") }
+            p?.let { appendLine("Объект: ${it.title.take(65)}, ${it.address.take(80)}, ${it.price} ₽, ${it.area} м², ${it.rooms} комн. ${it.description.take(90)}") }
+            if (mode == "Подбор") {
+                val candidates = c?.let { ru.vladis.realtorai.autopilot.AutoRules.matches(it, properties.value) }
+                    ?: properties.value.filter { it.status == "active" }
+                candidates.take(3).forEach { appendLine("${it.title.take(35)} · ${it.address.take(50)} · ${it.price} ₽ · ${it.area} м²") }
+                if (candidates.isEmpty()) appendLine("Подходящих объектов в базе нет.")
+            }
+            append(text.take(400))
+        }
         val hist = chat.toList() + ("user" to content)
         chat.add("user" to text); error = null; busy = true
         viewModelScope.launch {

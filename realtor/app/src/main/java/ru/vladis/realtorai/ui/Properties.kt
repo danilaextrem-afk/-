@@ -72,6 +72,7 @@ import ru.vladis.realtorai.data.pricePerSqm
 @Composable fun PropertyDialog(vm: MainVm, init: Property, onDismiss: () -> Unit) {
     val clients by vm.clients.collectAsState()
     var title by remember { mutableStateOf(init.title) }
+    var kind by remember { mutableStateOf(init.housingKind.orEmpty()) }
     var address by remember { mutableStateOf(init.address) }
     var price by remember { mutableStateOf(if (init.price > 0) init.price.toString() else "") }
     var area by remember { mutableStateOf(if (init.area > 0) init.area.toString() else "") }
@@ -85,6 +86,7 @@ import ru.vladis.realtorai.data.pricePerSqm
     AlertDialog(onDismissRequest = onDismiss, title = { Text(if (init.id == 0L) "Новый объект" else "Объект") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Field(kind, { kind = it }, "Тип жилья")
                 Field(title, { title = it }, "Название")
                 Field(address, { address = it }, "Адрес")
                 Field(price, { price = it.filter(Char::isDigit) }, "Цена, ₽", keyboard = KeyboardType.Number)
@@ -107,7 +109,7 @@ import ru.vladis.realtorai.data.pricePerSqm
         },
         confirmButton = {
             Button(enabled = title.isNotBlank(), onClick = {
-                vm.saveProperty(init.copy(title = title.trim(), address = address.trim(), price = price.toLongOrNull() ?: 0,
+                vm.saveProperty(init.copy(housingKind = kind.trim().ifBlank { null }, title = title.trim(), address = address.trim(), price = price.toLongOrNull() ?: 0,
                     area = area.replace(',', '.').toDoubleOrNull() ?: 0.0, rooms = rooms.toIntOrNull() ?: 0, floor = floor.toIntOrNull() ?: 0,
                     url = url.trim(), description = desc, type = if (type == "Первичка") "primary" else "secondary",
                     status = when (status) { "Сделка" -> "deal"; "Архив" -> "archived"; else -> "active" }, ownerId = owner))

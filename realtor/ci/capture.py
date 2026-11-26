@@ -48,5 +48,5 @@ def tap(label):
     adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
 
 tap("Главная")
-tap("Начать импорт")
+tap("Настроить поиск")
 capture("autopilot", "Автопилот")

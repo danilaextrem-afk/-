@@ -101,7 +101,7 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
             var editCriteria by remember { mutableStateOf(false) }
             AppCard {
                 Text("Требования к квартире", style = MaterialTheme.typography.titleMedium)
-                Text(listOfNotNull(c.searchArea, c.wishes, when(c.preferredMarket) { "primary" -> "Первичка"; "secondary" -> "Вторичка"; else -> null }, c.desiredRooms.takeIf { it > 0 }?.let { "$it комн." },
+                Text(listOfNotNull(c.searchArea, c.desiredKind, c.wishes, when(c.preferredMarket) { "primary" -> "Первичка"; "secondary" -> "Вторичка"; else -> null }, c.desiredRooms.takeIf { it > 0 }?.let { "$it комн." },
                     c.minArea.takeIf { it > 0 }?.let { "от $it м²" }).joinToString(" · ").ifBlank { "Все районы и планировки" }, color = Muted)
                 TextButton({ editCriteria = true }) { Text("Изменить подбор") }
             }
@@ -109,11 +109,13 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
                 var area by remember { mutableStateOf(c.searchArea.orEmpty()) }
                 var rooms by remember { mutableStateOf(c.desiredRooms.takeIf { it > 0 }?.toString().orEmpty()) }
                 var minimum by remember { mutableStateOf(c.minArea.takeIf { it > 0 }?.toString().orEmpty()) }
+                var kind by remember { mutableStateOf(c.desiredKind.orEmpty()) }
                 var market by remember { mutableStateOf(c.preferredMarket) }
                 var wishes by remember { mutableStateOf(c.wishes.orEmpty()) }
                 val size = minimum.replace(',', '.').toDoubleOrNull()
                 AlertDialog(onDismissRequest = { editCriteria = false }, title = { Text("Критерии подбора") },
-                    text = { Column {
+                    text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+                        Field(kind, { kind = it }, "Тип жилья: квартира, дом, комната…")
                         val markets = mapOf("Любой" to null, "Первичка" to "primary", "Вторичка" to "secondary")
                         Chips(markets.keys.toList(), markets.entries.firstOrNull { it.value == market }?.key ?: "Любой") { market = markets[it] }
                         Field(wishes, { wishes = it }, "Пожелания через запятую")
@@ -121,7 +123,7 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
                         Field(rooms, { rooms = it.filter(Char::isDigit).take(2) }, "Количество комнат", keyboard = KeyboardType.Number)
                         Field(minimum, { minimum = it }, "Минимальная площадь, м²", keyboard = KeyboardType.Decimal)
                     } }, confirmButton = { Button(enabled = minimum.isBlank() || (size != null && size.isFinite() && size >= 0), onClick = {
-                        vm.saveClient(c.copy(preferredMarket = market, wishes = wishes.trim().ifBlank { null }, searchArea = area.trim().ifBlank { null }, desiredRooms = rooms.toIntOrNull() ?: 0, minArea = size ?: 0.0))
+                        vm.saveClient(c.copy(desiredKind = kind.trim().ifBlank { null }, preferredMarket = market, wishes = wishes.trim().ifBlank { null }, searchArea = area.trim().ifBlank { null }, desiredRooms = rooms.toIntOrNull() ?: 0, minArea = size ?: 0.0))
                         editCriteria = false
                     }) { Text("Сохранить") } })
             }

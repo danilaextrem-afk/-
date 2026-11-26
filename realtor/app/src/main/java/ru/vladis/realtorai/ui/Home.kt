@@ -51,9 +51,9 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
         if (welcome) item {
             AppCard {
                 Text("С чего начать", style = MaterialTheme.typography.titleLarge)
-                Text("Импортируйте первый объект из текста или CSV. Автопилот проверит дубли и подберёт покупателей из CRM.", color = Muted)
+                Text("Найдите квартиры на торгах или подключите свой фид. Автопилот сверит новые объекты с запросами покупателей.", color = Muted)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button({ dismissWelcome(); openAutopilot() }) { Text("Начать импорт") }
+                    Button({ dismissWelcome(); openAutopilot() }) { Text("Настроить поиск") }
                     TextButton({ dismissWelcome() }) { Text("Позже") }
                 }
             }
@@ -61,8 +61,8 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
         item {
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(Color(0xFF204D45),Color(0xFF26364C)))).padding(20.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
                 Text("АВТОПИЛОТ",color=Lime,style=MaterialTheme.typography.labelMedium)
-                Text("Импорт и подбор",color=Color.White,style=MaterialTheme.typography.headlineSmall)
-                Text("Проверить фиды, добавить новые объекты в CRM и найти совпадения по бюджету.",color=Color(0xFFD1E1DF))
+                Text("Поиск и подбор",color=Color.White,style=MaterialTheme.typography.headlineSmall)
+                Text("Новые лоты, изменения цен и варианты для покупателей.",color=Color(0xFFD1E1DF))
                 Button(onClick=openAutopilot,modifier=Modifier.fillMaxWidth()) { Text("Открыть автопилот"); Spacer(Modifier.width(8.dp)); Icon(Icons.Default.ArrowForward,null,Modifier.size(18.dp)) }
             }
         }

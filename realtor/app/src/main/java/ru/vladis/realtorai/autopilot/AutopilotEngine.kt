@@ -33,6 +33,7 @@ object AutoRules {
         if (c.role != "buyer" || c.budget <= 0 || c.stage in listOf("deal","lost")) emptyList()
         else props.filter { it.status == "active" && it.price in 1..c.budget &&
             (c.desiredRooms == 0 || it.rooms == c.desiredRooms) &&
+            (c.desiredKind == null || c.desiredKind.equals(it.housingKind, true)) &&
             (c.preferredMarket == null || c.preferredMarket == it.type) && it.area >= c.minArea && (c.searchArea.isNullOrBlank() || (it.address + " " + it.description.lineSequence().firstOrNull { line -> line.startsWith("Район:") }.orEmpty()).contains(c.searchArea.trim(), ignoreCase = true)) }.sortedWith(compareByDescending<Property> { preferenceScore(c, it.title + " " + it.description + " " + it.address) }.thenByDescending { it.favorite }.thenBy { it.price }).take(5)
     fun isDuplicate(o: Offer, p: Property): Boolean {
         val u = urlKey(o.url)
@@ -92,7 +93,7 @@ object AutopilotEngine {
                     }
                     continue
                 }
-                val p = Property(ownerId = owner?.id, title = o.title.ifBlank { o.address.ifBlank { "Объект из импорта" } }, address = o.address, type = o.market,
+                val p = Property(housingKind = o.housingKind, ownerId = owner?.id, title = o.title.ifBlank { o.address.ifBlank { "Объект из импорта" } }, address = o.address, type = o.market,
                     price = o.price, area = o.area, rooms = o.rooms, floor = o.floor,
                     url = o.url.takeIf { link != null }.orEmpty(),
                     description = listOfNotNull("Источник: " + o.source, o.district.takeIf { it.isNotBlank() }?.let { "Район: $it" }, marker).joinToString("\n"))

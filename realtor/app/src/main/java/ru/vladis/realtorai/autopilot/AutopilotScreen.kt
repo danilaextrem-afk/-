@@ -34,6 +34,12 @@ class AutoVm(app: Application): AndroidViewModel(app) {
     private val ctx = app.applicationContext
     private val hunter = HunterDb.get(ctx)
     val history = ru.vladis.realtorai.data.WorkspaceDb.get(ctx).dao().recentRuns()
+    private val prefs = ctx.getSharedPreferences("autopilot", 0)
+    var catalogQuery by mutableStateOf(prefs.getString("catalogQuery", "").orEmpty()); private set
+    fun setQuery(value: String) {
+        catalogQuery = value.take(100)
+        prefs.edit().putString("catalogQuery", catalogQuery).apply()
+    }
     val sources = hunter.subs()
     var active by mutableStateOf(AutopilotEngine.enabled(ctx)); private set
     var busy by mutableStateOf(false); private set
@@ -121,6 +127,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                     Switch(checked=vm.active,onCheckedChange={vm.toggle(it)})
                 }
                 Text("Поиск квартир на банкротных торгах и в банковском залоге через Торги.Открыто. Обновление каждые 6 часов при доступной сети.",color=Color.White)
+                Field(vm.catalogQuery, vm::setQuery, "Город или улица для поиска")
                 Button(onClick={vm.runNow()},enabled=!vm.busy,modifier=Modifier.fillMaxWidth()) { Text(if(vm.busy) "Обработка…" else "Запустить сейчас") }
             }
         }

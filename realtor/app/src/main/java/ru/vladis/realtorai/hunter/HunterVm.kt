@@ -83,6 +83,7 @@ class HunterVm(app: Application) : AndroidViewModel(app) {
     fun matchLocal(c: Client) { picks = Facts.prefilter(c.budget, deals.value.filter { d ->
         val o = d.o
         (c.budget <= 0 || o.price <= c.budget) && (c.desiredRooms == 0 || o.rooms == c.desiredRooms) &&
+            (c.desiredKind == null || c.desiredKind.equals(o.housingKind, true)) &&
             (c.preferredMarket == null || c.preferredMarket == o.market) && o.area >= c.minArea && (c.searchArea.isNullOrBlank() || (o.address + " " + o.district).contains(c.searchArea.trim(), true))
     }); aiText = null }
     fun matchAi(c: Client) = work {

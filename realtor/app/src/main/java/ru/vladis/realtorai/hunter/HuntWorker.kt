@@ -38,7 +38,7 @@ object HuntRun {
 
     suspend fun refreshAll(ctx: Context): Summary {
         val dao = HunterDb.get(ctx)
-        val catalog = searchCatalog(dao, "")
+        val catalog = searchCatalog(dao, ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty())
         val newIds = catalog.newIds.toMutableList()
         val drops = catalog.dropIds.toMutableList()
         val errs = catalog.errors.toMutableList()

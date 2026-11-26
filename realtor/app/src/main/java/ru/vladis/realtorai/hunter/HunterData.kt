@@ -10,7 +10,7 @@ data class Offer(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val source: String,
     val ownerName: String? = null, val ownerPhone: String? = null,
-    val externalId: String = "", val url: String = "",
+    val housingKind: String? = null, val externalId: String = "", val url: String = "",
     val title: String = "", val address: String = "", val district: String = "",
     val lat: Double? = null, val lon: Double? = null,
     val deal: String = "sale",         // sale | rent (для rent price = аренда в месяц)
