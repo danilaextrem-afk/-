@@ -18,6 +18,10 @@ def find(label):
             time.sleep(1)
             continue
         for node in root.iter("node"):
+            if node.get("resource-id", "").endswith(":id/permission_allow_button") and node.get("package", "").endswith("permissioncontroller"):
+                x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
+                adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
+                break
             if label in (node.get("text"), node.get("content-desc")):
                 return [int(n) for n in re.findall(r"\d+", node.get("bounds"))]
         time.sleep(0.3)
