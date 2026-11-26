@@ -36,10 +36,25 @@ import ru.vladis.realtorai.data.Property
             Title("ИИ-ассистент"); Spacer(Modifier.weight(1f))
             TextButton({ vm.clearChat() }) { Text("Очистить") }
         }
-        if (vm.deviceReady) Text("Qwen 2.5 · на устройстве", color = Lime)
-        else OutlinedButton(onClick = vm::installModel, enabled = vm.modelProgress == null) {
-            Text(vm.modelProgress?.let { "Загрузка Qwen · $it%" } ?: "Скачать локальный ИИ · 547 МБ")
-        }
+        var manager by remember { mutableStateOf(false) }
+        OutlinedButton({ manager = true }) { Text(if (vm.deviceReady) vm.activeModel.label else "Скачать локальную модель") }
+        if (manager) AlertDialog(onDismissRequest = { manager = false }, title = { Text("Модели на устройстве") },
+            text = { LazyColumn {
+                items(ru.vladis.realtorai.ai.models.size) { i ->
+                    val spec = ru.vladis.realtorai.ai.models[i]
+                    Text(spec.label, style = MaterialTheme.typography.titleMedium)
+                    Text("${spec.size / 1_000_000} МБ", color = Muted)
+                    if (vm.downloading == spec) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                        TextButton(vm::pauseModel) { Text("Пауза · ${vm.modelProgress}%") }
+                    } else if (vm.hasModel(spec)) {
+                        TextButton({ vm.chooseModel(spec) }, enabled = vm.activeModel != spec && !vm.busy) { Text(if (vm.activeModel == spec) "Активна" else "Использовать") }
+                    } else TextButton({ vm.installModel(spec) }, enabled = vm.downloading == null) {
+                        Text(if (vm.partialModel(spec) > 0) "Продолжить загрузку" else "Скачать")
+                    }
+                }
+                vm.error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
+            } }, confirmButton = { TextButton({ manager = false }) { Text("Закрыть") } })
         Chips(Prompts.modes.map { it.first }, mode) { mode = it }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box {

@@ -1,64 +1,104 @@
 package ru.vladis.realtorai.ai
 
+import android.app.ActivityManager
 import android.content.Context
+import android.os.Build
+import android.os.PowerManager
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import java.io.File
 import java.security.MessageDigest
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-object DeviceModel {
-    private const val size = 546660344L
-    private const val hash = "e608953f169aeb1bd7b9155fec2559825e08453fc209b84eda3a781ed0452fd2"
-    private const val url = "https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/49bfd323c25c9dae2118906e1f3ffd16e0729b13/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task"
-    private fun model(ctx: Context) = File(ctx.noBackupFilesDir, "qwen-0.5b-q8.task")
-    fun installed(ctx: Context) = model(ctx).length() == size
+internal object NativeQwen {
+    init { System.loadLibrary("realtor_inference") }
+    external fun generate(file: String, prompt: ByteArray): ByteArray
+}
 
-    suspend fun download(ctx: Context, progress: suspend (Int) -> Unit) = withContext(Dispatchers.IO) {
-        val target = model(ctx)
-        check(ctx.noBackupFilesDir.usableSpace > size + 100_000_000) { "Освободите минимум 650 МБ" }
-        val temp = File.createTempFile("qwen", ".part", ctx.noBackupFilesDir)
-        try {
-            val digest = MessageDigest.getInstance("SHA-256")
-            val request = Request.Builder().url(url).build()
-            OkHttpClient().newCall(request).execute().use { response ->
-                check(response.isSuccessful) { "Загрузка: HTTP ${response.code}" }
-                val input = checkNotNull(response.body).byteStream()
-                temp.outputStream().buffered().use { output ->
-                    val buffer = ByteArray(65536)
-                    var received = 0L
-                    var lastPercent = -1
-                    while (true) {
-                        currentCoroutineContext().ensureActive()
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        received += count
-                        check(received <= size) { "Неверный размер модели" }
-                        output.write(buffer, 0, count)
-                        digest.update(buffer, 0, count)
-                        val percent = (received * 100 / size).toInt()
-                        if (percent != lastPercent) { progress(percent); lastPercent = percent }
+object DeviceModel {
+    private val downloadLock = Mutex()
+    private val generationLock = Mutex()
+    private val http = OkHttpClient()
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences("inference", Context.MODE_PRIVATE)
+    fun selected(ctx: Context) = models.firstOrNull { it.file == prefs(ctx).getString("model", "") } ?: models.first()
+    fun select(ctx: Context, spec: ModelSpec) {
+        require(installed(ctx, spec))
+        prefs(ctx).edit().putString("model", spec.file).apply()
+    }
+    private fun file(ctx: Context, spec: ModelSpec) = File(ctx.noBackupFilesDir, spec.file)
+    fun installed(ctx: Context, spec: ModelSpec = selected(ctx)) = file(ctx, spec).length() == spec.size
+    fun partial(ctx: Context, spec: ModelSpec) = File(ctx.noBackupFilesDir, spec.file + ".part").length()
+
+    suspend fun download(ctx: Context, spec: ModelSpec = selected(ctx), progress: suspend (Int) -> Unit) =
+        downloadLock.withLock { withContext(Dispatchers.IO) {
+            if (installed(ctx, spec)) return@withContext
+            val part = File(ctx.noBackupFilesDir, spec.file + ".part")
+            if (part.length() > spec.size) check(part.delete())
+            var received = part.length()
+            check(ctx.noBackupFilesDir.usableSpace > spec.size - received + 100_000_000L) { "Недостаточно места для модели" }
+            if (received < spec.size) {
+                val request = Request.Builder().url(spec.url).header("Accept-Encoding", "identity")
+                if (received > 0) request.header("Range", "bytes=$received-")
+                http.newCall(request.build()).execute().use { r ->
+                    check(r.code == 200 || r.code == 206) { "HTTP ${r.code}. Загрузку можно продолжить." }
+                    val append = r.code == 206
+                    if (append) check(r.header("Content-Range")?.startsWith("bytes $received-") == true)
+                    else received = 0
+                    val input = checkNotNull(r.body).byteStream()
+                    java.io.FileOutputStream(part, append).buffered().use { output ->
+                        val buffer = ByteArray(131072)
+                        var last = -1
+                        while (true) {
+                            currentCoroutineContext().ensureActive()
+                            val n = input.read(buffer)
+                            if (n < 0) break
+                            received += n
+                            check(received <= spec.size) { "Неверный размер файла" }
+                            output.write(buffer, 0, n)
+                            val percent = (received * 100 / spec.size).toInt()
+                            if (last != percent) { progress(percent); last = percent }
+                        }
                     }
                 }
             }
-            val actual = digest.digest().joinToString("") { "%02x".format(it) }
-            check(temp.length() == size && actual == hash) { "Файл модели повреждён" }
-            check(temp.renameTo(target)) { "Не удалось сохранить модель" }
-        } finally { temp.delete() }
-    }
+            check(part.length() == spec.size) { "Загрузка прервалась. Нажмите «Продолжить»." }
+            val digest = MessageDigest.getInstance("SHA-256")
+            part.inputStream().use { input ->
+                val buffer = ByteArray(262144)
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val n = input.read(buffer)
+                    if (n < 0) break
+                    digest.update(buffer, 0, n)
+                }
+            }
+            if (digest.digest().joinToString("") { "%02x".format(it) } != spec.sha) {
+                part.delete()
+                error("Проверка SHA-256 не прошла. Повторите загрузку.")
+            }
+            check(part.renameTo(file(ctx, spec))) { "Не удалось сохранить модель" }
+        } }
 
     suspend fun answer(ctx: Context, system: String, messages: List<Pair<String, String>>): String =
-        withContext(Dispatchers.IO) {
-            val options = LlmInference.LlmInferenceOptions.builder()
-                .setModelPath(model(ctx).path).setMaxTokens(1024).build()
-            LlmInference.createFromOptions(ctx, options).use { engine ->
-                val context = messages.dropLast(1).takeLast(2).joinToString("\n") { it.second.take(150) }
-                val prompt = system.take(450) + "\n" + context + "\n" + messages.last().second.take(1000)
-                engine.generateResponse(prompt).trim().also { check(it.isNotBlank()) { "Модель вернула пустой ответ" } }
+        generationLock.withLock { withContext(Dispatchers.IO) {
+            val spec = selected(ctx)
+            check(installed(ctx, spec)) { "Скачайте выбранную модель" }
+            if (Build.VERSION.SDK_INT >= 29) check(ctx.getSystemService(PowerManager::class.java).currentThermalStatus < PowerManager.THERMAL_STATUS_SEVERE) { "Устройство перегрето. Повторите после охлаждения." }
+            val mem = ActivityManager.MemoryInfo().also { ctx.getSystemService(ActivityManager::class.java).getMemoryInfo(it) }
+            check(!mem.lowMemory && (spec == models.first() || mem.availMem > spec.size + 400_000_000L)) { "Свободной памяти мало. Выберите меньшую модель." }
+            val history = messages.dropLast(1).takeLast(2).joinToString("\n") { it.second.take(160) }
+            val prompt = system.take(580) + "\n" + history + "\n" + messages.last().second.take(1200)
+            val answer = if (spec.file.endsWith(".gguf")) {
+                val safe = prompt.replace("<|", "‹|")
+                val formatted = "<|im_start|>user\n$safe /no_think<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+                NativeQwen.generate(file(ctx,spec).path, formatted.toByteArray()).decodeToString()
+            } else {
+                val options = LlmInference.LlmInferenceOptions.builder().setModelPath(file(ctx,spec).path).setMaxTokens(1024).build()
+                LlmInference.createFromOptions(ctx, options).use { it.generateResponse(prompt) }
             }
-        }
+            answer.trim().also { check(it.isNotBlank()) { "Модель вернула пустой ответ" } }
+        } }
 }

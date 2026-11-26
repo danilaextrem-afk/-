@@ -10,13 +10,15 @@ android {
     defaultConfig {
         applicationId = if (providers.gradleProperty("sideBySide").isPresent) "ru.vladis.realtorai.workspace" else "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
-        versionCode = 12; versionName = "0.12"
+        versionCode = 13; versionName = "0.13"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += "arm64-v8a"
             if (providers.gradleProperty("emulatorAbi").isPresent) abiFilters += "x86_64"
         }
     }
+    externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.22.1" } }
+    ndkVersion = "27.2.12479018"
     buildFeatures { compose = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

@@ -93,18 +93,28 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     var deviceReady by mutableStateOf(DeviceModel.installed(ctx)); private set
     var modelProgress by mutableStateOf<Int?>(null); private set
-    fun installModel() {
-        if (modelProgress != null || deviceReady) return
-        modelProgress = 0
-        error = null
-        viewModelScope.launch {
+    var activeModel by mutableStateOf(DeviceModel.selected(ctx)); private set
+    var downloading by mutableStateOf<ModelSpec?>(null); private set
+    private var downloadJob: kotlinx.coroutines.Job? = null
+    fun hasModel(spec: ModelSpec) = DeviceModel.installed(ctx, spec)
+    fun partialModel(spec: ModelSpec) = DeviceModel.partial(ctx, spec)
+    fun chooseModel(spec: ModelSpec) {
+        DeviceModel.select(ctx, spec)
+        activeModel = spec
+        deviceReady = true
+    }
+    fun pauseModel() { downloadJob?.cancel() }
+    fun installModel(spec: ModelSpec) {
+        if (downloading != null) return
+        downloading = spec; modelProgress = 0; error = null
+        downloadJob = viewModelScope.launch {
             try {
-                DeviceModel.download(ctx) { withContext(Dispatchers.Main) { modelProgress = it } }
-                deviceReady = true
+                DeviceModel.download(ctx, spec) { withContext(Dispatchers.Main) { modelProgress = it } }
+                chooseModel(spec)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 error = e.localizedMessage
-            } finally { modelProgress = null }
+            } finally { downloading = null; modelProgress = null }
         }
     }
 
