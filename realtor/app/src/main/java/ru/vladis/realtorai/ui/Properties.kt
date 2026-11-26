@@ -51,9 +51,9 @@ import ru.vladis.realtorai.data.pricePerSqm
                         Text(p.title, fontWeight = FontWeight.SemiBold, maxLines = 2)
                         if (p.address.isNotBlank()) Text(p.address, color = Muted)
                     }
-                    IconButton({ vm.toggleFav(p) }) { Icon(if (p.favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = Lime) }
+                    IconButton({ vm.toggleFav(p) }) { Icon(if (p.favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (p.favorite) "Убрать из избранного" else "В избранное", tint = Lime) }
                 }
-                Text(p.price.rub(), color = Lime, fontWeight = FontWeight.Bold)
+                Text(if (p.price > 0) p.price.rub() else "Цена уточняется", color = Lime, style = MaterialTheme.typography.headlineSmall)
                 Text("${p.area} м² · ${p.rooms} комн. · эт. ${p.floor} · ${if (p.type == "primary") "первичка" else "вторичка"}" +
                     (if (p.pricePerSqm() > 0) " · ${p.pricePerSqm().rub()}/м²" else ""), color = Muted)
                 Text("Ваш доход: ${vm.earning(p).rub()}", color = Muted)

@@ -46,7 +46,7 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
         item { Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("Настройки") } }
         item { AppCard {
             Text("Локальный режим", fontWeight = FontWeight.SemiBold)
-            Text("CRM, калькуляторы, шаблоны и анализ данных работают без API-ключей. Полноценная языковая модель пока не подключена.", color = Muted)
+            Text("CRM, калькуляторы, шаблоны и анализ данных работают без API-ключей. Локальную Qwen можно скачать в разделе ИИ.", color = Muted)
         } }
         item {
             AppCard {

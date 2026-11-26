@@ -33,7 +33,7 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
         item { Title("Задачи и встречи") }
         item { Chips(listOf("Предстоящие", "Встречи", "Выполнено"), filter) { filter = it } }
         item { Button({ adding = true }) { Text("+ Задача / встреча") } }
-        if (shown.isEmpty()) item { Text("Пусто", color = Muted) }
+        if (shown.isEmpty()) item { AppCard { Text(when (filter) { "Встречи" -> "Встречи пока не назначены"; "Выполнено" -> "Завершённые задачи появятся здесь"; else -> "Все задачи выполнены или ещё не запланированы" }, color = Muted) } }
         groups.forEach { (day, list) ->
             item { Text(day.replaceFirstChar { it.uppercase() }, color = Lime, style = MaterialTheme.typography.titleSmall) }
             items(list.size) { i ->

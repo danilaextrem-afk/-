@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
-        versionCode = 7; versionName = "0.7"
+        versionCode = 8; versionName = "0.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -19,6 +19,7 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 dependencies {
+    implementation("com.google.mlkit:image-labeling:17.0.9")
     implementation("com.google.mediapipe:tasks-genai:0.10.27")
     implementation(platform("androidx.compose:compose-bom:2024.10.01"))
     implementation("androidx.compose.ui:ui")

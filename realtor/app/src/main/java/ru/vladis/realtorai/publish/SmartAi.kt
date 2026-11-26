@@ -70,7 +70,9 @@ object SmartAi {
     suspend fun run(ctx: Context, l: Listing, visionModel: String): Draft {
         val store = Store(ctx); val key = store.apiKey
         if (key.isBlank()) return withContext(Dispatchers.IO) {
-            val cover = l.photoList().take(10).mapNotNull { path ->
+            val labeler = com.google.mlkit.vision.label.ImageLabeling.getClient(
+                com.google.mlkit.vision.label.defaults.ImageLabelerOptions.DEFAULT_OPTIONS)
+            val cover = try { l.photoList().take(10).mapNotNull { path ->
                 runCatching {
                     val bytes = Img.jpeg(path, 256)
                     val b = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: error("Фото")
@@ -80,10 +82,15 @@ object SmartAi {
                             fun light(c: Int) = (android.graphics.Color.red(c) + android.graphics.Color.green(c) + android.graphics.Color.blue(c)) / 3.0
                             val v = light(b.getPixel(x, y)); sum += v; edges += kotlin.math.abs(v - light(b.getPixel(x-1,y))); n++
                         }
-                        check(n > 0); path to (100 - kotlin.math.abs(sum/n - 135) + edges/n)
+                        check(n > 0)
+                        val image = com.google.mlkit.vision.common.InputImage.fromBitmap(b, 0)
+                        val labels = com.google.android.gms.tasks.Tasks.await(labeler.process(image))
+                        val interior = labels.filter { it.text.lowercase(java.util.Locale.ROOT) in setOf("room", "kitchen", "living room", "bedroom", "couch", "furniture") }
+                            .maxOfOrNull { it.confidence } ?: 0f
+                        path to (100 - kotlin.math.abs(sum/n - 135) + edges/n + 25 * interior)
                     } finally { b.recycle() }
                 }.getOrNull()
-            }.maxByOrNull { it.second }?.first ?: l.cover
+            }.maxByOrNull { it.second }?.first ?: l.cover } finally { labeler.close() }
             val title = (if (l.rooms > 0) "${l.rooms}-комнатная квартира" else "Квартира") + (if (l.area > 0) ", ${l.area} м²" else "")
             Draft(cover, title.take(50), factsText(l) + "\nСвяжитесь для уточнения деталей и организации просмотра.", l.features.lines().filter { it.isNotBlank() })
         }

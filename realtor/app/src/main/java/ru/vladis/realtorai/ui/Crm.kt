@@ -28,9 +28,20 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
     val clients by vm.clients.collectAsState()
     var role by remember { mutableStateOf("Покупатели") }
     var adding by remember { mutableStateOf(false) }
-    val list = clients.filter { it.role == if (role == "Покупатели") "buyer" else "owner" }
+    var stage by remember { mutableStateOf("") }
+    val byRole = clients.filter { it.role == if (role == "Покупатели") "buyer" else "owner" }
+    val list = byRole.filter { stage.isEmpty() || it.stage == stage }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Title("CRM") }
+        item { Title("Воронка продаж") }
+        item {
+            val filters = listOf("" to "Все") + stages
+            val labels = filters.associate { (key, label) ->
+                key to "$label · ${byRole.count { key.isEmpty() || it.stage == key }}"
+            }
+            Chips(labels.values.toList(), labels.getValue(stage)) { selected ->
+                stage = labels.entries.first { it.value == selected }.key
+            }
+        }
         item { Chips(listOf("Покупатели", "Собственники"), role) { role = it } }
         item { Button({ adding = true }) { Text("+ Клиент") } }
         if (list.isEmpty()) item { Text("Список пуст", color = Muted) }
@@ -42,7 +53,7 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
                         if (c.phone.isNotBlank()) Text(c.phone, color = Muted)
                         if (c.budget > 0) Text("Бюджет: ${c.budget.rub()}", color = Muted)
                     }
-                    AssistChip({}, label = { Text(stageName(c.stage)) })
+                    Text(stageName(c.stage), color = Lime, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }

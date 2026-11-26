@@ -34,6 +34,10 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
     val props by vm.properties.collectAsState()
     val clients by vm.clients.collectAsState()
     val tasks by vm.tasks.collectAsState()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { ctx.getSharedPreferences("first_run", 0) }
+    var welcome by remember { mutableStateOf(!prefs.getBoolean("seen", false)) }
+    fun dismissWelcome() { prefs.edit().putBoolean("seen", true).apply(); welcome = false }
     val active = props.filter { it.status == "active" }
     val open = tasks.filter { !it.done }
     val meetings = open.count { it.kind == "meeting" && it.dueAt >= System.currentTimeMillis() }
@@ -42,6 +46,16 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) { Text("REALTOR / AI", color = Lime, fontWeight = FontWeight.Bold, letterSpacing = 2.sp); Title("Мой рабочий день") }
                 IconButton(openSettings) { Icon(Icons.Default.Settings, "Настройки") }
+            }
+        }
+        if (welcome) item {
+            AppCard {
+                Text("С чего начать", style = MaterialTheme.typography.titleLarge)
+                Text("Импортируйте первый объект из текста или CSV. Автопилот проверит дубли и подберёт покупателей из CRM.", color = Muted)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button({ dismissWelcome(); openAutopilot() }) { Text("Начать импорт") }
+                    TextButton({ dismissWelcome() }) { Text("Позже") }
+                }
             }
         }
         item {
