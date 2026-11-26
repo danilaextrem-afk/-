@@ -40,7 +40,7 @@ fun AgentScreen(vm: MainVm, back: () -> Unit) {
             AppCard {
                 Field(goal, { goal = it.take(500) }, "Что поручить агенту?", single = false)
                 VoiceInput({ goal = (goal + " " + it).trim().take(500) }, { error = it })
-                Chips(listOf("Найди выгодные квартиры", "Подбери под бюджет клиента", "Составь план на неделю"), "") { goal = it }
+                Chips(listOf("Составь план на неделю", "Найди выгодные квартиры", "Подбери под бюджет клиента"), "") { goal = it }
                 if (vm.deviceReady) OutlinedButton({
                     val request = goal.trim()
                     planning = true
