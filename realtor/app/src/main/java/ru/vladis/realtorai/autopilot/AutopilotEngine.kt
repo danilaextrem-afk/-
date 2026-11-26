@@ -31,7 +31,7 @@ object AutoRules {
 
     fun matches(c: Client, props: List<Property>): List<Property> =
         if (c.role != "buyer" || c.budget <= 0 || c.stage in listOf("deal","lost")) emptyList()
-        else props.filter { it.status == "active" && it.price in 1..c.budget &&
+        else props.filter { ru.vladis.realtorai.hunter.GeoScope.region(it) != null && it.status == "active" && it.price in 1..c.budget &&
             (c.desiredRooms == 0 || it.rooms == c.desiredRooms) &&
             (c.desiredKind == null || c.desiredKind.equals(it.housingKind, true)) &&
             (c.preferredMarket == null || c.preferredMarket == it.type) && it.area >= c.minArea && (c.searchArea.isNullOrBlank() || (it.address + " " + it.description.lineSequence().firstOrNull { line -> line.startsWith("Район:") }.orEmpty()).contains(c.searchArea.trim(), ignoreCase = true)) }.sortedWith(compareByDescending<Property> { preferenceScore(c, it.title + " " + it.description + " " + it.address) }.thenByDescending { it.favorite }.thenBy { it.price }).take(5)
@@ -59,7 +59,8 @@ object AutopilotEngine {
     }
     suspend fun sync(ctx: Context, errors: List<String> = emptyList()): Report = mutex.withLock {
         val hunter = HunterDb.get(ctx)
-        val offers = hunter.allOffers()
+        val geography = GeoPreferences.read(ctx)
+        val offers = hunter.allOffers().filter { GeoScope.eligible(it) && geography.matches(it) }
         val sources = hunter.allSubs().size + ru.vladis.realtorai.automation.IntegrationRegistry.enabled(ctx).size
         val db = WorkspaceDb.get(ctx)
         val result = db.withTransaction {
@@ -96,7 +97,7 @@ object AutopilotEngine {
                     }
                     continue
                 }
-                val p = Property(housingKind = o.housingKind, ownerId = owner?.id, title = o.title.ifBlank { o.address.ifBlank { "Объект из импорта" } }, address = o.address, type = o.market,
+                val p = Property(region = GeoScope.region(o), housingKind = o.housingKind, ownerId = owner?.id, title = o.title.ifBlank { o.address.ifBlank { "Объект из импорта" } }, address = o.address, type = o.market,
                     price = o.price, area = o.area, rooms = o.rooms, floor = o.floor,
                     url = o.url.takeIf { link != null }.orEmpty(),
                     description = listOfNotNull("Источник: " + o.source, o.district.takeIf { it.isNotBlank() }?.let { "Район: $it" }, marker).joinToString("\n"))

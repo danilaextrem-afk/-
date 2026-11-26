@@ -29,6 +29,7 @@ fun ModelScreen(vm: MainVm, back: () -> Unit) {
         if (uri != null) importing?.let { vm.importModel(it, uri) }
         importing = null
     }
+    val measurement by DeviceModel.lastMeasurement.collectAsState()
     val recommend = vm.recommendedModel()
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
@@ -41,6 +42,13 @@ fun ModelScreen(vm: MainVm, back: () -> Unit) {
                     Text(if (vm.deviceReady) "Активная модель" else "Рекомендация", style = MaterialTheme.typography.labelMedium)
                     Text(if (vm.deviceReady) vm.activeModel.label else recommend.label, style = MaterialTheme.typography.headlineSmall)
                     Text("Доступно ОЗУ сейчас: ${DeviceModel.availableMemory(ctx)} МБ")
+                    measurement?.let { m ->
+                        Text("${m.model} · ${m.backend}")
+                        Text("Пик PSS процесса: ${m.peakPssMb} МиБ (+${m.deltaPssMb} МиБ)".plus(m.context?.let { " · контекст $it" }.orEmpty()), color = Muted)
+                    }
+                    if (vm.deviceReady && vm.activeModel != recommend && vm.hasModel(recommend)) {
+                        TextButton({ vm.chooseModel(recommend) }, enabled = !vm.busy) { Text("Выбрать рекомендуемую") }
+                    }
                     if (vm.deviceReady) TextButton(vm::benchmarkModel, enabled = !vm.busy) { Text("Сравнить установленные модели") }
                     else Button({ vm.installModel(recommend) }, enabled = vm.downloading == null) { Text("Скачать рекомендуемую") }
                     if (vm.benchmark.isNotBlank()) Text(vm.benchmark, style = MaterialTheme.typography.bodySmall)
@@ -57,7 +65,7 @@ fun ModelScreen(vm: MainVm, back: () -> Unit) {
                     Surface(shape = CircleShape, color = Surface2) { Icon(Icons.Default.Star, null, Modifier.padding(9.dp).size(16.dp), tint = Lime) }
                     Column(Modifier.weight(1f)) {
                         Text(spec.label, style = MaterialTheme.typography.titleMedium)
-                        Text("${spec.size / 1_000_000} МБ · свободно от ${spec.minimumFreeMb} МБ ОЗУ", color = Muted, style = MaterialTheme.typography.bodySmall)
+                        Text("${spec.size / 1_000_000} МБ · свободно от ${DeviceModel.requiredMemory(ctx, spec)} МБ ОЗУ", color = Muted, style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 Text(spec.profile, color = Muted)

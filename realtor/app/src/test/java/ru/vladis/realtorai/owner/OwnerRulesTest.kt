@@ -9,9 +9,9 @@ import java.time.ZoneId
 class OwnerRulesTest {
     @Test fun considersOnlyDistinctFreshComparableSalesAndUsesCheapestFive() {
         val now = 100 * OwnerRules.day
-        val property = Property(title = "Квартира", address = "Лесная 1", housingKind = "apartment", rooms = 2, area = 50.0)
+        val property = Property(title = "Квартира", address = "Москва, Лесная 1", housingKind = "apartment", rooms = 2, area = 50.0)
         fun offer(i: Int) = Offer(source = "feed", url = "https://example.org/ad/$i", district = "Тверской",
-            address = "Цветной бульвар ${20+i*3}", housingKind = "apartment", rooms = 2, area = 50.0,
+            address = "Москва, Цветной бульвар ${20+i*3}", housingKind = "apartment", rooms = 2, area = 50.0,
             price = 5_000_000L + i * 100_000L, lastSeen = now)
         val input = (0..6).map(::offer) + listOf(
             offer(99).copy(price = 1, deal = "rent"), offer(98).copy(price = 1, rooms = 3),

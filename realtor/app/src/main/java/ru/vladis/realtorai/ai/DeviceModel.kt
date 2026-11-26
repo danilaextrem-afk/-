@@ -15,7 +15,7 @@ import okhttp3.Request
 
 internal object NativeQwen {
     init { System.loadLibrary("realtor_inference") }
-    external fun generate(file: String, prompt: ByteArray, sink: NativeTokenSink?, largeModel: Boolean): ByteArray?
+    external fun generate(file: String, prompt: ByteArray, sink: NativeTokenSink?, compact: Boolean, fastBatch: Boolean): ByteArray?
 }
 
 internal class NativeTokenSink(private val onUpdate: (ByteArray) -> Boolean) {
@@ -36,12 +36,35 @@ object DeviceModel {
     fun installed(ctx: Context, spec: ModelSpec = selected(ctx)) = file(ctx, spec).length() == spec.size
     fun partial(ctx: Context, spec: ModelSpec) = File(ctx.noBackupFilesDir, spec.file + ".part").length()
 
-    fun availableMemory(ctx: Context): Long = ActivityManager.MemoryInfo().also {
+    private fun memory(ctx: Context) = ActivityManager.MemoryInfo().also {
         ctx.getSystemService(ActivityManager::class.java).getMemoryInfo(it)
-    }.availMem / 1_000_000
+    }
+    fun availableMemory(ctx: Context): Long = memory(ctx).availMem / 1_000_000
+    fun requiredMemory(ctx: Context, spec: ModelSpec): Long = ModelMemory.floorMb(spec, memory(ctx).threshold / 1_000_000)
+    private fun fits(spec: ModelSpec, mem: ActivityManager.MemoryInfo) =
+        !mem.lowMemory && mem.availMem / 1_000_000 >= ModelMemory.floorMb(spec, mem.threshold / 1_000_000)
 
-    fun recommended(ctx: Context): ModelSpec =
-        models.take(3).lastOrNull { it.minimumFreeMb + 500 <= availableMemory(ctx) } ?: models.first()
+    data class Measurement(val model: String, val peakPssMb: Long, val deltaPssMb: Long, val context: Int?, val backend: String)
+    private val measurements = kotlinx.coroutines.flow.MutableStateFlow<Measurement?>(null)
+    val lastMeasurement: kotlinx.coroutines.flow.StateFlow<Measurement?> = measurements
+
+    fun recommended(ctx: Context): ModelSpec {
+        val mem = memory(ctx)
+        val eligible = models.filter { fits(it, mem) }
+        val proven = eligible.filter { installed(ctx, it) && prefs(ctx).getBoolean("tested:${it.file}", false) }
+        val conservative = eligible.filter { !it.label.contains("эксперимент") && !it.file.contains("-9B-") }
+        return proven.maxByOrNull { it.size } ?: conservative.maxByOrNull { it.size } ?: models.first()
+    }
+
+    private fun usableSelection(ctx: Context): ModelSpec {
+        val selected = selected(ctx)
+        val mem = memory(ctx)
+        if (installed(ctx, selected) && fits(selected, mem)) return selected
+        if (!installed(ctx, selected)) return selected
+        return models.filter { it != selected && it.size < selected.size && installed(ctx, it) && fits(it, mem) }
+            .sortedWith(compareByDescending<ModelSpec> { prefs(ctx).getBoolean("tested:${it.file}", false) }.thenByDescending { it.size })
+            .firstOrNull() ?: selected
+    }
 
     suspend fun remove(ctx: Context, spec: ModelSpec) = downloadLock.withLock {
         generationLock.withLock { withContext(Dispatchers.IO) {
@@ -140,12 +163,20 @@ object DeviceModel {
 
     suspend fun answer(
         ctx: Context, system: String, messages: List<Pair<String, String>>,
-        spec: ModelSpec = selected(ctx), onPartial: ((String) -> Unit)? = null
+        spec: ModelSpec = usableSelection(ctx), onPartial: ((String) -> Unit)? = null
     ): String = generationLock.withLock { withContext(Dispatchers.IO) {
             check(installed(ctx, spec)) { "Скачайте выбранную модель" }
             if (Build.VERSION.SDK_INT >= 29) check(ctx.getSystemService(PowerManager::class.java).currentThermalStatus < PowerManager.THERMAL_STATUS_SEVERE) { "Устройство перегрето. Повторите после охлаждения." }
-            val mem = ActivityManager.MemoryInfo().also { ctx.getSystemService(ActivityManager::class.java).getMemoryInfo(it) }
-            check(!mem.lowMemory && (spec == models.first() || mem.availMem / 1_000_000 > spec.minimumFreeMb)) { "Свободной памяти мало. Выберите меньшую модель." }
+            val mem = memory(ctx)
+            val floor = ModelMemory.floorMb(spec, mem.threshold / 1_000_000)
+            check(fits(spec, mem)) {
+                "Сейчас свободно ${mem.availMem / 1_000_000} МБ. Для ${spec.label} безопасный порог в текущих условиях — $floor МБ. Установите более лёгкий вариант."
+            }
+            val compact = ModelMemory.compact(spec, mem.availMem / 1_000_000)
+            val baselinePss = android.os.Debug.getPss()
+            var peakPss = baselinePss
+            var lastSample = 0L
+            var pressure = false
             val history = messages.dropLast(1).takeLast(2).joinToString("\n") { it.second.take(160) }
             val prompt = system.take(580) + "\n" + history + "\n" + messages.last().second.take(1200)
             val answer = if (spec.file.endsWith(".gguf")) {
@@ -157,16 +188,34 @@ object DeviceModel {
                 else formatted
                 val job = currentCoroutineContext()
                 val sink = NativeTokenSink { bytes ->
-                    if (job.isActive && bytes.isNotEmpty()) onPartial?.invoke(bytes.decodeToString().trimEnd('�'))
-                    job.isActive
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    if (now - lastSample >= 650) {
+                        lastSample = now
+                        val current = memory(ctx)
+                        peakPss = maxOf(peakPss, android.os.Debug.getPss())
+                        pressure = current.lowMemory || current.availMem < current.threshold + 96_000_000
+                    }
+                    if (job.isActive && !pressure && bytes.isNotEmpty()) onPartial?.invoke(bytes.decodeToString().trimEnd('�'))
+                    job.isActive && !pressure
                 }
-                val bytes = NativeQwen.generate(file(ctx, spec).path, modelPrompt.toByteArray(), sink, spec.size >= 4_500_000_000L)
+                val elite = Build.VERSION.SDK_INT >= 31 && Build.SOC_MODEL.contains("8750")
+                val bytes = NativeQwen.generate(file(ctx, spec).path, modelPrompt.toByteArray(), sink, compact, elite)
                 job.ensureActive()
+                check(!pressure) { "Android сообщил о нехватке памяти во время генерации. Выберите Q3, IQ3 или модель 4B." }
                 checkNotNull(bytes).decodeToString()
             } else {
                 val options = LlmInference.LlmInferenceOptions.builder().setModelPath(file(ctx,spec).path).setMaxTokens(1024).build()
-                LlmInference.createFromOptions(ctx, options).use { it.generateResponse(prompt) }
+                LlmInference.createFromOptions(ctx, options).use {
+                    peakPss = maxOf(peakPss, android.os.Debug.getPss())
+                    it.generateResponse(prompt).also { peakPss = maxOf(peakPss, android.os.Debug.getPss()) }
+                }
             }
-            answer.trim().also { check(it.isNotBlank()) { "Модель вернула пустой ответ" } }
+            answer.trim().also {
+                check(it.isNotBlank()) { "Модель вернула пустой ответ" }
+                prefs(ctx).edit().putBoolean("tested:${spec.file}", true).apply()
+                measurements.value = Measurement(spec.label, peakPss / 1024, (peakPss - baselinePss) / 1024,
+                    if (spec.file.endsWith(".gguf")) (if (compact) 1536 else 2048) else null,
+                    if (spec.file.endsWith(".gguf")) "CPU · mmap" else "MediaPipe")
+            }
         } }
 }

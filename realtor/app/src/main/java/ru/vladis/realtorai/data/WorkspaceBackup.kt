@@ -158,7 +158,8 @@ object WorkspaceBackup {
                     val v = when {
                         raw != null -> raw.takeUnless { it.isJsonNull }?.asJsonPrimitive
                         legacy && col.default == "0" -> JsonPrimitive(0)
-                        legacy && !col.required -> null
+                        !col.required && (legacy || (table == "Property" && col.name == "region") ||
+                            (table == "Offer" && col.name in setOf("region","locality","transit","seller","expiresAt"))) -> null
                         else -> error("Пропущено поле $table.${col.name}")
                     }
                     when {

@@ -25,7 +25,7 @@ object HuntRun {
         val errors = mutableListOf<String>()
         for (source in ru.vladis.realtorai.automation.IntegrationRegistry.enabled(ctx)) {
             try {
-                val result = HunterImport.ingest(dao, source.search(query))
+                val result = HunterImport.ingest(dao, source.search(query).filter { GeoScope.region(it) != null })
                 added += result.newIds
                 drops += result.dropIds
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -74,7 +74,7 @@ object HuntRun {
     @SuppressLint("MissingPermission")
     suspend fun notifyDeals(ctx: Context, s: Summary): Int {
         if (s.newIds.isEmpty() && s.dropIds.isEmpty()) return 0
-        val dao = HunterDb.get(ctx); val all = dao.allOffers(); val cl = Dedup.clusters(all)
+        val dao = HunterDb.get(ctx); val all = dao.allOffers().filter { GeoScope.eligible(it) }; val cl = Dedup.clusters(all)
         val ids = (s.newIds + s.dropIds).toSet()
         val hits = Alerts.select(all.filter { it.id in ids }, all, cl, dao.allFilters())
         if (hits.isEmpty()) return 0

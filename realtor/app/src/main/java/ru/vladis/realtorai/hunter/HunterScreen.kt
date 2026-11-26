@@ -48,7 +48,11 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
 
 @Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, back: () -> Unit) {
     val vm: HunterVm = viewModel()
-    val deals by vm.deals.collectAsState()
+    val allDeals by vm.deals.collectAsState()
+    val geoContext = LocalContext.current
+    var geography by remember { mutableStateOf(GeoPreferences.read(geoContext)) }
+    var showGeography by remember { mutableStateOf(false) }
+    val deals = remember(allDeals, geography) { allDeals.filter { geography.matches(it.o) } }
     var tab by remember(initialMap) { mutableStateOf(if (initialMap) "Карта" else "Лента") }
     var openId by remember { mutableStateOf<Long?>(null) }
     var flt by remember { mutableStateOf(SavedFilter()) }
@@ -63,6 +67,9 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; ScreenHeading("Поиск сделок", "${sale.size} предложений в источниках") }
         Chips(listOf("Лента", "Карта", "Фильтры", "Данные", "Подбор"), tab) { tab = it }
+        TextButton({ showGeography = true }) {
+            Text("География · " + geography.locations.joinToString(", ").ifBlank { "Москва и МО" })
+        }
         if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         vm.log?.let { Text(it, color = Lime, style = MaterialTheme.typography.bodySmall) }
         Spacer(Modifier.height(8.dp))
@@ -80,6 +87,12 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
             else -> MatchTab(vm, main) { openId = it }
         }
     }
+    if (showGeography) GeoDialog(geography, { showGeography = false }) {
+        geography = it
+        GeoPreferences.save(geoContext, it)
+        showGeography = false
+    }
+
 }
 
 @Composable fun DealCard(d: Deal, vm: HunterVm, onOpen: () -> Unit) = AppCard(onClick = onOpen) {

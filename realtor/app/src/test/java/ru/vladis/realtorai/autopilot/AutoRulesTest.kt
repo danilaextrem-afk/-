@@ -40,7 +40,7 @@ class AutoRulesTest {
     }
     @Test fun matchActiveBuyersOnly() {
         val c=Client(name="Клиент",budget=6000000)
-        val props=listOf(Property(title="Да",price=5000000),Property(title="Дорого",price=7000000),Property(title="Архив",price=2000000,status="archived"),Property(title="Неизвестно"))
+        val props=listOf(Property(title="Да",price=5000000,address="Москва, Тверская 1"),Property(title="Дорого",price=7000000),Property(title="Архив",price=2000000,status="archived"),Property(title="Неизвестно"))
         assertEquals(listOf("Да"),AutoRules.matches(c,props).map{it.title})
         assertTrue(AutoRules.matches(c.copy(stage="lost"),props).isEmpty())
     }

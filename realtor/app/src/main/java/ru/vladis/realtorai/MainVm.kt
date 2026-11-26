@@ -212,7 +212,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             p?.let { appendLine("Объект: ${it.title.take(65)}, ${it.address.take(80)}, ${it.price} ₽, ${it.area} м², ${it.rooms} комн. ${it.description.take(90)}") }
             if (mode == "Подбор") {
                 val candidates = c?.let { ru.vladis.realtorai.autopilot.AutoRules.matches(it, properties.value) }
-                    ?: properties.value.filter { it.status == "active" }
+                    ?: properties.value.filter { it.status == "active" && ru.vladis.realtorai.hunter.GeoScope.region(it) != null }
                 candidates.take(3).forEach { appendLine("${it.title.take(35)} · ${it.address.take(50)} · ${it.price} ₽ · ${it.area} м²") }
                 if (candidates.isEmpty()) appendLine("Подходящих объектов в базе нет.")
             }

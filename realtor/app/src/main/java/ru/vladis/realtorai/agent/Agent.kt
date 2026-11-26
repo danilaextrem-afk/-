@@ -17,6 +17,10 @@ import ru.vladis.realtorai.autopilot.AutopilotEngine
 import ru.vladis.realtorai.data.AppDb
 import ru.vladis.realtorai.data.WorkspaceDb
 import ru.vladis.realtorai.hunter.HuntRun
+import ru.vladis.realtorai.hunter.GeoScope
+import ru.vladis.realtorai.hunter.GeoPreferences
+import ru.vladis.realtorai.hunter.Offer
+import ru.vladis.realtorai.hunter.Dedup
 import ru.vladis.realtorai.hunter.Market
 import ru.vladis.realtorai.owner.OwnerService
 import ru.vladis.realtorai.ui.rub
@@ -75,7 +79,10 @@ object AgentPlan {
         val text = goal.lowercase().replace('ё', 'е')
         return buildList {
             if (listOf("найди", "поиск", "обнови").any(text::contains) &&
-                listOf("квартир", "объект", "источник", "клиент", "собственник", "сделк").any(text::contains)) add(AgentTool.FEEDS)
+                listOf("квартир", "объект", "источник", "клиент", "собственник", "сделк", "двуш", "однуш", "треш").any(text::contains)) {
+                add(AgentTool.FEEDS)
+                if (ListingQuery.read(goal) != ListingQuery()) add(AgentTool.FIND)
+            }
             if ("подбер" in text || "подбор" in text || "бюджет клиента" in text) add(AgentTool.MATCH)
             if (listOf("рынок", "цен", "конкурент", "выгодн").any(text::contains)) add(AgentTool.MARKET)
             if ("контакт" in text || "новых клиентов" in text || "покупателей" in text) add(AgentTool.LEADS)
@@ -108,7 +115,7 @@ internal object AgentProtocol {
         val tool = AgentTool.valueOf(value.get("tool").asString)
         val args = value.getAsJsonObject("args")
         val allowed = when (tool) {
-            AgentTool.FIND -> setOf("area","budget","rooms","minArea","market")
+            AgentTool.FIND -> setOf("area","budget","rooms","minArea","market","seller","address","station")
             AgentTool.MATCH -> setOf("client")
             AgentTool.OWNER_REPORT, AgentTool.LISTING -> setOf("property")
             AgentTool.DOCUMENT -> setOf("title")
@@ -201,7 +208,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     }
 
     private suspend fun decide(job: AgentJob, progress: AgentProgress, prior: String): AgentDecision {
-        val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market}: market primary или secondary; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Передавай только известные параметры. Если критически не хватает данных, ask."""
+        val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market,seller,address,station}: seller owner/developer, только Москва и МО; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Передавай только известные параметры. Если критически не хватает данных, ask."""
         val observed = progress.steps.zip(progress.used.orEmpty()) { result, call ->
             "${call.tool} ${call.args}: ${result.substringAfter('\n').take(180)}"
         }.joinToString("\n").takeLast(570)
@@ -222,21 +229,25 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         val ctx = applicationContext
         return when (action.tool) {
         AgentTool.FIND -> {
-            val budget = number("budget") ?: Long.MAX_VALUE
-            val rooms = number("rooms")
-            val area = arg("area")
-            val minArea = arg("minArea").ifBlank { "0" }.toDouble()
-            val market = when (arg("market").lowercase()) {
-                "новостройки", "новостройка", "первичка" -> "primary"
-                "вторичка", "вторичная" -> "secondary"
-                else -> arg("market")
+            val query = ListingQuery.read(job.goal, action.args)
+            val geography = GeoPreferences.read(ctx)
+            val candidates = db.hunter().allOffers().asSequence().filter { query.matches(it) && geography.matches(it) }
+                .sortedBy { it.price }
+            val selected = mutableListOf<Offer>()
+            for (offer in candidates) {
+                if (selected.none { it.url.isNotBlank() && it.url == offer.url || Dedup.same(it, offer) }) selected += offer
+                if (selected.size >= 8) break
             }
-            db.dao().allProperties().asSequence().filter {
-                it.status == "active" && it.price in 1..budget && it.area >= minArea &&
-                    (rooms == null || it.rooms.toLong() == rooms) && (market.isBlank() || it.type == market) &&
-                    (it.address + " " + it.description).contains(area, true)
+            if (selected.isNotEmpty()) selected.joinToString("\n") {
+                "${it.title} · ${it.price.rub()} · ${it.address} · ${it.source}\n${it.url}"
+            } else if (query.seller != null) {
+                "В подключённых источниках нет совпадений с подтверждённым типом продавца. Для обычных объявлений подключите фид с полем продавца."
+            } else db.dao().allProperties().asSequence().filter { property ->
+                property.status == "active" && query.matches(Offer(source = "CRM", address = property.address,
+                    region = property.region, price = property.price, area = property.area, rooms = property.rooms, market = property.type)) &&
+                    geography.matches(Offer(source = "CRM", address = property.address, region = property.region))
             }.sortedBy { it.price }.take(8).joinToString("\n") { "#${it.id} ${it.title} · ${it.price.rub()} · ${it.address}" }
-                .ifBlank { "По этим параметрам в CRM нет объектов" }
+                .ifBlank { "По этим параметрам нет подтверждённых объектов в Москве и МО." }
         }
         AgentTool.OWNER_REPORT -> OwnerService(ctx).draftReport(requireNotNull(number("property")) { "Нужен ID объекта" })
         AgentTool.LISTING -> db.withTransaction {
@@ -278,7 +289,8 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             }.ifBlank { "В CRM нет объектов по подтверждённым критериям клиента." }
         }
         AgentTool.MARKET -> {
-            val sales = db.hunter().allOffers().filter { it.active && it.deal == "sale" && it.price > 0 && it.area.isFinite() && it.area > 0 }
+            val geography = GeoPreferences.read(ctx)
+            val sales = db.hunter().allOffers().filter { GeoScope.eligible(it) && geography.matches(it) && it.deal == "sale" && it.price > 0 && it.area.isFinite() && it.area > 0 }
             sales.groupBy { it.district.ifBlank { "Район не указан" } to it.market }.entries.sortedByDescending { it.value.size }
                 .take(8).joinToString("\n") { (group, entries) ->
                     val prices = entries.map(Market::ppsm).sorted()

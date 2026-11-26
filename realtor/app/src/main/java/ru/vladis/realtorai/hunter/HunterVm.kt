@@ -18,7 +18,7 @@ class HunterVm(app: Application) : AndroidViewModel(app) {
     private val ctx = app.applicationContext
     private val dao = HunterDb.get(app)
     private val prefs = app.getSharedPreferences("hunter", 0)
-    val deals: StateFlow<List<Deal>> = combine(dao.offers(), dao.points()) { o, p -> Deal.build(o, p) }
+    val deals: StateFlow<List<Deal>> = combine(dao.offers(), dao.points()) { o, p -> Deal.build(o.filter { GeoScope.eligible(it) }, p) }
         .flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val filters = dao.filters().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val subs = dao.subs().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

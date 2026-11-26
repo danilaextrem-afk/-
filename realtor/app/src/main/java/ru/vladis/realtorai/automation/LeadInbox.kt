@@ -47,6 +47,9 @@ object LeadInbox {
                 fun value(k: String) = item.get(k)?.takeIf { it.isJsonPrimitive }?.asString.orEmpty().trim()
                 val consent = item.get("crm_allowed")?.takeIf { it.isJsonPrimitive }?.asJsonPrimitive
                 if (consent?.isBoolean != true || !consent.asBoolean) continue
+                val region = ru.vladis.realtorai.hunter.GeoScope.classify(value("address").ifBlank { value("locality") },
+                    value("region").ifBlank { null }, value("latitude").toDoubleOrNull(), value("longitude").toDoubleOrNull())
+                if (region == null) continue
                 val name = value("name")
                 val phone = OfflineLogic.phoneKey(value("phone"))
                 val needs = value("message").take(500)

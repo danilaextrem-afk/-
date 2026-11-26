@@ -37,6 +37,7 @@ object OwnerRules {
     fun metric(value: Int?): String = value?.toString() ?: "нет данных"
 
     fun comparisons(property: Property, offers: List<Offer>, location: String, now: Long): List<Offer> {
+        val region = ru.vladis.realtorai.hunter.GeoScope.region(property) ?: return emptyList()
         val district = location.trim()
         if (district.length < 3 || property.area <= 0 || !property.area.isFinite() || property.rooms <= 0) return emptyList()
         val address = Dedup.norm(property.address)
@@ -44,7 +45,7 @@ object OwnerRules {
         val ownUrl = ru.vladis.realtorai.autopilot.AutoRules.urlKey(property.url)
         val candidates = offers.filter {
             val url = ru.vladis.realtorai.autopilot.AutoRules.urlKey(it.url)
-            it.active && it.deal == "sale" && it.market == property.type &&
+            ru.vladis.realtorai.hunter.GeoScope.eligible(it, now) && ru.vladis.realtorai.hunter.GeoScope.region(it) == region && it.deal == "sale" && it.market == property.type &&
                 !it.source.startsWith("torgi", ignoreCase = true) &&
                 !property.housingKind.isNullOrBlank() && it.housingKind == property.housingKind &&
                 it.rooms == property.rooms && it.price > 0 && it.area.isFinite() &&

@@ -11,19 +11,27 @@ internal object RealtyFeed {
         p.setInput(StringReader(input))
         val result = mutableListOf<Offer>()
         val path = mutableListOf<String>()
+        val stations = mutableListOf<String>()
         var fields = mutableMapOf<String, String>()
         while (p.eventType != XmlPullParser.END_DOCUMENT) {
             when (p.eventType) {
                 XmlPullParser.START_TAG -> {
                     path += p.name
                     if (path.size == 1) require(p.name == "realty-feed") { "Ожидается XML-фид YRL" }
-                    if (path.size == 2 && p.name == "offer") fields = mutableMapOf("id" to p.getAttributeValue(null, "internal-id").orEmpty())
+                    if (path.size == 2 && p.name == "offer") {
+                        stations.clear()
+                        fields = mutableMapOf("id" to p.getAttributeValue(null, "internal-id").orEmpty())
+                    }
                 }
                 XmlPullParser.TEXT -> if (path.getOrNull(1) == "offer" && path.size > 2) {
                     val key = path.drop(2).joinToString("/")
                     fields[key] = (fields[key].orEmpty() + p.text).trim()
                 }
                 XmlPullParser.END_TAG -> {
+                    val field = path.drop(2).joinToString("/")
+                    if (field in setOf("location/metro/name","location/railway-station/name","location/mck/name","location/mcd/name")) {
+                        fields.remove(field)?.takeIf { it.isNotBlank() }?.let(stations::add)
+                    }
                     if (path.size == 2 && p.name == "offer") {
                         fun value(key: String) = fields[key].orEmpty()
                         if (value("price/currency") in setOf("RUB","RUR","") && value("type") == "продажа" &&
@@ -33,7 +41,11 @@ internal object RealtyFeed {
                             HunterImport.rowToOffer(mapOf("external_id" to value("id"), "url" to value("url"),
                                 "title" to value("building-name").ifBlank { value("category").replaceFirstChar { it.uppercase() } },
                                 "address" to listOf("location/locality-name","location/address").map(::value).filter(String::isNotBlank).joinToString(", "),
-                                "district" to value("location/sub-locality-name"), "price" to value("price/value"),
+                                "district" to value("location/sub-locality-name"),
+                                "region" to value("location/region"), "locality" to value("location/locality-name"),
+                                "lat" to value("location/latitude"), "lon" to value("location/longitude"),
+                                "transit" to stations.distinct().joinToString(";"), "seller" to value("sales-agent/category"),
+                                "expires_at" to value("expire-date"), "price" to value("price/value"),
                                 "area" to value("area/value"), "rooms" to value("rooms"), "floor" to value("floor"),
                                 "floors_total" to value("floors-total"), "housing_kind" to value("category"),
                                 "market" to if (value("new-flat") in setOf("1","true")) "primary" else "secondary"), source)?.let(result::add)

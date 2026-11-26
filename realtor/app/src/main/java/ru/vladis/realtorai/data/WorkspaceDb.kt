@@ -54,10 +54,21 @@ object WorkspaceDb {
         }
     }
 
+    private val moscowGeography = object : androidx.room.migration.Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            for (column in listOf("region", "locality", "transit", "seller")) {
+                db.execSQL("ALTER TABLE Offer ADD COLUMN $column TEXT")
+            }
+            db.execSQL("ALTER TABLE Offer ADD COLUMN expiresAt INTEGER")
+            db.execSQL("ALTER TABLE Property ADD COLUMN region TEXT")
+        }
+    }
+
     fun get(context: Context): AppDb = instance ?: synchronized(this) {
         val app = context.applicationContext
+        ru.vladis.realtorai.hunter.GeoScope.initialize(app)
         instance ?: Room.databaseBuilder(app, AppDb::class.java, "workspace.db")
-            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow, agentQueue)
+            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow, agentQueue, moscowGeography)
             .addCallback(LegacyImport(app)).build().also { instance = it }
     }
 }

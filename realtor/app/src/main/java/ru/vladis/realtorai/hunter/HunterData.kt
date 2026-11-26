@@ -17,6 +17,8 @@ data class Offer(
     val market: String = "secondary",  // primary | secondary
     val price: Long = 0, val area: Double = 0.0, val rooms: Int = 0, val floor: Int = 0, val floorsTotal: Int = 0,
     val fingerprint: String = "", val favorite: Boolean = false, val active: Boolean = true,
+    val region: String? = null, val locality: String? = null, val transit: String? = null,
+    val seller: String? = null, val expiresAt: Long? = null,
     val firstSeen: Long = System.currentTimeMillis(), val lastSeen: Long = System.currentTimeMillis())
 
 @Entity data class PricePoint(@PrimaryKey(autoGenerate = true) val id: Long = 0, val offerId: Long, val price: Long, val at: Long = System.currentTimeMillis())
