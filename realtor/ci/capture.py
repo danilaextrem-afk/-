@@ -9,9 +9,14 @@ def adb(*args):
     return subprocess.check_output(["adb", *args])
 
 def find(label):
-    for _ in range(6):
-        adb("shell", "uiautomator", "dump", "/sdcard/view.xml")
-        root = ET.fromstring(adb("shell", "cat", "/sdcard/view.xml"))
+    for _ in range(12):
+        try:
+            adb("shell", "rm", "-f", "/sdcard/view.xml")
+            adb("shell", "uiautomator", "dump", "/sdcard/view.xml")
+            root = ET.fromstring(adb("shell", "cat", "/sdcard/view.xml"))
+        except (subprocess.CalledProcessError, ET.ParseError):
+            time.sleep(1)
+            continue
         for node in root.iter("node"):
             if label in (node.get("text"), node.get("content-desc")):
                 return [int(n) for n in re.findall(r"\d+", node.get("bounds"))]
@@ -33,3 +38,11 @@ for tab, heading, name in [
     x1, y1, x2, y2 = find(tab)
     adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
     capture(name, heading)
+
+def tap(label):
+    x1, y1, x2, y2 = find(label)
+    adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
+
+tap("Главная")
+tap("Начать импорт")
+capture("autopilot", "Автопилот")
