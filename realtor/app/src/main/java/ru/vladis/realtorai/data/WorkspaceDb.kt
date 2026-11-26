@@ -40,10 +40,18 @@ object WorkspaceDb {
         }
     }
 
+    internal val ownerWorkflow = object : androidx.room.migration.Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS OwnerCase (id INTEGER NOT NULL PRIMARY KEY, step TEXT NOT NULL, startedAt INTEGER NOT NULL, activatedAt INTEGER, reportsPerWeek INTEGER NOT NULL, fast REAL NOT NULL, normal REAL NOT NULL, patient REAL NOT NULL, location TEXT NOT NULL, lastReportAt INTEGER, advertising TEXT NOT NULL, packaging TEXT NOT NULL, tour TEXT NOT NULL, calls INTEGER, leads INTEGER, views INTEGER, ownerCalls INTEGER, impressions INTEGER)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS OwnerEvent (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, propertyId INTEGER NOT NULL, at INTEGER NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_OwnerEvent_propertyId ON OwnerEvent (propertyId)")
+        }
+    }
+
     fun get(context: Context): AppDb = instance ?: synchronized(this) {
         val app = context.applicationContext
         instance ?: Room.databaseBuilder(app, AppDb::class.java, "workspace.db")
-            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration)
+            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow)
             .addCallback(LegacyImport(app)).build().also { instance = it }
     }
 }

@@ -47,7 +47,15 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun earning(p: Property): Double = p.price * agencyPct / 100 * sharePct / 100
 
     fun saveProperty(p: Property) = viewModelScope.launch { dao.saveProperty(p) }
-    fun deleteProperty(p: Property) = viewModelScope.launch { dao.deleteProperty(p) }
+    fun deleteProperty(p: Property) = viewModelScope.launch {
+        val tasks = db.withTransaction {
+            dao.deleteProperty(p)
+            db.owners().clearEvents(p.id)
+            db.owners().delete(p.id)
+            dao.allTasks().filter { it.kind.startsWith("owner/${p.id}/") }.onEach { dao.deleteTask(it) }
+        }
+        tasks.forEach { Reminder.cancel(ctx, it.id) }
+    }
     fun toggleFav(p: Property) = saveProperty(p.copy(favorite = !p.favorite))
     var leadImportStatus by mutableStateOf<String?>(null); private set
     fun importLeads(text: String) = viewModelScope.launch {

@@ -10,7 +10,7 @@ import java.util.zip.*
 
 object WorkspaceBackup {
     private val tables = listOf("Client", "Property", "Interaction", "TaskItem", "Offer", "PricePoint",
-        "SavedFilter", "Subscription", "Listing", "Publication", "RunLog")
+        "SavedFilter", "Subscription", "Listing", "Publication", "RunLog", "OwnerCase", "OwnerEvent")
     private val legacy = mapOf("Client" to "clients", "Property" to "properties",
         "Interaction" to "interactions", "TaskItem" to "tasks")
     private const val limit = 48 * 1024 * 1024
@@ -105,11 +105,18 @@ object WorkspaceBackup {
                 require(names.isEmpty()) { "Архив содержит не все фотографии" }
                 records
             }
-            val selection = if (archive) tables.associateWith { it } else legacy
+            val selection = if (archive) {
+                val expected = if ("OwnerCase" !in root.keySet() && "OwnerEvent" !in root.keySet()) tables.dropLast(2) else tables
+                expected.associateWith { it }
+            } else legacy
             require(root.keySet() == selection.values.toSet()) { "Неполная или неизвестная схема копии" }
             return db.withTransaction {
                 val sql = db.openHelper.writableDatabase
                 val oldTasks = db.dao().allTasks()
+                if ("OwnerCase" !in selection) {
+                    sql.execSQL("DELETE FROM OwnerEvent")
+                    sql.execSQL("DELETE FROM OwnerCase")
+                }
                 for ((table, key) in selection) stage(sql, table, root.getAsJsonArray(key), !archive)
                 for (table in selection.keys) {
                     sql.execSQL("DELETE FROM `$table`")

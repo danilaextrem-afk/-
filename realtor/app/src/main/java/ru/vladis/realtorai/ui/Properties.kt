@@ -19,7 +19,7 @@ import ru.vladis.realtorai.MainVm
 import ru.vladis.realtorai.data.Property
 import ru.vladis.realtorai.data.pricePerSqm
 
-@Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit) {
+@Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit, openOwner: (Long) -> Unit) {
     val props by vm.properties.collectAsState()
     val listings by vm.listings.collectAsState()
     val covers = remember(listings) { listings.filter { it.propertyId != null && it.cover.isNotBlank() }.associate { it.propertyId to it.cover } }
@@ -61,6 +61,7 @@ import ru.vladis.realtorai.data.pricePerSqm
                 Text(if (p.price > 0) p.price.rub() else "Цена уточняется", color = Lime, style = MaterialTheme.typography.headlineSmall)
                 Text("${p.area} м² · ${p.rooms} комн. · эт. ${p.floor} · ${if (p.type == "primary") "первичка" else "вторичка"}" +
                     (if (p.pricePerSqm() > 0) " · ${p.pricePerSqm().rub()}/м²" else ""), color = Muted)
+                TextButton({ openOwner(p.id) }) { Text("Сопровождение") }
                 Text("Ваш доход: ${vm.earning(p).rub()}", color = Muted)
             }
         }

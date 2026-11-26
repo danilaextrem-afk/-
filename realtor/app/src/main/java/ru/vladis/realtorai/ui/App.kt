@@ -46,6 +46,7 @@ import ru.vladis.realtorai.MainVm
                     transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(150)) }, label = "nav") { (t, s, c) ->
                     when {
                         c != null -> ClientDetail(vm, c) { clientId = null }
+                        s?.startsWith("owner/") == true -> ru.vladis.realtorai.owner.OwnerScreen(vm, s.substringAfter('/').toLong(), { sub = "publish" }, { sub = null })
                         s == "autopilot" -> ru.vladis.realtorai.autopilot.AutopilotScreen(vm, { sub = "hunter" }, { tab = "crm"; sub = null }, { tab = "tasks"; sub = null }, { sub = null })
                         s == "analytics" -> Analytics(vm) { sub = null }
                         s == "settings" -> SettingsScreen(vm) { sub = null }
@@ -55,7 +56,7 @@ import ru.vladis.realtorai.MainVm
                         s == "hunter" -> ru.vladis.realtorai.hunter.HunterScreen(vm) { sub = null }
                         else -> when (t) {
                             "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" })
-                            "props" -> Properties(vm) { sub = "analytics" }
+                            "props" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" })
                             "crm" -> Crm(vm) { clientId = it }
                             "tasks" -> Tasks(vm)
                             else -> Assistant(vm)

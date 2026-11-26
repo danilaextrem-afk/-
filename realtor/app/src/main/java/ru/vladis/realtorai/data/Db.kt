@@ -1,6 +1,7 @@
 package ru.vladis.realtorai.data
 
 import androidx.room.*
+import ru.vladis.realtorai.owner.*
 import ru.vladis.realtorai.hunter.*
 import ru.vladis.realtorai.publish.*
 import kotlinx.coroutines.flow.Flow
@@ -59,15 +60,17 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     @Delete suspend fun deleteClient(c: Client)
     @Delete suspend fun deleteTask(t: TaskItem)
     @Query("DELETE FROM Interaction WHERE clientId=:id") suspend fun deleteInteractions(id: Long)
+    @Query("SELECT * FROM Property WHERE id=:id") suspend fun property(id: Long): Property?
     @Query("SELECT * FROM Property") suspend fun allProperties(): List<Property>
     @Query("SELECT * FROM Client") suspend fun allClients(): List<Client>
     @Query("SELECT * FROM Interaction") suspend fun allInteractions(): List<Interaction>
     @Query("SELECT * FROM TaskItem") suspend fun allTasks(): List<TaskItem>
 }
 
-@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class], version = 5, exportSchema = false)
+@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class, OwnerCase::class, OwnerEvent::class], version = 6, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): AppDao
+    abstract fun owners(): OwnerDao
     abstract fun hunter(): HunterDao
     abstract fun publications(): PublishDao
 }
