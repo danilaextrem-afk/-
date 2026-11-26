@@ -23,10 +23,27 @@ class MoscowImportTest {
             assertEquals(2, result.newIds.size)
             assertEquals(2, result.skipped)
             assertEquals(setOf(GeoScope.MOSCOW,GeoScope.OBLAST), rows.mapNotNull { it.region }.toSet())
+            val newMoscow = moscow.copy(lat=55.594066, lon=37.458299)
+            assertTrue(GeoQuery(locations=listOf("Новая Москва")).matches(newMoscow))
+            assertFalse(GeoQuery(locations=listOf("Новая Москва")).matches(moscow))
             assertTrue(requireNotNull(GeoScope.mkadKm(GeoScope.Point(55.750,37.62))) in 10.0..30.0)
         } finally { db.hunter().allOffers().filter { it.source == "geo-fixture" }.forEach {
             db.hunter().deletePoints(it.id)
             db.hunter().deleteOffer(it.id)
         } }
+    }
+    @Test fun authorizedPartnerFeedReadsSalesMetadata() {
+        val avito = """<Ads formatVersion="3"><Ad><Id>one</Id><Category>Квартиры</Category>
+            <OperationType>Продам</OperationType><Address>г. Москва, Лестева, 2</Address><Region>Москва</Region>
+            <Price>13000000</Price><Square>45.1</Square><Rooms>2</Rooms><SellerType>owner</SellerType></Ad></Ads>"""
+        val cian = """<feed><object><Category>newBuildingFlatSale</Category><ExternalId>two</ExternalId>
+            <Address>Химки, Новая, 3</Address><Region>Московская область</Region><TotalArea>46</TotalArea>
+            <BargainTerms><Price>14000000</Price><Currency>rur</Currency></BargainTerms></object></feed>"""
+        val first = PartnerFeed.parse(avito,"partner","avito").single()
+        val second = PartnerFeed.parse(cian,"developer","cian").single()
+        assertEquals("owner",first.seller)
+        assertEquals(GeoScope.MOSCOW,GeoScope.region(first))
+        assertEquals("primary",second.market)
+        assertEquals(GeoScope.OBLAST,GeoScope.region(second))
     }
 }

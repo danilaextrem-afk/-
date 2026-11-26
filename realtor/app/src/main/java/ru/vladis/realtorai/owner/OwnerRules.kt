@@ -46,7 +46,7 @@ object OwnerRules {
         val candidates = offers.filter {
             val url = ru.vladis.realtorai.autopilot.AutoRules.urlKey(it.url)
             ru.vladis.realtorai.hunter.GeoScope.eligible(it, now) && ru.vladis.realtorai.hunter.GeoScope.region(it) == region && it.deal == "sale" && it.market == property.type &&
-                !it.source.startsWith("torgi", ignoreCase = true) &&
+                !it.source.startsWith("Торги.Открыто", ignoreCase = true) &&
                 !property.housingKind.isNullOrBlank() && it.housingKind == property.housingKind &&
                 it.rooms == property.rooms && it.price > 0 && it.area.isFinite() &&
                 abs(it.area - property.area) <= property.area * .20 &&

@@ -10,10 +10,10 @@ object GeoScope {
     const val MOSCOW = "moscow"
     const val OBLAST = "oblast"
     private const val OUTSIDE = "outside"
-    private val city = Regex("^(?:(?:г\\.?|город) )?(?:москва|москвы)(?:$|[,;.! ])")
+    private val city = Regex("^(?:(?:г\\.?|город)\\s*)?(?:москва|москвы)(?:$|[,;.! ])")
     private val oblast = Regex("^(?:московская обл(?:асть)?\\.?|подмосковье|московской области|мо)(?:$|[,;.! ])")
     private val newMoscow = Regex("\\b(?:новая москва|новой москве|тинао|новомосковск(?:ий|ого) административн(?:ый|ого) округ|троицк(?:ий|ого) административн(?:ый|ого) округ)\\b")
-    private val prefix = Regex("^(?:(?:россия|рф|[0-9]{6})[,; ]+)+")
+    private val prefix = Regex("^(?:(?:российская федерация|россия|рф|[0-9]{6})[,; ]+)+")
     private val staleMs = 30 * 86_400_000L
     @Volatile private var boundaries: Map<String, List<List<Ring>>>? = null
     @Volatile private var mkad: List<List<Point>> = emptyList()
@@ -42,7 +42,7 @@ object GeoScope {
         synchronized(this) {
             if (boundaries != null) return
             val data = java.util.zip.GZIPInputStream(ctx.assets.open("moscow-boundaries.json.gz")).bufferedReader().use { JsonParser.parseReader(it).asJsonObject }
-            boundaries = data.entrySet().associate { (key, polygons) ->
+            val parsed = data.entrySet().associate { (key, polygons) ->
                 key to polygons.asJsonArray.map { polygon ->
                     polygon.asJsonArray.mapNotNull { ring ->
                         val points = ring.asJsonArray.map { pair -> Point(pair.asJsonArray[1].asDouble, pair.asJsonArray[0].asDouble) }
@@ -50,13 +50,12 @@ object GeoScope {
                     }
                 }
             }
-            run {
-                mkad = java.util.zip.GZIPInputStream(ctx.assets.open("mkad.json.gz")).bufferedReader().use { reader ->
+            mkad = java.util.zip.GZIPInputStream(ctx.assets.open("mkad.json.gz")).bufferedReader().use { reader ->
                     JsonParser.parseReader(reader).asJsonArray.map { way ->
                         way.asJsonArray.map { pair -> Point(pair.asJsonArray[0].asDouble, pair.asJsonArray[1].asDouble) }
                     }
                 }
-            }
+            boundaries = parsed
         }
     }
 
@@ -126,6 +125,16 @@ object GeoScope {
     private fun locationKey(value: String) = normalize(value)
         .split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotEmpty() && it !in setOf("район","районе","района","г","город","округ","округе","городской") }
         .joinToString(" ") { it.replace(districtEnding,"ск") }
+    fun within(place: String, offer: Offer): Boolean {
+        val point = point(offer.lat, offer.lon)
+        if (newMoscow.containsMatchIn(normalize(place)) && point != null && boundaries != null) {
+            return region(offer) == MOSCOW && boundaries?.get("new-moscow").orEmpty().any { rings ->
+                rings.firstOrNull()?.contains(point) == true && rings.drop(1).none { it.contains(point) }
+            }
+        }
+        return within(place, region(offer), offer.locality, offer.district, offer.address)
+    }
+
     fun within(place: String, region: String?, locality: String?, district: String, address: String): Boolean {
         if (place.isBlank()) return true
         val desired = normalize(place)
@@ -142,8 +151,8 @@ data class GeoQuery(
     val radiusKm: Double? = null, val mkadKm: Double? = null
 ) {
     fun matches(offer: Offer): Boolean {
-        val region = GeoScope.region(offer) ?: return false
-        if (locations.isNotEmpty() && locations.none { GeoScope.within(it, region, offer.locality, offer.district, offer.address) }) return false
+        if (GeoScope.region(offer) == null) return false
+        if (locations.isNotEmpty() && locations.none { GeoScope.within(it, offer) }) return false
         if (address.isNotBlank() && !GeoScope.normalize(offer.address).contains(GeoScope.normalize(address))) return false
         val stationKeys = offer.transit.orEmpty().split(';').map(GeoScope::normalize)
         if (stations.isNotEmpty() && stations.none { GeoScope.normalize(it) in stationKeys }) return false

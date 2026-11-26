@@ -50,7 +50,7 @@ jobs:
           "$apksigner" verify --verbose --print-certs ../candidate/RealtorAI-1.0-rc3.apk
           aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
           "$aapt" dump badging ../candidate/RealtorAI-1.0-rc3.apk > ../candidate/manifest.txt
-          grep -F "package: name='ru.vladis.realtorai.preview'" ../candidate/manifest.txt
+          grep -F "package: name='ru.vladis.realtorai.preview3'" ../candidate/manifest.txt
           grep -E "^native-code: 'arm64-v8a'[[:space:]]*$" ../candidate/manifest.txt
           if grep -Fx 'application-debuggable' ../candidate/manifest.txt; then exit 1; fi
           (cd ../candidate && sha256sum RealtorAI-1.0-rc3.apk > SHA256SUMS.txt)

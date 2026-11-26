@@ -105,6 +105,14 @@ class AutoVm(app: Application): AndroidViewModel(app) {
     val sources by vm.sources.collectAsState(initial=emptyList())
     var raw by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
+    val geoContext = androidx.compose.ui.platform.LocalContext.current
+    var geo by remember { mutableStateOf(GeoPreferences.read(geoContext)) }
+    var editGeo by remember { mutableStateOf(false) }
+    if (editGeo) GeoDialog(geo, { editGeo = false }) {
+        geo = it
+        GeoPreferences.save(geoContext, it)
+        editGeo = false
+    }
     var showCatalog by remember { mutableStateOf(false) }
     val file = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { vm.importFile(it) } }
     val now=System.currentTimeMillis()
@@ -131,6 +139,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                     Switch(checked=vm.active,onCheckedChange={vm.toggle(it)})
                 }
                 Text(if (vm.busy) "Идёт обработка источников" else if (vm.active) "Фоновое обновление примерно каждые 6 часов" else "Запустите поиск вручную или включите фоновое обновление", color=Color.White)
+                TextButton({ editGeo = true }) { Text("География · " + geo.locations.joinToString(", ").ifBlank { "Москва и МО" }, color = Color(0xFFA5F1C8)) }
                 TextButton({ showCatalog = !showCatalog }) { Text(if (showCatalog) "Свернуть источники" else "Источники и район", color = Color(0xFFA5F1C8)) }
                 if (showCatalog) vm.catalogs.forEach { name ->
                     Row(verticalAlignment = Alignment.CenterVertically) {

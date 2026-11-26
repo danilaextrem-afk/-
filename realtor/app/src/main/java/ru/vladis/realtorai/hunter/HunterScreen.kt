@@ -58,18 +58,28 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     var flt by remember { mutableStateOf(SavedFilter()) }
     var hideDups by remember { mutableStateOf(true) }
     var favOnly by remember { mutableStateOf(false) }
+    var sellerFilter by remember { mutableStateOf("Все продавцы") }
     BackHandler(openId != null) { openId = null }
     val open = deals.find { it.o.id == openId }
     if (open != null) { DealDetail(vm, main, open, deals) { openId = null }; return }
     val sale = deals.filter { it.o.deal == "sale" }
-    val shown = sale.filter { Filters.matches(it.o, flt) && (!flt.onlyBelowMarket || it.below) && (!hideDups || it.repr) && (!favOnly || it.o.favorite) }
-        .sortedWith(compareByDescending<Deal> { it.discount ?: -1.0 })
+    val shown = sale.filter { d ->
+        val seller = when (sellerFilter) {
+            "Собственники" -> d.o.seller == "owner"
+            "Застройщики" -> d.o.seller == "developer"
+            "Вторичка" -> d.o.market == "secondary" && !d.o.source.startsWith("Торги.Открыто")
+            "Новостройки" -> d.o.market == "primary"
+            else -> true
+        }
+        seller && Filters.matches(d.o, flt) && (!flt.onlyBelowMarket || d.below) && (!hideDups || d.repr) && (!favOnly || d.o.favorite) }
+        .sortedWith(compareBy<Deal> { it.o.source.startsWith("Торги.Открыто") }.thenByDescending { it.discount ?: -1.0 })
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; ScreenHeading("Поиск сделок", "${sale.size} предложений в источниках") }
         Chips(listOf("Лента", "Карта", "Фильтры", "Данные", "Подбор"), tab) { tab = it }
         TextButton({ showGeography = true }) {
             Text("География · " + geography.locations.joinToString(", ").ifBlank { "Москва и МО" })
         }
+        if (tab in listOf("Лента", "Карта")) Chips(listOf("Все продавцы", "Собственники", "Застройщики", "Вторичка", "Новостройки"), sellerFilter) { sellerFilter = it }
         if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         vm.log?.let { Text(it, color = Lime, style = MaterialTheme.typography.bodySmall) }
         Spacer(Modifier.height(8.dp))
@@ -175,9 +185,9 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         } }
         item { AppCard {
             Text("Подписка на фид (мониторинг)", fontWeight = FontWeight.SemiBold)
-            Text("URL машиночитаемого CSV, JSON или YRL, к которому у вас есть законный доступ (например корпоративный/партнёрский фид).", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("URL машиночитаемого CSV, JSON, YRL, XML Авито или Циан, к которому у вас есть законный доступ (например корпоративный/партнёрский фид).", color = Muted, style = MaterialTheme.typography.bodySmall)
             Field(sName, { sName = it }, "Название"); Spacer(Modifier.height(6.dp)); Field(sUrl, { sUrl = it }, "URL фида")
-            Chips(listOf("csv", "json", "yrl"), sFmt) { sFmt = it }
+            Chips(listOf("csv", "json", "yrl", "avito", "cian"), sFmt) { sFmt = it }
             OutlinedButton({ vm.addSub(sName, sUrl, sFmt); sName = ""; sUrl = "" }, enabled = sName.isNotBlank() && sUrl.startsWith("http")) { Text("Добавить подписку") }
             subs.forEach { s -> Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) { Text("${s.name} (${s.format})"); Text(s.lastStatus.ifBlank { "не обновлялась" }, color = Muted, style = MaterialTheme.typography.bodySmall) }
@@ -187,7 +197,7 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         } }
         item { AppCard {
             Text("Подключённые источники", fontWeight = FontWeight.SemiBold)
-            Text("Торги.Открыто · банкротные торги и банковские залоги. Найдите квартиры по названию города или улице.", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("Торги.Открыто плюс сохранённые фиды. Допустимы только подтверждённые адреса Москвы и МО.", color = Muted, style = MaterialTheme.typography.bodySmall)
             Field(q, { q = it }, "Запрос к источникам"); OutlinedButton({ vm.searchSources(q) }, enabled = q.isNotBlank()) { Text("Искать в источниках") }
         } }
         item { OutlinedButton({ vm.geocodeMissing() }, enabled = !vm.busy) { Text("Определить координаты по адресам (для карты)") } }

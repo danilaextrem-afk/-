@@ -11,11 +11,10 @@ internal data class ListingQuery(
     val address: String = "", val station: String = ""
 ) {
     fun matches(offer: Offer): Boolean {
-        val region = GeoScope.region(offer) ?: return false
         return GeoScope.eligible(offer) && offer.deal == "sale" && offer.price in 1..budget &&
             offer.area >= minArea && (rooms == null || offer.rooms == rooms) &&
             (market == null || offer.market == market) && (seller == null || offer.seller == seller) &&
-            GeoScope.within(place, region, offer.locality, offer.district, offer.address) &&
+            GeoScope.within(place, offer) &&
             (address.isBlank() || GeoScope.normalize(offer.address).contains(GeoScope.normalize(address))) &&
             (station.isBlank() || ru.vladis.realtorai.hunter.GeoQuery(stations = listOf(station)).matches(offer))
     }

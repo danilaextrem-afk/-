@@ -36,9 +36,10 @@ class AuctionSource(private val channel: String, label: String) : ListingSource 
         if (row.value("status") !in setOf("announced", "in_progress", "accepting_bids", "active", "accepting", "published")
             || row.value("currency") != "RUB" || row.value("transactionType") in setOf("rent", "lease")) return null
         val price = row.value("currentPrice") ?: row.value("startPrice")
+        val region = row.get("region")?.takeIf { it.isJsonObject }?.asJsonObject?.value("name") ?: row.value("region")
         val attrs = row.get("realEstateAttrs")?.takeIf { it.isJsonObject }?.asJsonObject
         return Offer(source = name, externalId = id, url = "https://torgiopen.ru/lot/$id",
-            region = row.value("region"), locality = row.value("city"), expiresAt = end?.toEpochMilli(), housingKind = attrs?.value("subcategory"), title = row.value("title") ?: return null, address = row.value("address").orEmpty(),
+            region = region, locality = row.value("city"), expiresAt = end?.toEpochMilli(), housingKind = attrs?.value("subcategory"), title = row.value("title") ?: return null, address = row.value("address").orEmpty(),
             price = price?.toDoubleOrNull()?.toLong() ?: return null,
             area = row.value("areaSqm")?.toDoubleOrNull() ?: return null,
             rooms = attrs?.value("rooms")?.toIntOrNull() ?: 0,

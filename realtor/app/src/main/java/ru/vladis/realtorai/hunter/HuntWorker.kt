@@ -23,15 +23,20 @@ object HuntRun {
         val added = mutableListOf<Long>()
         val drops = mutableListOf<Long>()
         val errors = mutableListOf<String>()
+        val scope = GeoPreferences.read(ctx)
+        val requests = if (query.isNotBlank()) listOf(query.trim())
+            else scope.locations.take(6).ifEmpty { listOf("Москва", "Московская область") }
         for (source in ru.vladis.realtorai.automation.IntegrationRegistry.enabled(ctx)) {
-            try {
-                val result = HunterImport.ingest(dao, source.search(query).filter { GeoScope.region(it) != null })
-                added += result.newIds
-                drops += result.dropIds
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                errors += "${source.name}: ${e.message}"
+            for (place in requests) {
+                try {
+                    val result = HunterImport.ingest(dao, source.search(place).filter { GeoScope.region(it) != null })
+                    added += result.newIds
+                    drops += result.dropIds
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    errors += "${source.name} ($place): ${e.message}"
+                }
             }
         }
         return Summary(added, drops, errors)
@@ -39,11 +44,9 @@ object HuntRun {
 
     suspend fun refreshAll(ctx: Context, includeCatalog: Boolean = true): Summary {
         val dao = HunterDb.get(ctx)
-        val catalog = if (includeCatalog) searchCatalog(ctx, dao, ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty())
-            else Summary(emptyList(), emptyList(), emptyList())
-        val newIds = catalog.newIds.toMutableList()
-        val drops = catalog.dropIds.toMutableList()
-        val errs = catalog.errors.toMutableList()
+        val newIds = mutableListOf<Long>()
+        val drops = mutableListOf<Long>()
+        val errs = mutableListOf<String>()
         for (s in dao.allSubs()) {
             runCatching {
                 val text = withContext(Dispatchers.IO) {
@@ -57,9 +60,10 @@ object HuntRun {
                 val rows = when(s.format) {
                     "json" -> HunterImport.fromJson(text, source)
                     "yrl" -> RealtyFeed.parse(text, source)
+                    "avito", "cian" -> PartnerFeed.parse(text, source, s.format)
                     else -> HunterImport.fromCsv(text, source)
                 }
-                if (s.format == "yrl") ru.vladis.realtorai.data.WorkspaceDb.get(ctx).withTransaction {
+                if (s.format in setOf("yrl", "avito", "cian")) ru.vladis.realtorai.data.WorkspaceDb.get(ctx).withTransaction {
                     val now = System.currentTimeMillis()
                     val result = HunterImport.ingest(dao, rows, now)
                     if (rows.isNotEmpty()) dao.deactivateOlder(source, now)
@@ -68,7 +72,14 @@ object HuntRun {
             }.onSuccess { r -> newIds += r.newIds; drops += r.dropIds; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "OK: " + r.describe())) }
              .onFailure { e -> if (e is kotlinx.coroutines.CancellationException) throw e; errs += "${s.name}: ${e.message}"; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "Ошибка: ${e.message}")) }
         }
-        return Summary(newIds, drops, errs)
+        if (includeCatalog) {
+            val query = ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty()
+            val catalog = searchCatalog(ctx, dao, query)
+            newIds += catalog.newIds
+            drops += catalog.dropIds
+            errs += catalog.errors
+        }
+        return Summary(newIds.distinct(), drops.distinct(), errs)
     }
 
     @SuppressLint("MissingPermission")
