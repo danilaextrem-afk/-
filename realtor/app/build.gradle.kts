@@ -8,7 +8,7 @@ android {
     namespace = "ru.vladis.realtorai"
     compileSdk = 35
     defaultConfig {
-        applicationId = "ru.vladis.realtorai"
+        applicationId = if (providers.gradleProperty("sideBySide").isPresent) "ru.vladis.realtorai.workspace" else "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
         versionCode = 11; versionName = "0.11"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

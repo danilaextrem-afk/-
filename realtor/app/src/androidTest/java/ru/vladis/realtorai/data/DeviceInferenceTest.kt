@@ -10,7 +10,7 @@ import ru.vladis.realtorai.ai.DeviceModel
 
 @RunWith(AndroidJUnit4::class)
 class DeviceInferenceTest {
-    @Test fun downloadsVerifiedWeightsAndGeneratesText() = runBlocking {
+    @Test fun downloadsVerifiedWeightsAndGeneratesText(): Unit = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         DeviceModel.download(context) {}
         assertTrue(DeviceModel.installed(context))

@@ -40,6 +40,17 @@ jobs:
           name: RealtorAI-0.11-Android-debug
           path: dist/
           if-no-files-found: error
+      - name: Build parallel installation for owners of differently signed debug builds
+        working-directory: realtor
+        run: |
+          gradle -PsideBySide :app:assembleDebug
+          mkdir -p ../parallel
+          cp app/build/outputs/apk/debug/app-debug.apk ../parallel/RealtorAI-0.11-parallel.apk
+          (cd ../parallel && sha256sum RealtorAI-0.11-parallel.apk > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RealtorAI-0.11-parallel
+          path: parallel/
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm
       - name: Verify Room and capture the running application
