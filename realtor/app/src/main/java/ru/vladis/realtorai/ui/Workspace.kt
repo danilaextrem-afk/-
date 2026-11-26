@@ -121,8 +121,42 @@ import ru.vladis.realtorai.local.OfflineLogic
     val forecast = active.filter { it.role == "buyer" && it.budget > 0 }.sumOf { it.budget * vm.agencyPct / 100 * vm.sharePct / 100 * OfflineLogic.probability(it.stage) }
     val list = active.filter { selected == "Все" || it.role == if (selected == "Покупатели") "buyer" else "owner" }
         .sortedByDescending { OfflineLogic.priority(it.stage, it.budget, it.phone.isNotBlank()) }
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var inboxUrl by remember { mutableStateOf("") }
+    var inboxKey by remember { mutableStateOf("") }
+    var inboxStatus by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { WorkspaceHeader("Лиды", "Lead Center", back) }
+        item { AppCard {
+            Text("Входящие заявки", style = MaterialTheme.typography.titleLarge)
+            Text(if (ru.vladis.realtorai.automation.LeadInbox.connected(ctx)) "Канал подключён" else "Подключите HTTPS-фид своего сайта или партнёра", color = Muted)
+            Text("JSON-массив. Для переноса нужны name, phone, crm_allowed: true и role (buyer/owner) либо message с запросом. Учитываются budget, district, rooms, min_area и wishes.", color = Muted)
+            Field(inboxUrl, { inboxUrl = it }, "HTTPS-адрес")
+            Field(inboxKey, { inboxKey = it }, "Bearer-токен, если нужен", password = true)
+            Row {
+                TextButton({
+                    runCatching { ru.vladis.realtorai.automation.LeadInbox.connect(ctx, inboxUrl.trim(), inboxKey.trim()) }
+                        .onSuccess { inboxStatus = "Канал сохранён"; inboxKey = "" }
+                        .onFailure { inboxStatus = it.message.orEmpty() }
+                }, enabled = inboxUrl.startsWith("https://") && !busy) { Text("Подключить") }
+                TextButton({
+                    busy = true
+                    scope.launch {
+                        try { inboxStatus = ru.vladis.realtorai.automation.LeadInbox.refresh(ctx) }
+                        catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (e: Exception) { inboxStatus = e.message.orEmpty() }
+                        finally { busy = false }
+                    }
+                }, enabled = !busy) { Text("Получить заявки") }
+                TextButton({
+                    ru.vladis.realtorai.automation.LeadInbox.connect(ctx, "", "")
+                    inboxStatus = "Канал отключён"
+                }, enabled = !busy) { Text("Отключить") }
+            }
+            if (inboxStatus.isNotBlank()) Text(inboxStatus)
+        } }
         item { AppCard {
             Text("Условный прогноз комиссии", color = Muted)
             Text(forecast.rub(), color = Lime, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)

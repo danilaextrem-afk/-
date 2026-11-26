@@ -162,9 +162,9 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         } }
         item { AppCard {
             Text("Подписка на фид (мониторинг)", fontWeight = FontWeight.SemiBold)
-            Text("URL машиночитаемого CSV/JSON, к которому у вас есть законный доступ (например корпоративный/партнёрский фид).", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("URL машиночитаемого CSV, JSON или YRL, к которому у вас есть законный доступ (например корпоративный/партнёрский фид).", color = Muted, style = MaterialTheme.typography.bodySmall)
             Field(sName, { sName = it }, "Название"); Spacer(Modifier.height(6.dp)); Field(sUrl, { sUrl = it }, "URL фида")
-            Chips(listOf("csv", "json"), sFmt) { sFmt = it }
+            Chips(listOf("csv", "json", "yrl"), sFmt) { sFmt = it }
             OutlinedButton({ vm.addSub(sName, sUrl, sFmt); sName = ""; sUrl = "" }, enabled = sName.isNotBlank() && sUrl.startsWith("http")) { Text("Добавить подписку") }
             subs.forEach { s -> Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) { Text("${s.name} (${s.format})"); Text(s.lastStatus.ifBlank { "не обновлялась" }, color = Muted, style = MaterialTheme.typography.bodySmall) }

@@ -273,9 +273,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                     "${group.first} · ${group.second} · ${prices.size} объявлений · медиана выборки ${prices[prices.size / 2].rub()}/м²"
                 }.ifBlank { "Нет объявлений с подтверждённой ценой и площадью." }
         }
-        AgentTool.LEADS -> db.dao().allClients().filter { it.notes.startsWith("Источник: ") }
-            .sortedByDescending { it.createdAt }.take(20).joinToString("\n") { "${it.name} · ${it.notes}" }
-            .ifBlank { "В CRM нет контактов, полученных из подключённых источников." }
+        AgentTool.LEADS -> ru.vladis.realtorai.automation.LeadInbox.refresh(ctx)
         AgentTool.WEEK -> {
             val end = LocalDate.now().plusDays(7).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
             db.dao().allTasks().filter { !it.done && it.dueAt < end }.sortedBy { it.dueAt }.take(30)

@@ -41,7 +41,7 @@ fun ModelScreen(vm: MainVm, back: () -> Unit) {
                     Text(if (vm.deviceReady) "Активная модель" else "Рекомендация", style = MaterialTheme.typography.labelMedium)
                     Text(if (vm.deviceReady) vm.activeModel.label else recommend.label, style = MaterialTheme.typography.headlineSmall)
                     Text("Доступно ОЗУ сейчас: ${DeviceModel.availableMemory(ctx)} МБ")
-                    if (vm.deviceReady) TextButton(vm::benchmarkModel, enabled = !vm.busy) { Text("Тест производительности") }
+                    if (vm.deviceReady) TextButton(vm::benchmarkModel, enabled = !vm.busy) { Text("Сравнить установленные модели") }
                     else Button({ vm.installModel(recommend) }, enabled = vm.downloading == null) { Text("Скачать рекомендуемую") }
                     if (vm.benchmark.isNotBlank()) Text(vm.benchmark, style = MaterialTheme.typography.bodySmall)
                 }

@@ -127,16 +127,36 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun benchmarkModel() {
         if (busy || !deviceReady) return
         busy = true
-        benchmark = "Выполняется локальный тест"
+        benchmark = "Запуск проверки установленных моделей"
         viewModelScope.launch {
-            val start = android.os.SystemClock.elapsedRealtime()
+            val reports = mutableListOf<String>()
+            var fastest: Pair<String, Long>? = null
+            val installed = models.filter { DeviceModel.installed(ctx, it) }
+                .sortedBy { if (it.file.startsWith("Qwen3.5")) 0L else it.size }
             try {
-                val output = DeviceModel.answer(ctx, "Ответь по-русски в трёх предложениях.", listOf("user" to "Как риелтору подготовить квартиру к показу?"))
-                val seconds = (android.os.SystemClock.elapsedRealtime() - start).coerceAtLeast(1) / 1000.0
-                benchmark = String.format(java.util.Locale.getDefault(), "%.1f с · %.1f символов/с с загрузкой модели", seconds, output.length / seconds)
-            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
-            catch (e: Exception) { benchmark = e.localizedMessage.orEmpty() }
-            finally { busy = false }
+                for (spec in installed) {
+                    benchmark = (reports + "Проверяется ${spec.label}…").joinToString("\n")
+                    val start = android.os.SystemClock.elapsedRealtime()
+                    val line = try {
+                        val output = DeviceModel.answer(ctx, "Отвечай строго в запрошенном формате.", listOf("user" to
+                            """В квартире кухня 10 м² и комната 18 м². Найди в CRM объекты до 7 миллионов. Верни только JSON {"tool":"FIND","args":{"budget":7000000},"room":"кухня"}"""), spec)
+                        val ms = android.os.SystemClock.elapsedRealtime() - start
+                        val json = runCatching { com.google.gson.JsonParser.parseString(
+                            output.substringAfterLast("</think>").trim().removePrefix("```json").removeSuffix("```").trim()).asJsonObject }.getOrNull()
+                        val passed = runCatching { json?.get("tool")?.asString == "FIND" &&
+                            json?.getAsJsonObject("args")?.get("budget")?.asLong == 7000000L &&
+                            json?.get("room")?.asString.equals("кухня", true) }.getOrDefault(false)
+                        if (passed && ms < (fastest?.second ?: Long.MAX_VALUE)) fastest = spec.label to ms
+                        "${spec.label} · ${ms / 1000.0} с · " + if (passed) "формат и русский ответ верны" else "тест формата или русского ответа не пройден"
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (e: Exception) { "${spec.label} · ${e.localizedMessage.orEmpty()}" }
+                    reports += line
+                }
+            } finally {
+                benchmark = (reports + (fastest?.let { "Быстрее всех из прошедших тест: ${it.first}" }
+                    ?: "Ни одна модель не прошла контрольное задание")).joinToString("\n")
+                busy = false
+            }
         }
     }
     fun importModel(spec: ModelSpec, uri: android.net.Uri) {

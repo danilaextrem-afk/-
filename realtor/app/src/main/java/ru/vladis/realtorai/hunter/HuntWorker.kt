@@ -49,7 +49,12 @@ object HuntRun {
                     http.newCall(Request.Builder().url(s.url).header("User-Agent", "RealtorAI/1.0").build()).execute().use { r ->
                         if (!r.isSuccessful) error("HTTP ${r.code}"); r.peekBody(5_000_000).string() }
                 }
-                val rows = if (s.format == "json") HunterImport.fromJson(text, "feed:${s.name}") else HunterImport.fromCsv(text, "feed:${s.name}")
+                val source = "feed:${s.name}"
+                val rows = when(s.format) {
+                    "json" -> HunterImport.fromJson(text, source)
+                    "yrl" -> RealtyFeed.parse(text, source)
+                    else -> HunterImport.fromCsv(text, source)
+                }
                 HunterImport.ingest(dao, rows)
             }.onSuccess { r -> newIds += r.newIds; drops += r.dropIds; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "OK: " + r.describe())) }
              .onFailure { e -> if (e is kotlinx.coroutines.CancellationException) throw e; errs += "${s.name}: ${e.message}"; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "Ошибка: ${e.message}")) }
@@ -78,6 +83,9 @@ object HuntRun {
 
 class HuntWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
     override suspend fun doWork(): Result {
+        runCatching { ru.vladis.realtorai.automation.LeadInbox.refresh(applicationContext) }.onFailure {
+            if (it is kotlinx.coroutines.CancellationException) throw it
+        }
         val s = HuntRun.refreshAll(applicationContext); if (ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(applicationContext)) ru.vladis.realtorai.autopilot.AutopilotEngine.sync(applicationContext, s.errors); HuntRun.notifyDeals(applicationContext, s); return Result.success()
     }
     companion object {

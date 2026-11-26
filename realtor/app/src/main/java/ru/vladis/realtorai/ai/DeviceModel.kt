@@ -153,6 +153,7 @@ object DeviceModel {
                 val formatted = "<|im_start|>user\n$safe /no_think<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
                 val modelPrompt = if (spec.file.startsWith("DeepSeek"))
                     "<｜begin▁of▁sentence｜><｜User｜>$safe<｜Assistant｜><think>\n"
+                else if (spec.file.startsWith("Qwen3.5")) "<|im_start|>system\n/no_think<|im_end|>\n" + formatted
                 else formatted
                 val job = currentCoroutineContext()
                 val sink = NativeTokenSink { bytes ->
