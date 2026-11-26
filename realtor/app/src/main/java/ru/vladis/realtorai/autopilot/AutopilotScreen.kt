@@ -159,7 +159,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
         items(matches.take(10)) { (client,picks) ->
             AppCard {
                 Text(client.name,fontWeight=FontWeight.Bold)
-                Text("Бюджет ${client.budget.rub()} · предварительно по цене",color=Muted)
+                Text("Бюджет ${client.budget.rub()} · с учётом критериев",color=Muted)
                 picks.forEach { p -> Text("${p.title} · ${p.price.rub()}") }
                 TextButton(openCrm) { Text("Открыть CRM") }
             }

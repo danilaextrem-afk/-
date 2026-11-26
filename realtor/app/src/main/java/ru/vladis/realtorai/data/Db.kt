@@ -22,6 +22,9 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     val name: String, val phone: String = "",
     val role: String = "buyer", // buyer | owner
     val budget: Long = 0, val notes: String = "",
+    @ColumnInfo(defaultValue = "0") val desiredRooms: Int = 0,
+    @ColumnInfo(defaultValue = "0") val minArea: Double = 0.0,
+    val searchArea: String? = null,
     val stage: String = "new", // new|contact|showing|deposit|deal|lost
     val createdAt: Long = System.currentTimeMillis())
 
@@ -61,7 +64,7 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     @Query("SELECT * FROM TaskItem") suspend fun allTasks(): List<TaskItem>
 }
 
-@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class], version = 1, exportSchema = false)
+@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class], version = 2, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): AppDao
     abstract fun hunter(): HunterDao

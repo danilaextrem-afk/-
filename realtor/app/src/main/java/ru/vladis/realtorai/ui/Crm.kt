@@ -97,6 +97,30 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
                 if (c.notes.isNotBlank()) Text(c.notes, color = Muted)
             }
         }
+        if (c.role == "buyer") item {
+            var editCriteria by remember { mutableStateOf(false) }
+            AppCard {
+                Text("Требования к квартире", style = MaterialTheme.typography.titleMedium)
+                Text(listOfNotNull(c.searchArea, c.desiredRooms.takeIf { it > 0 }?.let { "$it комн." },
+                    c.minArea.takeIf { it > 0 }?.let { "от $it м²" }).joinToString(" · ").ifBlank { "Все районы и планировки" }, color = Muted)
+                TextButton({ editCriteria = true }) { Text("Изменить подбор") }
+            }
+            if (editCriteria) {
+                var area by remember { mutableStateOf(c.searchArea.orEmpty()) }
+                var rooms by remember { mutableStateOf(c.desiredRooms.takeIf { it > 0 }?.toString().orEmpty()) }
+                var minimum by remember { mutableStateOf(c.minArea.takeIf { it > 0 }?.toString().orEmpty()) }
+                val size = minimum.replace(',', '.').toDoubleOrNull()
+                AlertDialog(onDismissRequest = { editCriteria = false }, title = { Text("Критерии подбора") },
+                    text = { Column {
+                        Field(area, { area = it }, "Район или улица в адресе")
+                        Field(rooms, { rooms = it.filter(Char::isDigit).take(2) }, "Количество комнат", keyboard = KeyboardType.Number)
+                        Field(minimum, { minimum = it }, "Минимальная площадь, м²", keyboard = KeyboardType.Decimal)
+                    } }, confirmButton = { Button(enabled = minimum.isBlank() || (size != null && size.isFinite() && size >= 0), onClick = {
+                        vm.saveClient(c.copy(searchArea = area.trim().ifBlank { null }, desiredRooms = rooms.toIntOrNull() ?: 0, minArea = size ?: 0.0))
+                        editCriteria = false
+                    }) { Text("Сохранить") } })
+            }
+        }
         item { Text("Статус сделки", color = Muted); Chips(stages.map { it.second }, stageName(c.stage)) { n -> vm.saveClient(c.copy(stage = stages.first { it.second == n }.first)) } }
         if (c.role == "owner") {
             val own = props.filter { it.ownerId == c.id }

@@ -10,9 +10,18 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object WorkspaceDb {
     @Volatile private var instance: AppDb? = null
 
+    private val criteriaMigration = object : androidx.room.migration.Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE Client ADD COLUMN desiredRooms INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE Client ADD COLUMN minArea REAL NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE Client ADD COLUMN searchArea TEXT")
+        }
+    }
+
     fun get(context: Context): AppDb = instance ?: synchronized(this) {
         val app = context.applicationContext
         instance ?: Room.databaseBuilder(app, AppDb::class.java, "workspace.db")
+            .addMigrations(criteriaMigration)
             .addCallback(LegacyImport(app)).build().also { instance = it }
     }
 }

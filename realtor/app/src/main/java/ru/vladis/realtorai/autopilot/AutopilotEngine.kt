@@ -28,7 +28,9 @@ object AutoRules {
     fun valid(o: Offer) = o.active && o.deal == "sale" && o.price > 0 && o.area.isFinite() && o.area > 0
     fun matches(c: Client, props: List<Property>): List<Property> =
         if (c.role != "buyer" || c.budget <= 0 || c.stage in listOf("deal","lost")) emptyList()
-        else props.filter { it.status == "active" && it.price in 1..c.budget }.sortedWith(compareByDescending<Property> { it.favorite }.thenBy { it.price }).take(5)
+        else props.filter { it.status == "active" && it.price in 1..c.budget &&
+            (c.desiredRooms == 0 || it.rooms == c.desiredRooms) &&
+            it.area >= c.minArea && (c.searchArea.isNullOrBlank() || it.address.contains(c.searchArea.trim(), ignoreCase = true)) }.sortedWith(compareByDescending<Property> { it.favorite }.thenBy { it.price }).take(5)
     fun isDuplicate(o: Offer, p: Property): Boolean {
         val u = urlKey(o.url)
         val a = addressKey(o.address,o.area,o.rooms,o.floor)
@@ -48,8 +50,8 @@ object AutopilotEngine {
     }
     fun report(ctx: Context) = prefs(ctx).getString("report", "Автопилот ещё не запускался.").orEmpty()
     fun lastRun(ctx: Context) = prefs(ctx).getLong("lastRun", 0)
-    data class Report(val added: Int, val duplicates: Int, val skipped: Int, val changedPrices: Int, val sources: Int, val errors: List<String> = emptyList()) {
-        fun summary() = "Добавлено в CRM: $added · уже в базе: $duplicates · пропущено: $skipped · расхождений цен: $changedPrices · фидов: $sources" + if(errors.isEmpty()) "" else "\nОшибки: " + errors.joinToString("; ")
+    data class Report(val added: Int, val duplicates: Int, val skipped: Int, val changedPrices: Int, val sources: Int, val errors: List<String> = emptyList(), val planned: Int = 0) {
+        fun summary() = "Добавлено в CRM: $added · уже в базе: $duplicates · пропущено: $skipped · расхождений цен: $changedPrices · фидов: $sources · задач создано: $planned" + if(errors.isEmpty()) "" else "\nОшибки: " + errors.joinToString("; ")
     }
     suspend fun sync(ctx: Context, errors: List<String> = emptyList()): Report = mutex.withLock {
         val hunter = HunterDb.get(ctx)
@@ -74,10 +76,37 @@ object AutopilotEngine {
                 val id = dao.saveProperty(p)
                 existing += p.copy(id = id); added++
             }
-            Report(added,duplicates,skipped,prices,sources,errors).also { dao.log(RunLog(summary = it.summary())) }
+            val planned = if (enabled(ctx)) planContacts(dao) else 0
+            Report(added,duplicates,skipped,prices,sources,errors,planned).also { dao.log(RunLog(summary = it.summary())) }
         }
         prefs(ctx).edit().putString("report",result.summary()).putLong("lastRun",System.currentTimeMillis()).apply()
         result
     }
+    private suspend fun planContacts(dao: AppDao): Int {
+        val now = System.currentTimeMillis()
+        val latest = dao.allInteractions().groupBy { it.clientId }.mapValues { (_, rows) -> rows.maxBy { it.at } }
+        val tasks = dao.allTasks()
+        val known = tasks.mapTo(mutableSetOf()) { it.kind }
+        val pending = tasks.filterNot { it.done }.mapTo(mutableSetOf()) { it.kind.substringBeforeLast('/') }
+        var added = 0
+        for (client in dao.allClients()) {
+            val activity = latest[client.id]
+            val prefix = "followup/${client.id}"
+            val key = "$prefix/${client.stage}-${activity?.id ?: 0}"
+            if (prefix in pending || key in known || client.stage in listOf("deal", "lost")) continue
+            val age = now - (activity?.at ?: client.createdAt)
+            if (client.stage != "new" && age < 2 * 86_400_000L) continue
+            val action = when (client.stage) {
+                "new" -> "Уточнить запрос"
+                "showing" -> "Обсудить итоги показа"
+                "deposit" -> "Согласовать следующий шаг сделки"
+                else -> "Запланировать повторный контакт"
+            }
+            dao.saveTask(TaskItem(title = "$action · ${client.name}", kind = key, dueAt = now))
+            added++
+        }
+        return added
+    }
+
     suspend fun syncIfEnabled(ctx: Context) { if(enabled(ctx)) sync(ctx) }
 }

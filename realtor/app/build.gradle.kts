@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
-        versionCode = 8; versionName = "0.8"
+        versionCode = 9; versionName = "0.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += "arm64-v8a"
