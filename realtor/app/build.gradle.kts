@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = if (providers.gradleProperty("sideBySide").isPresent) "ru.vladis.realtorai.workspace" else "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
-        versionCode = 16; versionName = "0.16"
+        versionCode = 17; versionName = "0.17"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += "arm64-v8a"

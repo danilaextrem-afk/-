@@ -1,6 +1,11 @@
 package ru.vladis.realtorai.ui
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -19,11 +24,11 @@ import ru.vladis.realtorai.ai.Prompts
 import ru.vladis.realtorai.data.Client
 import ru.vladis.realtorai.data.Property
 
-@Composable fun Assistant(vm: MainVm) {
+@Composable fun Assistant(vm: MainVm, openModels: () -> Unit) {
     val props by vm.properties.collectAsState()
     val clients by vm.clients.collectAsState()
     var mode by remember { mutableStateOf("Анализ") }
-    var text by remember { mutableStateOf("") }
+    var text by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
     var pSel by remember { mutableStateOf<Property?>(null) }
     var cSel by remember { mutableStateOf<Client?>(null) }
     var pMenu by remember { mutableStateOf(false) }
@@ -32,46 +37,17 @@ import ru.vladis.realtorai.data.Property
     val speech = rememberLocalSpeech()
 
     val state = rememberLazyListState()
-    LaunchedEffect(vm.chat.size) { if (vm.chat.isNotEmpty()) state.animateScrollToItem(vm.chat.size - 1) }
+    LaunchedEffect(vm.chat.size, vm.busy) {
+        if (vm.chat.isNotEmpty()) state.animateScrollToItem(vm.chat.size - 1 + if (vm.busy) 1 else 0)
+    }
     Column(Modifier.fillMaxSize().imePadding().padding(horizontal = 16.dp)) {
         Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Title("ИИ-ассистент"); Spacer(Modifier.weight(1f))
             TextButton({ vm.clearChat() }) { Text("Очистить") }
         }
-        var importFor by remember { mutableStateOf<ru.vladis.realtorai.ai.ModelSpec?>(null) }
-        val importFile = androidx.activity.compose.rememberLauncherForActivityResult(
-            androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
-        ) { uri -> if (uri != null) importFor?.let { vm.importModel(it, uri) }; importFor = null }
-        var manager by remember { mutableStateOf(false) }
-        OutlinedButton({ manager = true }) { Text(if (vm.deviceReady) vm.activeModel.label else "Скачать локальную модель") }
-        if (manager) AlertDialog(onDismissRequest = { manager = false }, title = { Text("Модели на устройстве") },
-            text = { LazyColumn {
-                item {
-                    Text("Рекомендуется при текущей памяти: " + vm.recommendedModel().label, color = Lime)
-                    if (vm.deviceReady) TextButton(vm::benchmarkModel, enabled = !vm.busy) { Text("Тест производительности") }
-                    if (vm.benchmark.isNotBlank()) Text(vm.benchmark, color = Muted)
-                }
-                items(ru.vladis.realtorai.ai.models.size) { i ->
-                    val spec = ru.vladis.realtorai.ai.models[i]
-                    Text(spec.label, style = MaterialTheme.typography.titleMedium)
-                    Text("${spec.size / 1_000_000} МБ · свободно от ${spec.minimumFreeMb} МБ ОЗУ", color = Muted)
-                    Text(spec.profile, color = Muted)
-                    val present = remember(spec, vm.modelRevision, vm.downloading, vm.activeModel) { vm.hasModel(spec) }
-                    if (vm.downloading == spec) {
-                        LinearProgressIndicator(Modifier.fillMaxWidth())
-                        TextButton(vm::pauseModel) { Text("Пауза · ${vm.modelProgress}% · ${vm.modelSpeed}") }
-                    } else if (present) {
-                        TextButton({ vm.chooseModel(spec) }, enabled = vm.activeModel != spec && !vm.busy) { Text(if (vm.activeModel == spec) "Активна" else "Использовать") }
-                        TextButton({ vm.removeModel(spec) }, enabled = !vm.busy && vm.downloading == null) { Text("Удалить веса " + spec.label) }
-                    } else TextButton({ vm.installModel(spec) }, enabled = vm.downloading == null) {
-                        Text(if (vm.partialModel(spec) > 0) "Продолжить загрузку" else "Скачать")
-                    }
-                    if (!present && spec.file.endsWith(".gguf") && vm.downloading == null) {
-                        TextButton({ importFor = spec; importFile.launch(arrayOf("*/*")) }, enabled = !vm.busy) { Text("Импорт файла GGUF") }
-                    }
-                }
-                vm.error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
-            } }, confirmButton = { TextButton({ manager = false }) { Text("Закрыть") } })
+        TextButton(openModels, contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)) {
+            Text(if (vm.deviceReady) vm.activeModel.label + " · на устройстве" else "Выбрать локальную модель", color = Lime)
+        }
         Chips(Prompts.modes.map { it.first }, mode) { mode = it }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box {
@@ -90,14 +66,30 @@ import ru.vladis.realtorai.data.Property
             }
         }
         LazyColumn(Modifier.weight(1f).padding(vertical = 8.dp), state = state, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (vm.chat.isEmpty()) item { Text(
-                if (vm.hasKey || vm.deviceReady) "Выберите режим, при необходимости прикрепите объект/клиента и опишите задачу." else "Скачайте модель один раз. Сообщения и данные CRM обрабатываются на телефоне.", color = Muted) }
+            if (vm.chat.isEmpty()) item {
+                Column(Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center) { Icon(Icons.Default.Star, null, tint = Lime) }
+                    Text("Чем помочь?", style = MaterialTheme.typography.headlineMedium)
+                    Text(if (vm.deviceReady) "Подключите карточку объекта или клиента, чтобы дать контекст."
+                        else "Выберите модель. После загрузки разговор работает на телефоне.", color = Muted)
+                    if (!vm.deviceReady) FilledTonalButton(openModels) { Text("Открыть модели") }
+                    else listOf("Подготовь меня к показу квартиры", "Составь сообщение собственнику", "Помоги ответить на возражение").forEach { idea ->
+                        Surface(onClick = { text = idea }, shape = RoundedCornerShape(12.dp), color = Surface1) {
+                            Text(idea, Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
             items(vm.chat.size) { i ->
                 val (role, msg) = vm.chat[i]
                 val mine = role == "user"
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
-                    Text(msg, Modifier.widthIn(max = 320.dp).background(if (mine) Color0 else Surface2, RoundedCornerShape(16.dp)).padding(12.dp),
-                        color = if (mine) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.onSurface)
+                    if (!mine) Text("Realtor AI", style = MaterialTheme.typography.labelMedium, color = Lime, modifier = Modifier.padding(bottom = 6.dp))
+                    val shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = if (mine) 18.dp else 5.dp, bottomEnd = if (mine) 5.dp else 18.dp)
+                    Text(msg, Modifier.widthIn(max = 440.dp).background(if (mine) MaterialTheme.colorScheme.primaryContainer else Surface1, shape).padding(14.dp),
+                        color = if (mine) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium)
                     if (!mine) Row {
                         TextButton({ clip.setText(AnnotatedString(msg)) }) { Text("Копировать") }
                         if (speech != null) TextButton({ speech.speak(msg.take(3500), android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "reply-$i") }) { Text("Озвучить") }
@@ -106,18 +98,29 @@ import ru.vladis.realtorai.data.Property
             }
             if (vm.busy) item {
                 if (vm.streamingAnswer.isNotBlank()) Text(vm.streamingAnswer)
-                LinearProgressIndicator(Modifier.fillMaxWidth())
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CircularProgressIndicator(Modifier.size(17.dp), strokeWidth = 2.dp)
+                    Text("Готовлю ответ", color = Muted)
+                }
                 if (vm.cancellableGeneration) TextButton(vm::stopGeneration) { Text("Остановить генерацию") }
             }
             vm.error?.let { e -> item { Text(e, color = MaterialTheme.colorScheme.error) } }
         }
-        VoiceInput({ words -> text = listOf(text, words).filter { it.isNotBlank() }.joinToString(" ") }, { vm.error = it })
-        Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Field(text, { text = it }, "Сообщение", Modifier.weight(1f), single = false)
-            IconButton(enabled = text.isNotBlank() && vm.deviceReady && !vm.busy, onClick = { vm.ask(mode, text.trim(), pSel, cSel); text = "" }) {
-                Icon(Icons.Default.Send, "Отправить", tint = Lime)
+        Surface(shape = RoundedCornerShape(22.dp), color = Surface1, modifier = Modifier.padding(bottom = 8.dp)) {
+            Column(Modifier.padding(horizontal = 10.dp, vertical = 3.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextField(text, { text = it.take(400) }, Modifier.weight(1f),
+                        placeholder = { Text("Сообщение") }, maxLines = 4, colors = TextFieldDefaults.colors(
+                            focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent))
+                    FilledIconButton(enabled = text.isNotBlank() && vm.deviceReady && !vm.busy, onClick = {
+                        vm.ask(mode, text.trim(), pSel, cSel); text = ""
+                    }) { Icon(Icons.Default.Send, "Отправить") }
+                }
+                VoiceInput({ words -> text = listOf(text, words).filter { it.isNotBlank() }.joinToString(" ").take(400) }, { vm.error = it })
             }
         }
     }
 }
-private val Color0 = Lime

@@ -16,14 +16,14 @@ import ru.vladis.realtorai.data.WorkspaceDb
 import ru.vladis.realtorai.ui.*
 
 @Composable
-fun AgentScreen(vm: MainVm, back: () -> Unit) {
+fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
     val ctx = LocalContext.current.applicationContext
     val queue = remember(ctx) { AgentQueue(ctx) }
     val flow = remember(ctx) { WorkspaceDb.get(ctx).agent().recent() }
     val jobs by flow.collectAsState(emptyList())
     val buyers by vm.clients.collectAsState()
     val scope = rememberCoroutineScope()
-    var goal by remember { mutableStateOf("") }
+    var goal by remember(initialGoal) { mutableStateOf(initialGoal) }
     var client by remember { mutableStateOf<Long?>(null) }
     var menu by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }

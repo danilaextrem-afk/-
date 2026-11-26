@@ -20,7 +20,7 @@ import kotlinx.coroutines.withContext
 import ru.vladis.realtorai.MainVm
 import ru.vladis.realtorai.automation.IntegrationRegistry
 
-@Composable fun SettingsScreen(vm: MainVm, back: () -> Unit) {
+@Composable fun SettingsScreen(vm: MainVm, theme: String, setTheme: (String) -> Unit, back: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var model by remember { mutableStateOf(vm.model) }
@@ -79,10 +79,10 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
         dismissButton = { TextButton({ restoreLegacy = false }) { Text("Отмена") } })
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("Настройки") } }
-        item { AppCard {
-            Text("Локальный режим", fontWeight = FontWeight.SemiBold)
-            Text("CRM, калькуляторы, шаблоны и анализ данных работают без API-ключей. Локальную Qwen можно скачать в разделе ИИ.", color = Muted)
-        } }
+        item {
+            Text("Внешний вид", style = MaterialTheme.typography.titleLarge)
+            Chips(listOf("Системная", "Тёмная", "Светлая"), theme, setTheme)
+        }
         item {
             AppCard {
                 Text("Комиссия", fontWeight = FontWeight.SemiBold)

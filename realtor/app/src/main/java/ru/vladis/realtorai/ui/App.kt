@@ -1,6 +1,12 @@
 package ru.vladis.realtorai.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
@@ -16,6 +22,25 @@ import androidx.compose.ui.Modifier
 import ru.vladis.realtorai.MainVm
 
 @Composable fun App(vm: MainVm) {
+    val ctx = LocalContext.current
+    val prefs = remember { ctx.getSharedPreferences("display", 0) }
+    var theme by remember { mutableStateOf(prefs.getString("theme", "Системная") ?: "Системная") }
+    val isDark = when (theme) { "Тёмная" -> true; "Светлая" -> false; else -> isSystemInDarkTheme() }
+    RealtorTheme(isDark) {
+        SideEffect {
+            val window = (ctx as? android.app.Activity)?.window
+            if (window != null) androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+                isAppearanceLightStatusBars = !isDark
+                isAppearanceLightNavigationBars = !isDark
+            }
+        }
+        AppRoutes(vm, theme) { selection -> theme = selection; prefs.edit().putString("theme", selection).apply() }
+    }
+}
+
+@Composable private fun AppRoutes(vm: MainVm, theme: String, setTheme: (String) -> Unit) {
+    val haptic = LocalHapticFeedback.current
+    var command by rememberSaveable { mutableStateOf("") }
     var tab by rememberSaveable { mutableStateOf("home") }
     var sub by rememberSaveable { mutableStateOf<String?>(null) }
     var clientId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -28,7 +53,7 @@ import ru.vladis.realtorai.MainVm
         if (!wide) NavigationBar(containerColor = Surface1) {
             tabs.forEach { (id, label, icon) ->
                 NavigationBarItem(selected = tab == id && sub == null && clientId == null,
-                    onClick = { tab = id; sub = null; clientId = null },
+                    onClick = { if (tab != id || sub != null) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); tab = id; sub = null; clientId = null },
                     icon = { Icon(icon, null) }, label = { Text(label) }, colors = NavigationBarItemDefaults.colors(indicatorColor = Surface2, selectedIconColor = Lime, selectedTextColor = Lime, unselectedIconColor = Muted, unselectedTextColor = Muted))
             }
         }
@@ -37,7 +62,7 @@ import ru.vladis.realtorai.MainVm
             if (wide) NavigationRail(containerColor = Surface1) {
                 tabs.forEach { (id, label, icon) ->
                     NavigationRailItem(selected = tab == id && sub == null && clientId == null,
-                        onClick = { tab = id; sub = null; clientId = null },
+                        onClick = { if (tab != id || sub != null) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); tab = id; sub = null; clientId = null },
                         icon = { Icon(icon, null) }, label = { Text(label) })
                 }
             }
@@ -47,20 +72,22 @@ import ru.vladis.realtorai.MainVm
                     when {
                         c != null -> ClientDetail(vm, c) { clientId = null }
                         s?.startsWith("owner/") == true -> ru.vladis.realtorai.owner.OwnerScreen(vm, s.substringAfter('/').toLong(), { sub = "publish" }, { sub = null })
-                        s == "agent" -> ru.vladis.realtorai.agent.AgentScreen(vm) { sub = null }
+                        s == "agent" -> ru.vladis.realtorai.agent.AgentScreen(vm, command) { sub = null }
                         s == "autopilot" -> ru.vladis.realtorai.autopilot.AutopilotScreen(vm, { sub = "hunter" }, { tab = "crm"; sub = null }, { tab = "tasks"; sub = null }, { sub = null })
                         s == "analytics" -> Analytics(vm) { sub = null }
-                        s == "settings" -> SettingsScreen(vm) { sub = null }
+                        s == "settings" -> SettingsScreen(vm, theme, setTheme) { sub = null }
+                        s == "models" -> ModelScreen(vm) { sub = null }
                         s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm) { sub = null }
                         s == "sales" -> SalesWorkspace(vm) { sub = null }
                         s == "leads" -> LeadWorkspace(vm, { sub = null }, { clientId = it })
                         s == "hunter" -> ru.vladis.realtorai.hunter.HunterScreen(vm) { sub = null }
                         else -> when (t) {
-                            "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" }, { sub = "agent" })
+                            "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" },
+                                { request -> command = request; sub = "agent" }, { tab = "props" }, { tab = "crm" }, { tab = "tasks" }, { sub = "owner/$it" })
                             "props" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" })
                             "crm" -> Crm(vm) { clientId = it }
                             "tasks" -> Tasks(vm)
-                            else -> Assistant(vm)
+                            else -> Assistant(vm) { sub = "models" }
                         }
                     }
                 }
