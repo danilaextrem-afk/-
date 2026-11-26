@@ -121,6 +121,20 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
                     }) { Text("Сохранить") } })
             }
         }
+        if (c.role == "buyer") {
+            val picks = ru.vladis.realtorai.autopilot.AutoRules.matches(c, props)
+            if (picks.isNotEmpty()) item {
+                val clip = androidx.compose.ui.platform.LocalClipboardManager.current
+                AppCard {
+                    Text("Предложение клиенту", style = MaterialTheme.typography.titleMedium)
+                    val draft = "Здравствуйте, ${c.name}! Подобрал варианты по вашему запросу:\n" +
+                        picks.joinToString("\n") { "• ${it.title} · ${it.address} · ${it.price.rub()}" } +
+                        "\nКакие из них хотите посмотреть?"
+                    Text(draft)
+                    TextButton({ clip.setText(androidx.compose.ui.text.AnnotatedString(draft)) }) { Text("Скопировать черновик") }
+                }
+            }
+        }
         item { Text("Статус сделки", color = Muted); Chips(stages.map { it.second }, stageName(c.stage)) { n -> vm.saveClient(c.copy(stage = stages.first { it.second == n }.first)) } }
         if (c.role == "owner") {
             val own = props.filter { it.ownerId == c.id }

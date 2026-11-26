@@ -8,7 +8,9 @@ import kotlinx.coroutines.flow.Flow
 @Entity(indices = [Index(value = ["source", "externalId"])])
 data class Offer(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val source: String, val externalId: String = "", val url: String = "",
+    val source: String,
+    val ownerName: String? = null, val ownerPhone: String? = null,
+    val externalId: String = "", val url: String = "",
     val title: String = "", val address: String = "", val district: String = "",
     val lat: Double? = null, val lon: Double? = null,
     val deal: String = "sale",         // sale | rent (для rent price = аренда в месяц)
@@ -30,6 +32,10 @@ data class Offer(
     val format: String = "csv", val lastFetch: Long = 0, val lastStatus: String = "")
 
 @Dao interface HunterDao {
+    @Transaction
+    suspend fun importBatch(rows: List<Offer>, now: Long): HunterImport.Result =
+        HunterImport.applyBatch(this, rows, now)
+
     @Query("SELECT * FROM Offer") fun offers(): Flow<List<Offer>>
     @Query("SELECT * FROM Offer") suspend fun allOffers(): List<Offer>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun saveOffer(o: Offer): Long

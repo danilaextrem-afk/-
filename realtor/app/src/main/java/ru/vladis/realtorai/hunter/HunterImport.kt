@@ -35,6 +35,9 @@ object HunterImport {
         "floor" to listOf("этаж", "floor"), "floors" to listOf("этажность", "этажей", "floors", "floors_total"),
         "address" to listOf("адрес", "address"), "district" to listOf("район", "district"),
         "lat" to listOf("lat", "широта"), "lon" to listOf("lon", "lng", "долгота"), "url" to listOf("ссылка", "url", "link"),
+        "owner_name" to listOf("owner_name", "имя собственника"),
+        "owner_phone" to listOf("owner_phone", "телефон собственника"),
+        "crm_allowed" to listOf("crm_allowed", "разрешен импорт контакта"),
         "id" to listOf("id", "external_id"), "title" to listOf("заголовок", "title"), "deal" to listOf("сделка", "deal"), "market" to listOf("рынок", "market"))
 
     private fun num(s: String?): Double? = s?.filter { it.isDigit() || it == ',' || it == '.' || it == '-' }?.replace(',', '.')?.toDoubleOrNull()
@@ -46,7 +49,9 @@ object HunterImport {
         val total = num(g("floors"))?.toInt() ?: num(floorRaw.substringAfter('/', ""))?.toInt() ?: 0
         val deal = g("deal").orEmpty().lowercase().let { if ("аренд" in it || "rent" in it) "rent" else "sale" }
         val market = g("market").orEmpty().lowercase().let { if ("перв" in it || "новостр" in it || "primary" in it) "primary" else "secondary" }
-        val o = Offer(source = source, externalId = g("id").orEmpty(), url = g("url").orEmpty(), title = g("title").orEmpty(),
+        val allowed = g("crm_allowed")?.lowercase() in setOf("true", "да", "1")
+        val o = Offer(source = source,
+            ownerName = g("owner_name")?.takeIf { allowed }, ownerPhone = g("owner_phone")?.takeIf { allowed }, externalId = g("id").orEmpty(), url = g("url").orEmpty(), title = g("title").orEmpty(),
             address = g("address").orEmpty(), district = g("district").orEmpty(), lat = num(g("lat")), lon = num(g("lon")),
             deal = deal, market = market, price = num(g("price"))?.toLong() ?: 0, area = num(g("area")) ?: 0.0,
             rooms = num(g("rooms"))?.toInt() ?: 0, floor = floor, floorsTotal = total)
@@ -88,14 +93,17 @@ object HunterImport {
             val old = keys(r).firstNotNullOfOrNull { known[it] }
             if (old == null) { val n = r.copy(firstSeen = now, lastSeen = now); ins += n; keys(n).forEach { known[it] = n } }
             else if (old.id == 0L) skipped++ // повтор внутри того же файла
-            else upd += old.copy(price = r.price, lastSeen = now, active = true, title = r.title.ifBlank { old.title },
+            else upd += old.copy(ownerName = r.ownerName, ownerPhone = r.ownerPhone, price = r.price, lastSeen = now, active = true, title = r.title.ifBlank { old.title },
                 address = r.address.ifBlank { old.address }, district = r.district.ifBlank { old.district }, url = r.url.ifBlank { old.url },
                 lat = r.lat ?: old.lat, lon = r.lon ?: old.lon, floorsTotal = if (r.floorsTotal > 0) r.floorsTotal else old.floorsTotal) to (old.price != r.price)
         }
         return Plan(ins, upd, skipped)
     }
 
-    suspend fun ingest(dao: HunterDao, rows: List<Offer>, now: Long = System.currentTimeMillis()): Result {
+    suspend fun ingest(dao: HunterDao, rows: List<Offer>, now: Long = System.currentTimeMillis()): Result =
+        dao.importBatch(rows, now)
+
+    suspend fun applyBatch(dao: HunterDao, rows: List<Offer>, now: Long): Result {
         val old = dao.allOffers().associateBy { it.id }
         val p = plan(old.values.toList(), rows, now)
         val newIds = p.inserts.map { o -> dao.saveOffer(o).also { dao.savePoint(PricePoint(offerId = it, price = o.price, at = now)) } }

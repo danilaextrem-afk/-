@@ -134,6 +134,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
             AppCard {
                 Text("Добавить объявления автоматически",style=MaterialTheme.typography.titleLarge)
                 Text("Вставьте ссылку или текст. Проверяем цену, площадь и дубли; неполные данные не выдумываем.",color=Muted)
+                Text("Для импорта собственника из фида укажите owner_name, owner_phone и crm_allowed=true только при наличии разрешения на перенос контакта в CRM.",color=Muted,style=MaterialTheme.typography.bodySmall)
                 Field(link,{link=it},"Ссылка (необязательно)")
                 Field(raw,{raw=it},"Текст объявления",single=false)
                 Button(onClick={vm.importText(raw,link)},enabled=!vm.busy && (raw.isNotBlank() || link.isNotBlank()),modifier=Modifier.fillMaxWidth()) { Text("Обработать и добавить") }

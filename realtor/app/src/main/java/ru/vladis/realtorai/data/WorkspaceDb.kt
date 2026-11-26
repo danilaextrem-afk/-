@@ -18,10 +18,17 @@ object WorkspaceDb {
         }
     }
 
+    private val ownerMigration = object : androidx.room.migration.Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE Offer ADD COLUMN ownerName TEXT")
+            db.execSQL("ALTER TABLE Offer ADD COLUMN ownerPhone TEXT")
+        }
+    }
+
     fun get(context: Context): AppDb = instance ?: synchronized(this) {
         val app = context.applicationContext
         instance ?: Room.databaseBuilder(app, AppDb::class.java, "workspace.db")
-            .addMigrations(criteriaMigration)
+            .addMigrations(criteriaMigration, ownerMigration)
             .addCallback(LegacyImport(app)).build().also { instance = it }
     }
 }
