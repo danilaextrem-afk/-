@@ -10,7 +10,7 @@ import java.util.zip.*
 
 object WorkspaceBackup {
     private val tables = listOf("Client", "Property", "Interaction", "TaskItem", "Offer", "PricePoint",
-        "SavedFilter", "Subscription", "Listing", "Publication", "RunLog", "OwnerCase", "OwnerEvent")
+        "SavedFilter", "Subscription", "Listing", "Publication", "RunLog", "OwnerCase", "OwnerEvent", "AgentJob")
     private val legacy = mapOf("Client" to "clients", "Property" to "properties",
         "Interaction" to "interactions", "TaskItem" to "tasks")
     private const val limit = 48 * 1024 * 1024
@@ -106,13 +106,18 @@ object WorkspaceBackup {
                 records
             }
             val selection = if (archive) {
-                val expected = if ("OwnerCase" !in root.keySet() && "OwnerEvent" !in root.keySet()) tables.dropLast(2) else tables
+                val expected = when {
+                    "AgentJob" in root.keySet() -> tables
+                    "OwnerCase" in root.keySet() || "OwnerEvent" in root.keySet() -> tables.dropLast(1)
+                    else -> tables.dropLast(3)
+                }
                 expected.associateWith { it }
             } else legacy
             require(root.keySet() == selection.values.toSet()) { "Неполная или неизвестная схема копии" }
             return db.withTransaction {
                 val sql = db.openHelper.writableDatabase
                 val oldTasks = db.dao().allTasks()
+                if ("AgentJob" !in selection) sql.execSQL("DELETE FROM AgentJob")
                 if ("OwnerCase" !in selection) {
                     sql.execSQL("DELETE FROM OwnerEvent")
                     sql.execSQL("DELETE FROM OwnerCase")
@@ -123,6 +128,7 @@ object WorkspaceBackup {
                     sql.execSQL("INSERT INTO `$table` SELECT * FROM temp.backup_$table")
                     sql.execSQL("DROP TABLE temp.backup_$table")
                 }
+                sql.execSQL("UPDATE AgentJob SET state='cancelled' WHERE state IN ('queued','running')")
                 oldTasks
             }
         } catch (e: Throwable) {

@@ -30,7 +30,7 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
     Text(label, color = Muted)
 }
 
-@Composable fun Home(vm: MainVm, openAnalytics: () -> Unit, openSettings: () -> Unit, openPublish: () -> Unit, openHunter: () -> Unit, openSales: () -> Unit, openLeads: () -> Unit, openAutopilot: () -> Unit) {
+@Composable fun Home(vm: MainVm, openAnalytics: () -> Unit, openSettings: () -> Unit, openPublish: () -> Unit, openHunter: () -> Unit, openSales: () -> Unit, openLeads: () -> Unit, openAutopilot: () -> Unit, openAgent: () -> Unit) {
     val props by vm.properties.collectAsState()
     val clients by vm.clients.collectAsState()
     val tasks by vm.tasks.collectAsState()
@@ -46,6 +46,13 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) { Text("REALTOR / AI", color = Lime, fontWeight = FontWeight.Bold, letterSpacing = 2.sp); Title("Мой рабочий день") }
                 IconButton(openSettings) { Icon(Icons.Default.Settings, "Настройки") }
+            }
+        }
+        item {
+            AppCard {
+                Text("Центр управления", style = MaterialTheme.typography.titleLarge)
+                Text("Поиск, подбор и рабочие планы из данных CRM", color = Muted)
+                Button(openAgent) { Text("Поручить агенту") }
             }
         }
         if (welcome) item {

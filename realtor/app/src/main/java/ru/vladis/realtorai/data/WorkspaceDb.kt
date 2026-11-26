@@ -48,10 +48,16 @@ object WorkspaceDb {
         }
     }
 
+    private val agentQueue = object : androidx.room.migration.Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS AgentJob (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, goal TEXT NOT NULL, plan TEXT NOT NULL, clientId INTEGER, state TEXT NOT NULL, result TEXT NOT NULL, createdAt INTEGER NOT NULL)")
+        }
+    }
+
     fun get(context: Context): AppDb = instance ?: synchronized(this) {
         val app = context.applicationContext
         instance ?: Room.databaseBuilder(app, AppDb::class.java, "workspace.db")
-            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow)
+            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow, agentQueue)
             .addCallback(LegacyImport(app)).build().also { instance = it }
     }
 }
