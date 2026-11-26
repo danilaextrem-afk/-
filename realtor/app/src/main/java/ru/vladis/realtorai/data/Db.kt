@@ -1,6 +1,8 @@
 package ru.vladis.realtorai.data
 
 import androidx.room.*
+import ru.vladis.realtorai.hunter.*
+import ru.vladis.realtorai.publish.*
 import kotlinx.coroutines.flow.Flow
 
 @Entity data class Property(
@@ -32,7 +34,15 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     val title: String, val kind: String = "task", // task | meeting
     val dueAt: Long, val done: Boolean = false)
 
+@Entity data class RunLog(@PrimaryKey(autoGenerate = true) val id: Long = 0, val at: Long = System.currentTimeMillis(), val summary: String)
+
 @Dao interface AppDao {
+    @Insert suspend fun log(entry: RunLog)
+    @Query("SELECT * FROM RunLog ORDER BY id DESC LIMIT 30") fun recentRuns(): Flow<List<RunLog>>
+    @Query("DELETE FROM TaskItem") suspend fun clearTasks()
+    @Query("DELETE FROM Interaction") suspend fun clearInteractions()
+    @Query("DELETE FROM Property") suspend fun clearProperties()
+    @Query("DELETE FROM Client") suspend fun clearClients()
     @Query("SELECT * FROM Property ORDER BY createdAt DESC") fun properties(): Flow<List<Property>>
     @Query("SELECT * FROM Client ORDER BY createdAt DESC") fun clients(): Flow<List<Client>>
     @Query("SELECT * FROM TaskItem ORDER BY dueAt") fun tasks(): Flow<List<TaskItem>>
@@ -51,5 +61,9 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     @Query("SELECT * FROM TaskItem") suspend fun allTasks(): List<TaskItem>
 }
 
-@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class], version = 1, exportSchema = false)
-abstract class AppDb : RoomDatabase() { abstract fun dao(): AppDao }
+@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class], version = 1, exportSchema = false)
+abstract class AppDb : RoomDatabase() {
+    abstract fun dao(): AppDao
+    abstract fun hunter(): HunterDao
+    abstract fun publications(): PublishDao
+}

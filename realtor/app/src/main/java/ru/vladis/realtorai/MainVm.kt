@@ -19,7 +19,7 @@ data class Backup(val properties: List<Property>, val clients: List<Client>,
 
 class MainVm(app: Application) : AndroidViewModel(app) {
     private val ctx = app.applicationContext
-    private val db = ru.vladis.realtorai.autopilot.CrmDb.get(app)
+    private val db = WorkspaceDb.get(app)
     private val dao = db.dao()
     private val store = Store(app)
     private fun <T> Flow<T>.state(init: T) = stateIn(viewModelScope, SharingStarted.Eagerly, init)
@@ -108,9 +108,18 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     }
     suspend fun importJson(s: String) = withContext(Dispatchers.IO) {
         val b = Gson().fromJson(s, Backup::class.java)
-        db.clearAllTables()
+        val previous = db.withTransaction {
+            val previousTasks = dao.allTasks()
+            dao.clearInteractions()
+            dao.clearTasks()
+            dao.clearClients()
+            dao.clearProperties()
         b.properties.forEach { dao.saveProperty(it) }; b.clients.forEach { dao.saveClient(it) }
         b.interactions.forEach { dao.saveInteraction(it) }
-        b.tasks.forEach { dao.saveTask(it); Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
+            b.tasks.forEach { dao.saveTask(it) }
+            previousTasks
+        }
+        previous.forEach { Reminder.cancel(ctx, it.id) }
+        b.tasks.filterNot { it.done }.forEach { Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
     }
 }

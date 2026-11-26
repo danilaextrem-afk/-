@@ -6,7 +6,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.flow.Flow
 
-/** Единая карточка объекта для публикации. Отдельная БД publish.db — основная БД приложения не затронута. */
+/** Единая карточка объекта для публикации. */
 @Entity data class Listing(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val propertyId: Long? = null,
@@ -44,9 +44,6 @@ data class Publication(
     @Query("SELECT * FROM Publication WHERE listingId=:id") suspend fun pubsOf(id: Long): List<Publication>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun savePub(p: Publication): Long
 }
-
-@Database(entities = [Listing::class, Publication::class], version = 1, exportSchema = false)
-abstract class PublishDb : RoomDatabase() { abstract fun dao(): PublishDao }
 
 /** Токены площадок — только в EncryptedSharedPreferences. */
 class PublishSecrets(ctx: Context) {

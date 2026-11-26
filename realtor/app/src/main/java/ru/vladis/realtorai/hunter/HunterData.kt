@@ -48,13 +48,6 @@ data class Offer(
     @Delete suspend fun deleteSub(s: Subscription)
 }
 
-@Database(entities = [Offer::class, PricePoint::class, SavedFilter::class, Subscription::class], version = 1, exportSchema = false)
-abstract class HunterDatabase : RoomDatabase() { abstract fun dao(): HunterDao }
-
-/** Общий singleton: используют и ViewModel, и фоновый Worker. Основная БД приложения не затронута. */
 object HunterDb {
-    @Volatile private var inst: HunterDatabase? = null
-    fun get(ctx: Context): HunterDao = (inst ?: synchronized(this) {
-        inst ?: Room.databaseBuilder(ctx.applicationContext, HunterDatabase::class.java, "hunter.db").build().also { inst = it }
-    }).dao()
+    fun get(ctx: Context): HunterDao = ru.vladis.realtorai.data.WorkspaceDb.get(ctx).hunter()
 }

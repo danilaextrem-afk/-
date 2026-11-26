@@ -10,7 +10,8 @@ android {
     defaultConfig {
         applicationId = "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
-        versionCode = 5; versionName = "0.5"
+        versionCode = 6; versionName = "0.6"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += "arm64-v8a" }
     }
     buildFeatures { compose = true }
@@ -34,5 +35,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.11.0")
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
     testImplementation("junit:junit:4.13.2")
 }

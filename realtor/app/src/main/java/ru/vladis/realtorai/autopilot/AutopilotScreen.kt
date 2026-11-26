@@ -33,6 +33,7 @@ import java.io.ByteArrayOutputStream
 class AutoVm(app: Application): AndroidViewModel(app) {
     private val ctx = app.applicationContext
     private val hunter = HunterDb.get(ctx)
+    val history = ru.vladis.realtorai.data.WorkspaceDb.get(ctx).dao().recentRuns()
     val sources = hunter.subs()
     var active by mutableStateOf(AutopilotEngine.enabled(ctx)); private set
     var busy by mutableStateOf(false); private set
@@ -88,6 +89,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
     val properties by main.properties.collectAsState()
     val clients by main.clients.collectAsState()
     val tasks by main.tasks.collectAsState()
+    val history by vm.history.collectAsState(initial=emptyList())
     val sources by vm.sources.collectAsState(initial=emptyList())
     var raw by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
@@ -136,6 +138,13 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                 Field(raw,{raw=it},"Текст объявления",single=false)
                 Button(onClick={vm.importText(raw,link)},enabled=!vm.busy && (raw.isNotBlank() || link.isNotBlank()),modifier=Modifier.fillMaxWidth()) { Text("Обработать и добавить") }
                 OutlinedButton(onClick={file.launch("*/*")},enabled=!vm.busy,modifier=Modifier.fillMaxWidth()) { Text("Импорт CSV / JSON") }
+            }
+        }
+        if (history.isNotEmpty()) item { Title("Журнал запусков") }
+        items(history, key = { "run-" + it.id }) { entry ->
+            AppCard {
+                Text(fmtDate(entry.at), color = Lime)
+                Text(entry.summary)
             }
         }
         item { Title("План действий") }

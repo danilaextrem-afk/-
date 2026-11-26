@@ -15,7 +15,7 @@ import java.io.File
 
 class PublishVm(app: Application) : AndroidViewModel(app) {
     private val ctx = app.applicationContext
-    private val dao = Room.databaseBuilder(app, PublishDb::class.java, "publish.db").build().dao()
+    private val dao = ru.vladis.realtorai.data.WorkspaceDb.get(app).publications()
     val secrets = PublishSecrets(app)
     val listings = dao.listings().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val pubs = dao.publications().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

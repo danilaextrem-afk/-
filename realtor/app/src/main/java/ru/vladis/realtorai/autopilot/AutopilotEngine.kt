@@ -10,13 +10,6 @@ import ru.vladis.realtorai.hunter.*
 import java.net.URI
 import java.util.Locale
 
-object CrmDb {
-    @Volatile private var instance: AppDb? = null
-    fun get(ctx: Context): AppDb = instance ?: synchronized(this) {
-        instance ?: Room.databaseBuilder(ctx.applicationContext, AppDb::class.java, "realtor.db").build().also { instance = it }
-    }
-}
-
 object AutoRules {
     fun urlKey(value: String): String? = runCatching {
         val uri = URI(value.trim())
@@ -62,7 +55,7 @@ object AutopilotEngine {
         val hunter = HunterDb.get(ctx)
         val offers = hunter.allOffers()
         val sources = hunter.allSubs().size
-        val db = CrmDb.get(ctx)
+        val db = WorkspaceDb.get(ctx)
         val result = db.withTransaction {
             val dao = db.dao()
             val existing = dao.allProperties().toMutableList()
@@ -81,7 +74,7 @@ object AutopilotEngine {
                 val id = dao.saveProperty(p)
                 existing += p.copy(id = id); added++
             }
-            Report(added,duplicates,skipped,prices,sources,errors)
+            Report(added,duplicates,skipped,prices,sources,errors).also { dao.log(RunLog(summary = it.summary())) }
         }
         prefs(ctx).edit().putString("report",result.summary()).putLong("lastRun",System.currentTimeMillis()).apply()
         result
