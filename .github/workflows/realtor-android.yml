@@ -1,0 +1,43 @@
+name: Realtor AI APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - realtor-build.b64
+      - .github/workflows/realtor-android.yml
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore exact Android source
+        run: |
+          base64 --decode realtor-build.b64 > /tmp/realtor-build.tgz
+          echo '3c01036d6c96aa4399d2bd28f4994cfbc6368a00236dfcadabd630be914b2e1d  /tmp/realtor-build.tgz' | sha256sum -c -
+          mkdir -p realtor
+          tar -xzf /tmp/realtor-build.tgz -C realtor
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build APK
+        working-directory: realtor
+        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:assembleDebug
+      - name: Verify APK
+        run: |
+          mkdir dist
+          cp realtor/app/build/outputs/apk/debug/app-debug.apk dist/RealtorAI-0.4-debug.apk
+          (cd dist && sha256sum RealtorAI-0.4-debug.apk > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RealtorAI-Android-debug
+          path: dist/
+          if-no-files-found: error
