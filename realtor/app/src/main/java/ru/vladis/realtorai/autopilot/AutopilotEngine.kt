@@ -60,7 +60,7 @@ object AutopilotEngine {
     suspend fun sync(ctx: Context, errors: List<String> = emptyList()): Report = mutex.withLock {
         val hunter = HunterDb.get(ctx)
         val offers = hunter.allOffers()
-        val sources = hunter.allSubs().size + ru.vladis.realtorai.automation.IntegrationRegistry.listingSources.size
+        val sources = hunter.allSubs().size + ru.vladis.realtorai.automation.IntegrationRegistry.enabled(ctx).size
         val db = WorkspaceDb.get(ctx)
         val result = db.withTransaction {
             val dao = db.dao()
@@ -68,6 +68,7 @@ object AutopilotEngine {
             val owners = dao.allClients().filter { it.role == "owner" }.associateBy {
                 ru.vladis.realtorai.local.OfflineLogic.phoneKey(it.phone)
             }.toMutableMap()
+            val actions = mutableListOf<String>()
             var added = 0; var duplicates = 0; var skipped = 0; var prices = 0
             for (o in offers.sortedByDescending { it.lastSeen }) {
                 val link = AutoRules.urlKey(o.url)
@@ -89,6 +90,8 @@ object AutopilotEngine {
                     if ((same.ownerId == null && owner != null) || (tracksSource && same.price != o.price)) {
                         val linked = same.copy(ownerId = same.ownerId ?: owner?.id, price = if (tracksSource) o.price else same.price)
                         dao.saveProperty(linked)
+                        if (same.price != linked.price && actions.size < 6)
+                            actions += "${same.title.take(45)}: ${same.price} → ${linked.price} ₽"
                         existing[existing.indexOf(same)] = linked
                     }
                     continue
@@ -104,10 +107,11 @@ object AutopilotEngine {
                         market = p.type, title = p.title.take(50))
                     db.publications().saveListing(listing.copy(description = ru.vladis.realtorai.publish.SmartAi.factsText(listing).trim()))
                 }
+                if (actions.size < 6) actions += "Добавлен объект #$id · ${p.title.take(60)}"
                 existing += p.copy(id = id); added++
             }
             val planned = if (enabled(ctx)) planContacts(dao) else 0
-            Report(added,duplicates,skipped,prices,sources,errors,planned).also { dao.log(RunLog(summary = it.summary())) }
+            Report(added,duplicates,skipped,prices,sources,errors,planned).also { dao.log(RunLog(summary = (listOf(it.summary()) + actions).joinToString("\n"))) }
         }
         prefs(ctx).edit().putString("report",result.summary()).putLong("lastRun",System.currentTimeMillis()).apply()
         result

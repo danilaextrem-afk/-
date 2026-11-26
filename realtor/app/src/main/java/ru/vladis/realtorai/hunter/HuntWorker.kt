@@ -18,11 +18,11 @@ object HuntRun {
     private val http = OkHttpClient.Builder().callTimeout(60, TimeUnit.SECONDS).build()
     data class Summary(val newIds: List<Long>, val dropIds: List<Long>, val errors: List<String>)
 
-    suspend fun searchCatalog(dao: HunterDao, query: String): Summary {
+    suspend fun searchCatalog(ctx: Context, dao: HunterDao, query: String): Summary {
         val added = mutableListOf<Long>()
         val drops = mutableListOf<Long>()
         val errors = mutableListOf<String>()
-        for (source in ru.vladis.realtorai.automation.IntegrationRegistry.listingSources) {
+        for (source in ru.vladis.realtorai.automation.IntegrationRegistry.enabled(ctx)) {
             try {
                 val result = HunterImport.ingest(dao, source.search(query))
                 added += result.newIds
@@ -38,7 +38,7 @@ object HuntRun {
 
     suspend fun refreshAll(ctx: Context): Summary {
         val dao = HunterDb.get(ctx)
-        val catalog = searchCatalog(dao, ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty())
+        val catalog = searchCatalog(ctx, dao, ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty())
         val newIds = catalog.newIds.toMutableList()
         val drops = catalog.dropIds.toMutableList()
         val errs = catalog.errors.toMutableList()

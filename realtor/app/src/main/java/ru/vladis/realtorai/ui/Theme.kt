@@ -44,7 +44,7 @@ val Muted = Color(0xFFADC0B9)
     Card(modifier.fillMaxWidth().animateContentSize(), shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, Color(0xFF374957)),
         colors = CardDefaults.cardColors(containerColor = Surface1)) {
-        Column(Modifier.then(if (onClick != null) Modifier.clickable { onClick() } else Modifier).padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp), content = content)
+        Column(Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable { onClick() } else Modifier).padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp), content = content)
     }
 
 @Composable fun Title(t: String) = Text(t, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)

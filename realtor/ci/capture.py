@@ -50,3 +50,27 @@ def tap(label):
 tap("Главная")
 tap("Настроить поиск")
 capture("autopilot", "Автопилот")
+
+# Exercise the same public search entry point as a user and capture actual results.
+def current_tree():
+    for _ in range(4):
+        try:
+            adb("shell", "uiautomator", "dump", "/sdcard/view.xml")
+            return ET.fromstring(adb("shell", "cat", "/sdcard/view.xml"))
+        except (subprocess.CalledProcessError, ET.ParseError):
+            time.sleep(1)
+    raise RuntimeError("Эмулятор не вернул дерево экрана")
+
+for _ in range(5):
+    if any(n.get("text") == "Запустить сейчас" for n in current_tree().iter("node")):
+        break
+    adb("shell", "input", "swipe", "500", "1700", "500", "880", "400")
+    time.sleep(.5)
+tap("Запустить сейчас")
+time.sleep(3)
+tap("Объекты")
+for _ in range(15):
+    if any("Ваш доход:" in n.get("text", "") for n in current_tree().iter("node")):
+        capture("auction-properties", "Недвижимость")
+        break
+    time.sleep(1)

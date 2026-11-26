@@ -55,7 +55,7 @@ class HunterVm(app: Application) : AndroidViewModel(app) {
             "Новых: ${s.newIds.size}, снижений цены: ${s.dropIds.size}, подходящих под фильтры: $n" + (if (s.errors.isNotEmpty()) ". Ошибки: ${s.errors.joinToString()}" else "")
     }
     fun searchSources(query: String) = work {
-        val result = HuntRun.searchCatalog(dao, query)
+        val result = HuntRun.searchCatalog(ctx, dao, query)
         ru.vladis.realtorai.autopilot.AutopilotEngine.syncIfEnabled(ctx)
         log = (listOf("Добавлено: ${result.newIds.size} · снижений цены: ${result.dropIds.size}") + result.errors).joinToString("\n")
     }

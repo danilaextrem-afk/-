@@ -35,6 +35,12 @@ class AutoVm(app: Application): AndroidViewModel(app) {
     private val hunter = HunterDb.get(ctx)
     val history = ru.vladis.realtorai.data.WorkspaceDb.get(ctx).dao().recentRuns()
     private val prefs = ctx.getSharedPreferences("autopilot", 0)
+    val catalogs = ru.vladis.realtorai.automation.IntegrationRegistry.listingSources.map { it.name }
+    val enabledCatalogs = mutableStateListOf<String>().apply { addAll(catalogs.filter { prefs.getBoolean(it, true) }) }
+    fun toggleCatalog(name: String, enabled: Boolean) {
+        prefs.edit().putBoolean(name, enabled).apply()
+        if (enabled) enabledCatalogs.add(name) else enabledCatalogs.remove(name)
+    }
     var catalogQuery by mutableStateOf(prefs.getString("catalogQuery", "").orEmpty()); private set
     fun setQuery(value: String) {
         catalogQuery = value.take(100)
@@ -122,11 +128,17 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                 Row(verticalAlignment=Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(if(vm.active) "Автопилот включён" else "Автопилот выключен",fontWeight=FontWeight.Bold,color=Color.White,style=MaterialTheme.typography.titleLarge)
-                        Text("Источники: ${sources.size + 2} · без API-ключей",color=Color(0xFFBBDAD2))
+                        Text("Источники: ${sources.size + vm.enabledCatalogs.size} · без API-ключей",color=Color(0xFFBBDAD2))
                     }
                     Switch(checked=vm.active,onCheckedChange={vm.toggle(it)})
                 }
                 Text("Поиск квартир на банкротных торгах и в банковском залоге через Торги.Открыто. Обновление каждые 6 часов при доступной сети.",color=Color.White)
+                vm.catalogs.forEach { name ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(name in vm.enabledCatalogs, { vm.toggleCatalog(name, it) })
+                        Text(name.substringAfter(" · "))
+                    }
+                }
                 Field(vm.catalogQuery, vm::setQuery, "Город или улица для поиска")
                 Button(onClick={vm.runNow()},enabled=!vm.busy,modifier=Modifier.fillMaxWidth()) { Text(if(vm.busy) "Обработка…" else "Запустить сейчас") }
             }
@@ -184,6 +196,6 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                 TextButton(openCrm) { Text("Открыть CRM") }
             }
         }
-        item { Text("Автопилот не отправляет сообщения и не публикует объявления без вашего участия. Изменения цены не перезаписывают карточки CRM автоматически.",color=Muted,style=MaterialTheme.typography.bodySmall) }
+        item { Text("Автопилот не отправляет сообщения и не публикует объявления без вашего участия. Цена связанного объекта обновляется из его источника. История доступна в разделе поиска.",color=Muted,style=MaterialTheme.typography.bodySmall) }
     }
 }
