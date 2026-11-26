@@ -164,29 +164,16 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
                         val due = OwnerRules.reportDue(value.lastReportAt ?: it, value.reportsPerWeek, java.time.ZoneId.systemDefault())
                         Text("Следующий отчёт " + fmtDate(due), color = Muted)
                     }
-                    val facts = buildString {
-                        appendLine("Объект: ${property.title} · ${property.price.rub()}")
-                        appendLine("Реклама: " + value.advertising.ifBlank { "нет подтверждения" })
-                        appendLine("Материалы: " + value.packaging.ifBlank { "нет подтверждения" })
-                        if (value.tour.isNotBlank()) appendLine("3D-тур: " + value.tour)
-                        listOf("Звонки" to value.calls, "Обращения" to value.leads, "Показы" to value.views,
-                            "Просмотры рекламы" to value.impressions, "Входящие у собственника" to value.ownerCalls).forEach {
-                            appendLine(it.first + ": " + OwnerRules.metric(it.second))
-                        }
-                        if (value.ownerCalls == null) appendLine("Подскажите, были ли у вас входящие звонки по объекту?")
-                        if (prices.isEmpty()) appendLine("Сопоставимых объявлений: ${comparable.size}. Данных для расчёта недостаточно.")
-                        else {
-                            appendLine("Средняя цена м²: " + comparable.map { it.price / it.area }.average().rub())
-                            comparable.forEach { appendLine(it.address + " · " + it.price.rub() + " · " + fmtDate(it.lastSeen) + "\n" + it.url) }
-                            listOf("Около месяца", "2–6 месяцев", "От полугода").zip(prices).forEach { appendLine(it.first + ": " + it.second.rub()) }
-                            appendLine("Фактический срок зависит от спроса.")
-                        }
-                    }
-                    OutlinedButton({ draft = facts }, enabled = !busy) { Text("Подготовить отчёт") }
+                    OutlinedButton({ action {
+                        val result = ru.vladis.realtorai.hunter.HuntRun.refreshAll(ctx, includeCatalog = false)
+                        draft = service.draftReport(id)
+                        if (result.errors.isNotEmpty()) error = result.errors.joinToString()
+                    } }, enabled = !busy) { Text("Обновить конкурентов и отчёт") }
+                    OutlinedButton({ action { draft = service.draftReport(id) } }, enabled = !busy) { Text("Подготовить отчёт") }
                     if (DeviceModel.installed(ctx)) OutlinedButton({ action {
                         val intro = DeviceModel.answer(ctx, "Напиши краткое вступление к отчёту по продаже объекта. Используй только переданные сведения. Без обещаний, сделок и цифр.",
                             listOf("user" to ("Реклама: " + value.advertising.take(200) + "\nМатериалы: " + value.packaging.take(200))))
-                        draft = (intro + "\n\n" + facts).take(12000)
+                        draft = (intro + "\n\n" + service.draftReport(id)).take(12000)
                     } }, enabled = !busy) { Text("Подготовить с локальной моделью") }
                     if (draft.isNotBlank()) {
                         Field(draft, { draft = it.take(12000) }, "Черновик отчёта", single = false)

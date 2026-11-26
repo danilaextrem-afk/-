@@ -5,6 +5,8 @@ import androidx.room.withTransaction
 import androidx.work.*
 import ru.vladis.realtorai.Reminder
 import ru.vladis.realtorai.data.*
+import ru.vladis.realtorai.ui.rub
+import ru.vladis.realtorai.ui.fmtDate
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
@@ -50,6 +52,31 @@ class OwnerService(private val context: Context) {
         syncTasks()
     }
 
+    suspend fun draftReport(id: Long): String {
+        val property = requireNotNull(db.dao().property(id)) { "Объект отсутствует в CRM" }
+        val case = requireNotNull(dao.get(id)) { "Сопровождение объекта ещё не начато" }
+        val analogs = OwnerRules.comparisons(property, db.hunter().allOffers(), case.location, System.currentTimeMillis())
+        val prices = OwnerRules.estimate(property.area, analogs, PriceStrategy(case.fast, case.normal, case.patient))
+        return buildString {
+            appendLine("Объект: ${property.title} · ${property.price.rub()}")
+            appendLine("Реклама: " + case.advertising.ifBlank { "нет подтверждения" })
+            appendLine("Материалы: " + case.packaging.ifBlank { "нет подтверждения" })
+            if (case.tour.isNotBlank()) appendLine("3D-тур: " + case.tour)
+            listOf("Звонки" to case.calls, "Обращения" to case.leads, "Показы" to case.views,
+                "Просмотры рекламы" to case.impressions, "Входящие у собственника" to case.ownerCalls).forEach {
+                appendLine(it.first + ": " + OwnerRules.metric(it.second))
+            }
+            if (case.ownerCalls == null) appendLine("Подскажите, были ли у вас входящие звонки по объекту?")
+            if (prices.isEmpty()) appendLine("Сопоставимых объявлений: ${analogs.size}. Данных для расчёта недостаточно.")
+            else {
+                appendLine("Средняя цена м²: " + analogs.map { it.price / it.area }.average().rub())
+                analogs.forEach { appendLine(it.address + " · " + it.price.rub() + " · " + fmtDate(it.lastSeen) + "\n" + it.url) }
+                listOf("Около месяца", "2–6 месяцев", "От полугода").zip(prices).forEach { appendLine(it.first + ": " + it.second.rub()) }
+                appendLine("Фактический срок зависит от спроса.")
+            }
+        }
+    }
+
     suspend fun recordReport(id: Long, text: String) {
         require(text.isNotBlank() && text.length <= 12000)
         db.withTransaction {
@@ -69,6 +96,13 @@ class OwnerService(private val context: Context) {
         check(p.price == expected) { "Цена изменилась. Откройте подтверждение заново." }
         if (price != expected) {
             db.dao().saveProperty(p.copy(price = price))
+            val publish = db.publications()
+            publish.listingForProperty(id)?.takeUnless { it.status == "sold" }?.let { listing ->
+                publish.saveListing(listing.copy(price = price, updatedAt = System.currentTimeMillis()))
+                publish.pubsOf(listing.id).filter { it.status in setOf("published", "exported") }.forEach {
+                    publish.savePub(it.copy(status = "outdated", message = "В CRM согласована новая цена. Обновите площадку или фид."))
+                }
+            }
             dao.event(OwnerEvent(propertyId = id, at = System.currentTimeMillis(), kind = "price", text = "${p.price} ₽ → $price ₽. Изменено в CRM."))
         }
     }

@@ -107,7 +107,7 @@ def agent():
     open_home_tool("Поручить агенту")
     capture("agent", "Поручения агенту")
     tap("Составь план на неделю")
-    tap("Запустить план")
+    tap("Дать поручение")
     find("Журнал поручений", scroll=True)
 
 def settings():

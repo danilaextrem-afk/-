@@ -36,6 +36,7 @@ data class Publication(
 
 @Dao interface PublishDao {
     @Query("SELECT * FROM Listing ORDER BY updatedAt DESC") fun listings(): Flow<List<Listing>>
+    @Query("SELECT * FROM Listing WHERE propertyId=:id ORDER BY id LIMIT 1") suspend fun listingForProperty(id: Long): Listing?
     @Query("SELECT * FROM Listing WHERE id=:id") suspend fun listing(id: Long): Listing?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun saveListing(l: Listing): Long
     @Delete suspend fun deleteListing(l: Listing)

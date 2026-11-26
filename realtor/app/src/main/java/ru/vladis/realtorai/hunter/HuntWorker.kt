@@ -36,9 +36,10 @@ object HuntRun {
         return Summary(added, drops, errors)
     }
 
-    suspend fun refreshAll(ctx: Context): Summary {
+    suspend fun refreshAll(ctx: Context, includeCatalog: Boolean = true): Summary {
         val dao = HunterDb.get(ctx)
-        val catalog = searchCatalog(ctx, dao, ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty())
+        val catalog = if (includeCatalog) searchCatalog(ctx, dao, ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty())
+            else Summary(emptyList(), emptyList(), emptyList())
         val newIds = catalog.newIds.toMutableList()
         val drops = catalog.dropIds.toMutableList()
         val errs = catalog.errors.toMutableList()
@@ -51,7 +52,7 @@ object HuntRun {
                 val rows = if (s.format == "json") HunterImport.fromJson(text, "feed:${s.name}") else HunterImport.fromCsv(text, "feed:${s.name}")
                 HunterImport.ingest(dao, rows)
             }.onSuccess { r -> newIds += r.newIds; drops += r.dropIds; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "OK: " + r.describe())) }
-             .onFailure { e -> errs += "${s.name}: ${e.message}"; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "Ошибка: ${e.message}")) }
+             .onFailure { e -> if (e is kotlinx.coroutines.CancellationException) throw e; errs += "${s.name}: ${e.message}"; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "Ошибка: ${e.message}")) }
         }
         return Summary(newIds, drops, errs)
     }
