@@ -8,6 +8,7 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.*
+import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -58,7 +59,12 @@ object HuntRun {
                     "yrl" -> RealtyFeed.parse(text, source)
                     else -> HunterImport.fromCsv(text, source)
                 }
-                HunterImport.ingest(dao, rows)
+                if (s.format == "yrl") ru.vladis.realtorai.data.WorkspaceDb.get(ctx).withTransaction {
+                    val now = System.currentTimeMillis()
+                    val result = HunterImport.ingest(dao, rows, now)
+                    if (rows.isNotEmpty()) dao.deactivateOlder(source, now)
+                    result
+                } else HunterImport.ingest(dao, rows)
             }.onSuccess { r -> newIds += r.newIds; drops += r.dropIds; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "OK: " + r.describe())) }
              .onFailure { e -> if (e is kotlinx.coroutines.CancellationException) throw e; errs += "${s.name}: ${e.message}"; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "Ошибка: ${e.message}")) }
         }

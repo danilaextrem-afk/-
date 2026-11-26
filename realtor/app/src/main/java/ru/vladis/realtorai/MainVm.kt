@@ -139,7 +139,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                     val start = android.os.SystemClock.elapsedRealtime()
                     val line = try {
                         val output = DeviceModel.answer(ctx, "Отвечай строго в запрошенном формате.", listOf("user" to
-                            """В квартире кухня 10 м² и комната 18 м². Найди в CRM объекты до 7 миллионов. Верни только JSON {"tool":"FIND","args":{"budget":7000000},"room":"кухня"}"""), spec)
+                            """Нужно найти объекты не дороже семи миллионов рублей. Для поиска используй FIND. Назови по-русски помещение для приготовления еды. Верни только JSON с ключами tool, args (объект с числовым budget) и room."""), spec)
                         val ms = android.os.SystemClock.elapsedRealtime() - start
                         val json = runCatching { com.google.gson.JsonParser.parseString(
                             output.substringAfterLast("</think>").trim().removePrefix("```json").removeSuffix("```").trim()).asJsonObject }.getOrNull()

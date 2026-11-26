@@ -200,7 +200,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     }
 
     private suspend fun decide(job: AgentJob, progress: AgentProgress, prior: String): AgentDecision {
-        val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market}; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Если данных критически не хватает, ask."""
+        val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market}: market primary или secondary; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Если данных критически не хватает, ask."""
         val brief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Клиент ID: ${job.clientId ?: "нет"}. Память: $prior. Результаты: ${progress.steps.map { it.take(310) }.joinToString().takeLast(510)}"
         val messages = listOf("user" to brief)
         val first = DeviceModel.answer(applicationContext, system, messages)

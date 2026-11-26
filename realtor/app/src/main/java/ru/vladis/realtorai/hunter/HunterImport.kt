@@ -89,12 +89,13 @@ object HunterImport {
             o.url.takeIf { it.isNotBlank() }?.let { "${o.source}|u|$it" }, o.fingerprint.takeIf { it.length > 6 }?.let { "${o.source}|f|$it" })
         existing.forEach { o -> keys(o).forEach { known[it] = o } }
         val ins = mutableListOf<Offer>(); val upd = mutableListOf<Pair<Offer, Boolean>>(); var skipped = 0
+        val updatedIds = mutableSetOf<Long>()
         for (r in rows) {
-            if (r.price <= 0 || r.area <= 0) { skipped++; continue }
+            if (r.price <= 0 || !r.area.isFinite() || r.area <= 0) { skipped++; continue }
             val old = keys(r).firstNotNullOfOrNull { known[it] }
             if (old == null) { val n = r.copy(firstSeen = now, lastSeen = now); ins += n; keys(n).forEach { known[it] = n } }
-            else if (old.id == 0L) skipped++ // повтор внутри того же файла
-            else upd += old.copy(housingKind = r.housingKind ?: old.housingKind, ownerName = r.ownerName, ownerPhone = r.ownerPhone, price = r.price, lastSeen = now, active = true, title = r.title.ifBlank { old.title },
+            else if (old.id == 0L || !updatedIds.add(old.id)) skipped++ // повтор внутри того же файла
+            else upd += old.copy(housingKind = r.housingKind ?: old.housingKind, ownerName = r.ownerName, ownerPhone = r.ownerPhone, price = r.price, area = r.area, market = r.market, rooms = r.rooms.takeIf { it > 0 } ?: old.rooms, floor = r.floor.takeIf { it > 0 } ?: old.floor, lastSeen = now, active = true, title = r.title.ifBlank { old.title },
                 address = r.address.ifBlank { old.address }, district = r.district.ifBlank { old.district }, url = r.url.ifBlank { old.url },
                 lat = r.lat ?: old.lat, lon = r.lon ?: old.lon, floorsTotal = if (r.floorsTotal > 0) r.floorsTotal else old.floorsTotal) to (old.price != r.price)
         }

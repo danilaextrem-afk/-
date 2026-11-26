@@ -36,6 +36,9 @@ data class Offer(
     suspend fun importBatch(rows: List<Offer>, now: Long): HunterImport.Result =
         HunterImport.applyBatch(this, rows, now)
 
+    @Query("UPDATE Offer SET active=0 WHERE source=:source AND active=1 AND lastSeen<:before")
+    suspend fun deactivateOlder(source: String, before: Long): Int
+
     @Query("SELECT * FROM Offer") fun offers(): Flow<List<Offer>>
     @Query("SELECT * FROM Offer") suspend fun allOffers(): List<Offer>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun saveOffer(o: Offer): Long
