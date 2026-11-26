@@ -18,11 +18,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextStyle
 import java.util.Locale
 
-val Graphite = Color(0xFF10151D)
-val Surface1 = Color(0xFF1A2430)
-val Surface2 = Color(0xFF263343)
-val Lime = Color(0xFFB1EACB)
-val Muted = Color(0xFFB0BECC)
+val Graphite = Color(0xFF0E1514)
+val Surface1 = Color(0xFF182220)
+val Surface2 = Color(0xFF23332F)
+val Lime = Color(0xFF61DFAC)
+val Muted = Color(0xFFADC0B9)
 
 @Composable fun RealtorTheme(content: @Composable () -> Unit) = MaterialTheme(
     colorScheme = darkColorScheme(primary = Lime, onPrimary = Color(0xFF10291F), background = Graphite,
@@ -42,7 +42,7 @@ val Muted = Color(0xFFB0BECC)
 
 @Composable fun AppCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) =
     Card(modifier.fillMaxWidth().animateContentSize(), shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, Color(0xFF344252)),
+        border = BorderStroke(1.dp, Color(0xFF30443C)),
         colors = CardDefaults.cardColors(containerColor = Surface1)) {
         Column(Modifier.then(if (onClick != null) Modifier.clickable { onClick() } else Modifier).padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp), content = content)
     }

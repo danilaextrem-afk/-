@@ -36,6 +36,10 @@ import ru.vladis.realtorai.data.Property
             Title("ИИ-ассистент"); Spacer(Modifier.weight(1f))
             TextButton({ vm.clearChat() }) { Text("Очистить") }
         }
+        if (vm.deviceReady) Text("Qwen 2.5 · на устройстве", color = Lime)
+        else OutlinedButton(onClick = vm::installModel, enabled = vm.modelProgress == null) {
+            Text(vm.modelProgress?.let { "Загрузка Qwen · $it%" } ?: "Скачать локальный ИИ · 547 МБ")
+        }
         Chips(Prompts.modes.map { it.first }, mode) { mode = it }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box {
@@ -55,7 +59,7 @@ import ru.vladis.realtorai.data.Property
         }
         LazyColumn(Modifier.weight(1f).padding(vertical = 8.dp), state = state, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (vm.chat.isEmpty()) item { Text(
-                if (vm.hasKey) "Выберите режим, при необходимости прикрепите объект/клиента и опишите задачу." else "Локальный режим: шаблоны, подбор по базе и проверочные списки. Не языковая модель.", color = Muted) }
+                if (vm.hasKey || vm.deviceReady) "Выберите режим, при необходимости прикрепите объект/клиента и опишите задачу." else "Локальный режим: шаблоны, подбор по базе и проверочные списки. Не языковая модель.", color = Muted) }
             items(vm.chat.size) { i ->
                 val (role, msg) = vm.chat[i]
                 val mine = role == "user"
@@ -68,6 +72,7 @@ import ru.vladis.realtorai.data.Property
             if (vm.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
             vm.error?.let { e -> item { Text(e, color = MaterialTheme.colorScheme.error) } }
         }
+        VoiceInput({ words -> text = listOf(text, words).filter { it.isNotBlank() }.joinToString(" ") }, { vm.error = it })
         Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Field(text, { text = it }, "Сообщение", Modifier.weight(1f), single = false)
             IconButton(enabled = text.isNotBlank() && !vm.busy, onClick = { vm.ask(mode, text.trim(), pSel, cSel); text = "" }) {

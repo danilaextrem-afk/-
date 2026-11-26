@@ -78,10 +78,27 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null)
 
+    var deviceReady by mutableStateOf(DeviceModel.installed(ctx)); private set
+    var modelProgress by mutableStateOf<Int?>(null); private set
+    fun installModel() {
+        if (modelProgress != null || deviceReady) return
+        modelProgress = 0
+        error = null
+        viewModelScope.launch {
+            try {
+                DeviceModel.download(ctx) { withContext(Dispatchers.Main) { modelProgress = it } }
+                deviceReady = true
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                error = e.localizedMessage
+            } finally { modelProgress = null }
+        }
+    }
+
     fun clearChat() { chat.clear(); error = null }
 
     fun ask(mode: String, text: String, p: Property?, c: Client?) {
-        if (!hasKey) {
+        if (!hasKey && !deviceReady) {
             chat.add("user" to text)
             chat.add("assistant" to ru.vladis.realtorai.local.OfflineAssistant.answer(mode, text, p, c, properties.value))
             error = null; return
@@ -95,7 +112,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         val hist = chat.toList() + ("user" to content)
         chat.add("user" to text); error = null; busy = true
         viewModelScope.launch {
-            runCatching { Groq.chat(store.apiKey, model, system, hist) }
+            runCatching { if (deviceReady) DeviceModel.answer(ctx, system, hist) else Groq.chat(store.apiKey, model, system, hist) }
                 .onSuccess { chat.add("assistant" to it) }
                 .onFailure { error = it.message }
             busy = false

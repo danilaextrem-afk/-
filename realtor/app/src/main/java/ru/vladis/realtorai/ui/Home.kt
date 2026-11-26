@@ -46,9 +46,9 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
         }
         item {
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(Color(0xFF204D45),Color(0xFF26364C)))).padding(20.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
-                Text("АВТОПИЛОТ / 01",color=Lime,style=MaterialTheme.typography.labelMedium)
-                Text("Меньше рутины. Больше сделок.",color=Color.White,style=MaterialTheme.typography.headlineSmall)
-                Text("Импорт объектов, поиск дублей и подбор по бюджету в одном центре.",color=Color(0xFFD1E1DF))
+                Text("АВТОПИЛОТ",color=Lime,style=MaterialTheme.typography.labelMedium)
+                Text("Импорт и подбор",color=Color.White,style=MaterialTheme.typography.headlineSmall)
+                Text("Проверить фиды, добавить новые объекты в CRM и найти совпадения по бюджету.",color=Color(0xFFD1E1DF))
                 Button(onClick=openAutopilot,modifier=Modifier.fillMaxWidth()) { Text("Открыть автопилот"); Spacer(Modifier.width(8.dp)); Icon(Icons.Default.ArrowForward,null,Modifier.size(18.dp)) }
             }
         }
@@ -64,12 +64,12 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
         item { Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { Stat("Задачи", open.size.toString(), Modifier.weight(1f)); Stat("Встречи", meetings.toString(), Modifier.weight(1f)) } }
         item { Title("Инструменты") }
         item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ModuleTile("01 / PUBLISH", "Публикации", "Карточки и экспорт", Modifier.weight(1f), openPublish)
-            ModuleTile("02 / HUNTER", "Поиск сделок", "Объекты и цены", Modifier.weight(1f), openHunter)
+            ModuleTile("Публикации", "Карточки и экспорт", Modifier.weight(1f), openPublish)
+            ModuleTile("Поиск сделок", "Объекты и цены", Modifier.weight(1f), openHunter)
         } }
         item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ModuleTile("03 / SALES", "Продажи", "Переговоры и расчёты", Modifier.weight(1f), openSales)
-            ModuleTile("04 / LEADS", "Лид-центр", "Воронка и контакты", Modifier.weight(1f), openLeads)
+            ModuleTile("Продажи", "Переговоры и расчёты", Modifier.weight(1f), openSales)
+            ModuleTile("Лид-центр", "Воронка и контакты", Modifier.weight(1f), openLeads)
         } }
         item { Text("Ближайшие задачи", style = MaterialTheme.typography.titleLarge) }
         if (open.isEmpty()) item { AppCard { Text("Нет запланированных задач", color = Muted) } }
@@ -77,8 +77,7 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
     }
 }
 
-@Composable private fun ModuleTile(code: String, title: String, subtitle: String, modifier: Modifier, onClick: () -> Unit) = AppCard(modifier, onClick) {
-    Text(code, color = Lime, style = MaterialTheme.typography.labelSmall)
-    Spacer(Modifier.height(12.dp)); Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+@Composable private fun ModuleTile(title: String, subtitle: String, modifier: Modifier, onClick: () -> Unit) = AppCard(modifier, onClick) {
+    Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(4.dp)); Text(subtitle, color = Muted, style = MaterialTheme.typography.bodySmall)
 }
