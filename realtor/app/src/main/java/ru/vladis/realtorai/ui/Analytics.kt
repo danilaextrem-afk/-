@@ -26,7 +26,17 @@ import ru.vladis.realtorai.data.pricePerSqm
     var agency by remember { mutableStateOf(vm.agencyPct.toString()) }
     var share by remember { mutableStateOf(vm.sharePct.toString()) }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("Аналитика") } }
+        item {
+            IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }
+            ScreenHeading("Аналитика", "Комиссия и сравнение недвижимости")
+            Spacer(Modifier.height(10.dp))
+            Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large) {
+                Column(Modifier.fillMaxWidth().padding(18.dp)) {
+                    Text("Потенциальная комиссия · активные объекты", style = MaterialTheme.typography.labelMedium)
+                    Text(props.filter { it.status == "active" }.sumOf(vm::earning).rub(), style = MaterialTheme.typography.displaySmall)
+                }
+            }
+        }
         item {
             AppCard {
                 Text("Калькулятор комиссии", fontWeight = FontWeight.SemiBold)
@@ -56,10 +66,14 @@ import ru.vladis.realtorai.data.pricePerSqm
                     }
                     Spacer(Modifier.height(8.dp))
                     val max = ranked.last().pricePerSqm().toFloat().coerceAtLeast(1f)
+                    var focus by remember { mutableStateOf<Long?>(null) }
                     ranked.take(10).forEach { p ->
                         val frac by animateFloatAsState((p.pricePerSqm() / max).coerceIn(0.05f, 1f), label = "bar")
-                        Text("${p.title.take(28)} — ${p.pricePerSqm().rub()}", style = MaterialTheme.typography.bodySmall)
+                        TextButton({ focus = if (focus == p.id) null else p.id }, contentPadding = PaddingValues(0.dp)) {
+                            Text("${p.title.take(28)} · ${p.pricePerSqm().rub()}/м²", style = MaterialTheme.typography.bodySmall)
+                        }
                         Box(Modifier.padding(bottom = 6.dp).height(8.dp).fillMaxWidth(frac).background(Lime, RoundedCornerShape(4.dp)))
+                        if (focus == p.id) Text("${p.address.ifBlank { "Адрес уточняется" }} · ${p.area} м² · ${p.price.rub()}", color = Muted)
                     }
                 }
             }

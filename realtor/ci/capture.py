@@ -1,4 +1,4 @@
-"""Capture actual Compose destinations on a running Android emulator."""
+"""Capture Realtor AI routes from the Android emulator via their accessible names."""
 import re
 import subprocess
 import time
@@ -8,95 +8,127 @@ from pathlib import Path
 def adb(*args):
     return subprocess.check_output(["adb", *args])
 
-def find(label):
-    for _ in range(12):
+def press(x, y):
+    adb("shell", "input", "tap", str(x), str(y))
+
+def point(node):
+    x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
+    return (x1+x2)//2, (y1+y2)//2
+
+def dump():
+    adb("shell", "rm", "-f", "/sdcard/view.xml")
+    adb("shell", "uiautomator", "dump", "/sdcard/view.xml")
+    return list(ET.fromstring(adb("shell", "cat", "/sdcard/view.xml")).iter("node"))
+
+def find(label, attempts=7, scroll=False):
+    for i in range(attempts):
         try:
-            adb("shell", "rm", "-f", "/sdcard/view.xml")
-            adb("shell", "uiautomator", "dump", "/sdcard/view.xml")
-            root = ET.fromstring(adb("shell", "cat", "/sdcard/view.xml"))
+            nodes = dump()
         except (subprocess.CalledProcessError, ET.ParseError):
             time.sleep(1)
             continue
-        nodes = list(root.iter("node"))
-        # The emulator launcher can become unresponsive during the first cold boot.
-        # Close only that system dialog and leave Realtor AI crash dialogs visible.
-        if any("Pixel Launcher isn't responding" in node.get("text", "") for node in nodes):
-            for node in nodes:
-                if node.get("resource-id", "").endswith(":id/aerr_close") or node.get("text") == "Close app":
-                    x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
-                    adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
-                    break
-            time.sleep(1)
-            continue
-        for node in nodes:
-            if node.get("resource-id", "").endswith(":id/permission_allow_button") and node.get("package", "").endswith("permissioncontroller"):
-                x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
-                adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
-                break
-            if label in (node.get("text", "").strip(), node.get("content-desc", "").strip()):
-                return [int(n) for n in re.findall(r"\d+", node.get("bounds"))]
-        time.sleep(0.3)
-    raise RuntimeError("Экран не содержит элемент " + label)
+        # Close only a known emulator launcher ANR, never an app crash.
+        if any("Pixel Launcher isn't responding" in n.get("text", "") for n in nodes):
+            button = next((n for n in nodes if n.get("resource-id", "").endswith(":id/aerr_close")
+                           or n.get("text") == "Close app"), None)
+            if button is not None:
+                press(*point(button)); continue
+        for n in nodes:
+            if label in (n.get("text", "").strip(), n.get("content-desc", "").strip()):
+                return point(n)
+        if scroll:
+            adb("shell", "input", "swipe", "500", "1650", "500", "750", "340")
+        time.sleep(0.4)
+    raise RuntimeError("Элемент не найден: " + label)
 
-def capture(name, heading):
-    find(heading)
+def tap(label, scroll=False):
+    press(*find(label, scroll=scroll))
+
+def screenshot(name):
     Path("captures", name + ".png").write_bytes(adb("exec-out", "screencap", "-p"))
 
+def capture(name, heading, scroll=False):
+    find(heading, scroll=scroll)
+    screenshot(name)
+
+def type_text(value):
+    adb("shell", "input", "text", value.replace(" ", "%s"))
+    adb("shell", "input", "keyevent", "KEYCODE_BACK")
+
+failures = {}
+def check(name, operation):
+    try:
+        operation()
+    except (RuntimeError, subprocess.CalledProcessError) as error:
+        failures[name] = str(error)
+        screenshot(name + "-error")
+
+def home():
+    tap("Главная")
+
+def open_home_tool(label):
+    home()
+    tap(label, scroll=True)
+
+def models():
+    tap("ИИ")
+    capture("assistant", "ИИ-ассистент")
+    tap("Выбрать локальную модель")
+    capture("models", "Модели на устройстве")
+
+def properties():
+    tap("Объекты")
+    capture("properties", "Недвижимость")
+    tap("Карта")
+    capture("map", "Карта объектов")
+    tap("Объекты")
+    tap("Объект")
+    tap("Название")
+    type_text("Owner workflow QA")
+    tap("Сохранить")
+    capture("property", "Сопровождение", scroll=True)
+    tap("Сопровождение")
+    tap("Начать сопровождение")
+    capture("owner", "Подтвердить этап")
+    capture("pricing", "Сравнение цен", scroll=True)
+
+def crm():
+    tap("CRM")
+    capture("crm", "Воронка продаж")
+    tap("+ Клиент")
+    tap("Имя")
+    type_text("CRM contact QA")
+    tap("Сохранить")
+    tap("CRM contact QA", scroll=True)
+    capture("client", "CRM contact QA")
+
+def agent():
+    open_home_tool("Поручить агенту")
+    capture("agent", "Поручения агенту")
+    tap("Составь план на неделю")
+    tap("Запустить план")
+    find("Журнал поручений", scroll=True)
+
+def settings():
+    home()
+    tap("Настройки")
+    capture("settings", "Внешний вид")
+    tap("Светлая")
+    capture("settings-light", "Внешний вид")
+    tap("Тёмная")
+
 Path("captures").mkdir(exist_ok=True)
-capture("home", "Мой рабочий день")
-for tab, heading, name in [
-    ("CRM", "Воронка продаж", "crm"),
-    ("Задачи", "Задачи и встречи", "tasks"),
-    ("ИИ", "ИИ-ассистент", "assistant"),
-    ("Объекты", "Недвижимость", "properties"),
-]:
-    x1, y1, x2, y2 = find(tab)
-    adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
-    capture(name, heading)
-
-def tap(label):
-    x1, y1, x2, y2 = find(label)
-    adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
-
-tap("Объект")
-tap("Название")
-adb("shell", "input", "text", "Owner%20workflow%20QA")
-adb("shell", "input", "keyevent", "KEYCODE_BACK")
-tap("Сохранить")
-tap("Сопровождение")
-tap("Начать сопровождение")
-capture("owner", "Подтвердить этап")
-tap("Главная")
-tap("Поручить агенту")
-capture("agent", "Поручения агенту")
-tap("Составь план на неделю")
-tap("Запустить план")
-find("Журнал поручений")
-
-tap("Главная")
-tap("Настроить поиск")
-capture("autopilot", "Автопилот")
-
-# Exercise the same public search entry point as a user and capture actual results.
-def current_tree():
-    for _ in range(4):
-        try:
-            adb("shell", "uiautomator", "dump", "/sdcard/view.xml")
-            return ET.fromstring(adb("shell", "cat", "/sdcard/view.xml"))
-        except (subprocess.CalledProcessError, ET.ParseError):
-            time.sleep(1)
-    raise RuntimeError("Эмулятор не вернул дерево экрана")
-
-for _ in range(5):
-    if any(n.get("text") == "Запустить сейчас" for n in current_tree().iter("node")):
-        break
-    adb("shell", "input", "swipe", "500", "1700", "500", "880", "400")
-    time.sleep(.5)
-tap("Запустить сейчас")
-time.sleep(3)
-tap("Объекты")
-for _ in range(15):
-    if any("Ваш доход:" in n.get("text", "") for n in current_tree().iter("node")):
-        capture("auction-properties", "Недвижимость")
-        break
-    time.sleep(1)
+check("onboarding", lambda: capture("onboarding", "Подключите первый источник"))
+check("home", lambda: capture("home", "Мой рабочий день"))
+check("calendar", lambda: (tap("Задачи"), capture("calendar", "Задачи и встречи")))
+check("chat_and_models", models)
+check("deals_and_owner", properties)
+check("crm_and_client", crm)
+check("autopilot", lambda: (open_home_tool("Открыть автопилот"), capture("autopilot", "Автопилот")))
+check("agent", agent)
+check("publications", lambda: (open_home_tool("Публикации"), capture("publications", "Публикации")))
+check("analytics", lambda: (tap("Объекты"), tap("Аналитика"), capture("analytics", "Аналитика")))
+check("settings", settings)
+Path("captures", "ui-checks.txt").write_text("\n".join(f"{k}: {v}" for k, v in failures.items()) or "All required captures completed.", encoding="utf-8")
+if failures:
+    raise RuntimeError(failures)

@@ -1,6 +1,10 @@
 package ru.vladis.realtorai.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -19,7 +23,7 @@ import ru.vladis.realtorai.MainVm
 import ru.vladis.realtorai.data.Property
 import ru.vladis.realtorai.data.pricePerSqm
 
-@Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit, openOwner: (Long) -> Unit) {
+@Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit, openOwner: (Long) -> Unit, openMap: () -> Unit) {
     val props by vm.properties.collectAsState()
     val listings by vm.listings.collectAsState()
     val covers = remember(listings) { listings.filter { it.propertyId != null && it.cover.isNotBlank() }.associate { it.propertyId to it.cover } }
@@ -33,36 +37,61 @@ import ru.vladis.realtorai.data.pricePerSqm
             when (type) { "Первичка" -> it.type == "primary"; "Вторичка" -> it.type == "secondary"; "Избранное" -> it.favorite; else -> true } &&
             when (rooms) { "Любые" -> true; "4+" -> it.rooms >= 4; else -> it.rooms.toString() == rooms }
     }
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Title("Недвижимость") }
-        item { Field(q, { q = it }, "Поиск по названию или адресу") }
-        item { Chips(listOf("Все", "Первичка", "Вторичка", "Избранное"), type) { type = it } }
-        item { Chips(listOf("Любые", "1", "2", "3", "4+"), rooms) { rooms = it } }
+    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+        item {
+            ScreenHeading("Недвижимость", "${props.size} объектов в рабочей базе") {
+                FilledTonalIconButton({ edit = Property(title = "") }) { Icon(Icons.Default.Add, "Объект") }
+            }
+            Spacer(Modifier.height(8.dp))
+            Field(q, { q = it }, "Поиск по адресу или названию")
+        }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button({ edit = Property(title = "") }) { Icon(Icons.Default.Add, null); Text(" Объект") }
                 FilledTonalButton({ showImport = true }) { Text("Импорт") }
+                OutlinedButton(openMap) { Icon(Icons.Default.Place, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Карта") }
                 TextButton(openAnalytics) { Text("Аналитика") }
             }
+            Chips(listOf("Все", "Первичка", "Вторичка", "Избранное"), type) { type = it }
+            Chips(listOf("Любые", "1", "2", "3", "4+"), rooms) { rooms = it }
         }
-        if (list.isEmpty()) item { Text("Объектов нет. Добавьте вручную или импортируйте объявление.", color = Muted) }
+        if (list.isEmpty()) item {
+            Column(Modifier.fillMaxWidth().padding(vertical = 18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Place, null, Modifier.size(34.dp), tint = Lime)
+                Text(if (props.isEmpty()) "Добавьте первый объект" else "Совпадений нет", style = MaterialTheme.typography.titleLarge)
+                Text(if (props.isEmpty()) "Импортируйте объявление по ссылке или из текста." else "Измените поиск или фильтры.", color = Muted)
+                if (props.isEmpty()) FilledTonalButton({ showImport = true }) { Text("Импортировать объявление") }
+            }
+        }
         items(list, key = { it.id }) { p ->
-            AppCard(onClick = { edit = p }) {
-                covers[p.id]?.let { path ->
-                    ru.vladis.realtorai.publish.Thumb(path, Modifier.fillMaxWidth().height(160.dp))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(p.title, fontWeight = FontWeight.SemiBold, maxLines = 2)
-                        if (p.address.isNotBlank()) Text(p.address, color = Muted)
+            Surface(onClick = { edit = p }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = Surface1) {
+                Column {
+                    val cover = covers[p.id]
+                    if (!cover.isNullOrBlank()) {
+                        ru.vladis.realtorai.publish.Thumb(cover, Modifier.fillMaxWidth().height(188.dp))
                     }
-                    IconButton({ vm.toggleFav(p) }) { Icon(if (p.favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (p.favorite) "Убрать из избранного" else "В избранное", tint = Lime) }
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(if (p.price > 0) p.price.rub() else "Цена уточняется", style = MaterialTheme.typography.headlineSmall)
+                                Text(p.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
+                            FilledTonalIconButton({ vm.toggleFav(p) }) {
+                                Icon(if (p.favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    if (p.favorite) "Убрать из избранного" else "В избранное", tint = Lime)
+                            }
+                        }
+                        if (p.address.isNotBlank()) Text(p.address, color = Muted, style = MaterialTheme.typography.bodySmall)
+                        val facts = listOfNotNull(p.area.takeIf { it > 0 }?.let { "$it м²" },
+                            p.rooms.takeIf { it > 0 }?.let { "$it комн." }, p.floor.takeIf { it > 0 }?.let { "$it этаж" },
+                            p.pricePerSqm().takeIf { it > 0 }?.let { it.rub() + "/м²" })
+                        if (facts.isNotEmpty()) Text(facts.joinToString("  ·  "), color = Muted)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Ваш доход: ${vm.earning(p).rub()}", Modifier.weight(1f), color = Lime, style = MaterialTheme.typography.labelMedium)
+                            TextButton({ openOwner(p.id) }) { Text("Сопровождение") }
+                        }
+                    }
                 }
-                Text(if (p.price > 0) p.price.rub() else "Цена уточняется", color = Lime, style = MaterialTheme.typography.headlineSmall)
-                Text("${p.area} м² · ${p.rooms} комн. · эт. ${p.floor} · ${if (p.type == "primary") "первичка" else "вторичка"}" +
-                    (if (p.pricePerSqm() > 0) " · ${p.pricePerSqm().rub()}/м²" else ""), color = Muted)
-                TextButton({ openOwner(p.id) }) { Text("Сопровождение") }
-                Text("Ваш доход: ${vm.earning(p).rub()}", color = Muted)
             }
         }
     }

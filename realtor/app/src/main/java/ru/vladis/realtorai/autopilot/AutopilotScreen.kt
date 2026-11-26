@@ -105,6 +105,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
     val sources by vm.sources.collectAsState(initial=emptyList())
     var raw by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
+    var showCatalog by remember { mutableStateOf(false) }
     val file = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { vm.importFile(it) } }
     val now=System.currentTimeMillis()
     val start = java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
@@ -116,11 +117,8 @@ class AutoVm(app: Application): AndroidViewModel(app) {
     LazyColumn(contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
         item {
             Row(verticalAlignment=Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("REALTOR / AI",color=Lime,style=MaterialTheme.typography.labelMedium)
-                    Title("Автопилот")
-                }
                 TextButton(back) { Text("Назад") }
+                ScreenHeading("Автопилот", "Мониторинг источников и действия в CRM")
             }
         }
         item {
@@ -132,14 +130,15 @@ class AutoVm(app: Application): AndroidViewModel(app) {
                     }
                     Switch(checked=vm.active,onCheckedChange={vm.toggle(it)})
                 }
-                Text("Поиск квартир на банкротных торгах и в банковском залоге через Торги.Открыто. Обновление каждые 6 часов при доступной сети.",color=Color.White)
-                vm.catalogs.forEach { name ->
+                Text(if (vm.busy) "Идёт обработка источников" else if (vm.active) "Фоновое обновление примерно каждые 6 часов" else "Запустите поиск вручную или включите фоновое обновление", color=Color.White)
+                TextButton({ showCatalog = !showCatalog }) { Text(if (showCatalog) "Свернуть источники" else "Источники и район", color = Color(0xFFA5F1C8)) }
+                if (showCatalog) vm.catalogs.forEach { name ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(name in vm.enabledCatalogs, { vm.toggleCatalog(name, it) })
                         Text(name.substringAfter(" · "))
                     }
                 }
-                Field(vm.catalogQuery, vm::setQuery, "Город или улица для поиска")
+                if (showCatalog) Field(vm.catalogQuery, vm::setQuery, "Город или улица для поиска")
                 Button(onClick={vm.runNow()},enabled=!vm.busy,modifier=Modifier.fillMaxWidth()) { Text(if(vm.busy) "Обработка…" else "Запустить сейчас") }
             }
         }
@@ -167,11 +166,15 @@ class AutoVm(app: Application): AndroidViewModel(app) {
             Text("Отчёт за сегодня", style = MaterialTheme.typography.titleLarge)
             Text("Запусков в журнале: ${todayRuns.size} · задач до конца дня: ${due.size} · клиентов с подбором: ${matches.size}", color = Muted)
         } }
-        if (history.isNotEmpty()) item { Title("Журнал запусков") }
+        if (history.isNotEmpty()) item { ScreenHeading("Журнал запусков", "Результаты фоновой и ручной работы") }
         items(history, key = { "run-" + it.id }) { entry ->
-            AppCard {
-                Text(fmtDate(entry.at), color = Lime)
-                Text(entry.summary)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.padding(top = 7.dp).size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Lime))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(fmtDate(entry.at), color = Lime, style = MaterialTheme.typography.labelMedium)
+                    Text(entry.summary)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
             }
         }
         val found = properties.filter { it.description.startsWith("Источник: Торги.Открыто") }

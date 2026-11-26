@@ -61,13 +61,29 @@ private val statusText = mapOf("published" to "опубликовано (под�
 @Composable fun ListingList(pvm: PublishVm, main: MainVm, open: (Long) -> Unit, back: () -> Unit) {
     val ls by pvm.listings.collectAsState(); val pubs by pvm.pubs.collectAsState(); val props by main.properties.collectAsState()
     var sel by remember { mutableStateOf(setOf<Long>()) }
+    var section by remember { mutableStateOf("Все") }
+    val publishedIds = pubs.filter { it.status == "published" }.mapTo(mutableSetOf()) { it.listingId }
+    val visible = ls.filter { l -> when (section) {
+        "Черновики" -> l.status != "sold" && l.id !in publishedIds
+        "Опубликованные" -> l.status != "sold" && l.id in publishedIds
+        "Продано" -> l.status == "sold"
+        else -> true
+    } }
     var menu by remember { mutableStateOf(false) }; var settings by remember { mutableStateOf(false) }; var mass by remember { mutableStateOf(false) }; var fullFeed by remember { mutableStateOf(false) }
     var pending by remember { mutableStateOf<Pair<List<Long>, List<Platform>>?>(null) }
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         val p = pending; pending = null; if (uri != null && p != null) pvm.exportTo(uri, p.first, p.second)
     }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("Smart Publish") } }
+        item {
+            IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }
+            ScreenHeading("Публикации", "Smart Publish · ${ls.size} карточек")
+            Spacer(Modifier.height(7.dp))
+            Chips(listOf("Все", "Черновики", "Опубликованные", "Продано"), section) {
+                section = it
+                sel = emptySet()
+            }
+        }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button({ pvm.create(Listing(), open) }) { Text("+ Новая") }
@@ -83,12 +99,24 @@ private val statusText = mapOf("published" to "опубликовано (под�
                 TextButton({ settings = true }) { Text("Площадки") }
             }
         }
-        item { Button({ mass = true }, Modifier.fillMaxWidth(), enabled = sel.isNotEmpty() && !pvm.busy) { Text("Массовая публикация (${sel.size})") } }
-        item { OutlinedButton({ fullFeed = true }, Modifier.fillMaxWidth(), enabled = ls.isNotEmpty() && !pvm.busy) { Text("Экспорт всех карточек (фиды)") } }
+        if (sel.isNotEmpty()) item {
+            Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.medium) {
+                Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Выбрано: ${sel.size}", Modifier.padding(start = 8.dp).weight(1f), style = MaterialTheme.typography.labelMedium)
+                    Button({ mass = true }, enabled = !pvm.busy) { Text("Публикация") }
+                }
+            }
+        }
+        if (ls.isNotEmpty()) item { TextButton({ fullFeed = true }, enabled = !pvm.busy) { Text("Экспортировать фиды") } }
         if (pvm.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         pvm.log?.let { m -> item { Text(m, color = Lime) } }
-        if (ls.isEmpty()) item { Text("Карточек нет. Создайте новую или возьмите объект из списка «Недвижимость».", color = Muted) }
-        items(ls, key = { it.id }) { l ->
+        if (visible.isEmpty()) item {
+            Column(Modifier.fillMaxWidth().padding(vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (ls.isEmpty()) "Подготовьте первое объявление" else "В этом разделе карточек нет", style = MaterialTheme.typography.titleLarge)
+                if (ls.isEmpty()) Text("Создайте карточку или возьмите объект из CRM.", color = Muted)
+            }
+        }
+        items(visible, key = { it.id }) { l ->
             AppCard(onClick = { open(l.id) }) {
                 if (l.cover.isNotBlank()) Thumb(l.cover, Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)))
                 Row(verticalAlignment = Alignment.CenterVertically) {

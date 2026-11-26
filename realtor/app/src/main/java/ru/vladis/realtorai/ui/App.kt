@@ -80,11 +80,11 @@ import ru.vladis.realtorai.MainVm
                         s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm) { sub = null }
                         s == "sales" -> SalesWorkspace(vm) { sub = null }
                         s == "leads" -> LeadWorkspace(vm, { sub = null }, { clientId = it })
-                        s == "hunter" -> ru.vladis.realtorai.hunter.HunterScreen(vm) { sub = null }
+                        s == "hunter" || s == "map" -> ru.vladis.realtorai.hunter.HunterScreen(vm, s == "map") { sub = null }
                         else -> when (t) {
                             "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" },
                                 { request -> command = request; sub = "agent" }, { tab = "props" }, { tab = "crm" }, { tab = "tasks" }, { sub = "owner/$it" })
-                            "props" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" })
+                            "props" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" })
                             "crm" -> Crm(vm) { clientId = it }
                             "tasks" -> Tasks(vm)
                             else -> Assistant(vm) { sub = "models" }

@@ -8,6 +8,7 @@ adb install -r -g realtor/app/build/outputs/apk/debug/app-debug.apk
 adb shell input keyevent KEYCODE_WAKEUP
 adb shell wm dismiss-keyguard
 adb shell settings put global anr_show_background 0
+adb shell cmd uimode night yes
 adb shell am start -W -n ru.vladis.realtorai/.MainActivity
 capture_result=0
 python3 realtor/ci/capture.py || capture_result=$?

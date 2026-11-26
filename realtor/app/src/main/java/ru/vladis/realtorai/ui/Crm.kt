@@ -3,6 +3,9 @@ package ru.vladis.realtorai.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -32,30 +35,49 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
     val byRole = clients.filter { it.role == if (role == "Покупатели") "buyer" else "owner" }
     val list = byRole.filter { stage.isEmpty() || it.stage == stage }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Title("Воронка продаж") }
         item {
-            val filters = listOf("" to "Все") + stages
-            val labels = filters.associate { (key, label) ->
-                key to "$label · ${byRole.count { key.isEmpty() || it.stage == key }}"
+            ScreenHeading("Воронка продаж", "${clients.size} контактов в CRM") {
+                FilledTonalButton({ adding = true }) { Text("+ Клиент") }
             }
-            Chips(labels.values.toList(), labels.getValue(stage)) { selected ->
-                stage = labels.entries.first { it.value == selected }.key
-            }
-        }
-        item { Chips(listOf("Покупатели", "Собственники"), role) { role = it } }
-        item { Button({ adding = true }) { Text("+ Клиент") } }
-        if (list.isEmpty()) item { Text("Список пуст", color = Muted) }
-        items(list, key = { it.id }) { c ->
-            AppCard(onClick = { open(c.id) }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(c.name, fontWeight = FontWeight.SemiBold)
-                        if (c.phone.isNotBlank()) Text(c.phone, color = Muted)
-                        if (c.budget > 0) Text("Бюджет: ${c.budget.rub()}", color = Muted)
+            Chips(listOf("Покупатели", "Собственники"), role) { role = it }
+            val frequencies = byRole.groupingBy { it.stage }.eachCount()
+            val maximum = frequencies.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+            Surface(shape = MaterialTheme.shapes.large, color = Surface1) {
+                Row(Modifier.fillMaxWidth().height(128.dp).padding(9.dp), horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.Bottom) {
+                    stages.forEach { (key, title) ->
+                        val count = frequencies.getOrDefault(key, 0)
+                        Column(Modifier.weight(1f).clip(MaterialTheme.shapes.small).clickable {
+                            stage = if (stage == key) "" else key
+                        }.padding(3.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(count.toString(), color = if (stage == key) Lime else Muted)
+                            Surface(Modifier.fillMaxWidth().height((4 + 56 * count / maximum).dp),
+                                shape = MaterialTheme.shapes.small, color = if (count > 0 || stage == key) Lime else Surface2) {}
+                            Text(title, maxLines = 1, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
-                    Text(stageName(c.stage), color = Lime, style = MaterialTheme.typography.labelMedium)
                 }
             }
+            if (stage.isNotEmpty()) TextButton({ stage = "" }) { Text("Сбросить этап · ${stageName(stage)}") }
+        }
+        item { ScreenHeading("Контакты", if (stage.isEmpty()) role else stageName(stage)) }
+        if (list.isEmpty()) item {
+            Text(if (byRole.isEmpty()) "Добавьте первый контакт или импортируйте его через раздел «Лиды»."
+                else "На этом этапе пока нет контактов.", color = Muted)
+        }
+        items(list, key = { it.id }) { c ->
+            Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable { open(c.id) }.padding(vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+                Surface(Modifier.size(42.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+                    Box(contentAlignment = Alignment.Center) { Text(c.name.trim().take(2).uppercase(), color = Lime) }
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(c.name, style = MaterialTheme.typography.titleMedium)
+                    Text(listOfNotNull(c.phone.takeIf(String::isNotBlank), c.budget.takeIf { it > 0 }?.rub()).joinToString(" · ").ifEmpty { "Данные уточняются" }, color = Muted)
+                }
+                Text(stageName(c.stage), color = Lime, style = MaterialTheme.typography.labelMedium)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
     if (adding) {
@@ -88,10 +110,19 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
     if (c == null) { LaunchedEffect(Unit) { back() }; return }
     var note by remember { mutableStateOf("") }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title(c.name) } }
+        item {
+            IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }
+            Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
+                Row(Modifier.fillMaxWidth().padding(17.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+                    Surface(Modifier.size(53.dp), shape = CircleShape, color = Surface1) {
+                        Box(contentAlignment = Alignment.Center) { Text(c.name.take(2).uppercase(), color = Lime, style = MaterialTheme.typography.titleLarge) }
+                    }
+                    ScreenHeading(c.name, if (c.role == "buyer") "Покупатель" else "Собственник")
+                }
+            }
+        }
         item {
             AppCard {
-                Text(if (c.role == "buyer") "Покупатель" else "Собственник", color = Muted)
                 if (c.phone.isNotBlank()) TextButton({ ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + c.phone))) }) { Text("Позвонить: ${c.phone}") }
                 if (c.budget > 0) Text("Бюджет: ${c.budget.rub()}")
                 if (c.notes.isNotBlank()) Text(c.notes, color = Muted)
@@ -154,6 +185,7 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
             }
         }
         item { Text("Автопилот добавляет встречу в календарь из записи вида «Показ 30.11.2026 в 15:00».", color = Muted, style = MaterialTheme.typography.bodySmall) }
+        item { Title("История общения") }
         items(history, key = { it.id }) { h -> AppCard { Text(fmtDate(h.at), color = Muted, style = MaterialTheme.typography.bodySmall); Text(h.text) } }
         item { TextButton({ vm.deleteClient(c); back() }) { Text("Удалить клиента", color = MaterialTheme.colorScheme.error) } }
     }

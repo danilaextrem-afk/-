@@ -1,6 +1,9 @@
 package ru.vladis.realtorai.owner
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -64,8 +67,7 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             TextButton(back) { Text("Назад к объектам") }
-            Title("Сопровождение собственника")
-            Text(property?.title.orEmpty(), color = Muted, style = MaterialTheme.typography.titleLarge)
+            ScreenHeading("Сопровождение собственника", property?.title ?: "Карточка объекта")
         }
         if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         error?.let { issue -> item { Text(issue, color = MaterialTheme.colorScheme.error) } }
@@ -81,7 +83,12 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
                 AppCard {
                     Text(step.title, color = Lime, style = MaterialTheme.typography.headlineSmall)
                     Text("Начато " + fmtDate(value.startedAt), color = Muted)
-                    LinearProgressIndicator(progress = { step.ordinal.toFloat() / OwnerStep.FINISHED.ordinal }, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        OwnerStep.entries.dropLast(1).forEach { stage ->
+                            val color = when { stage.ordinal < step.ordinal -> Lime; stage == step -> Lime.copy(alpha = .45f); else -> Surface2 }
+                            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(4.dp)).background(color))
+                        }
+                    }
                     Text(step.checklist)
                     if (step != OwnerStep.FINISHED) {
                         Field(evidence, { evidence = it.take(4000) }, "Что подтверждено", single = false)
@@ -133,7 +140,13 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
                     if (prices.isNotEmpty()) {
                         Text("Средняя цена за м²: " + comparable.map { it.price / it.area }.average().rub())
                         listOf("Около месяца", "2–6 месяцев", "От полугода").zip(prices).forEach { (label, amount) ->
-                            TextButton({ price = amount.toString() }) { Text("$label · ${amount.rub()}") }
+                            Surface(onClick = { price = amount.toString() }, shape = MaterialTheme.shapes.small,
+                                color = if (price == amount.toString()) MaterialTheme.colorScheme.primaryContainer else Surface2) {
+                                Row(Modifier.fillMaxWidth().padding(11.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(label, style = MaterialTheme.typography.bodySmall)
+                                    Text(amount.rub(), color = Lime, style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
                         }
                         Text("Ориентиры по регламенту. Фактический срок зависит от спроса.", color = Muted)
                     }

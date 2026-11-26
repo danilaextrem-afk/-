@@ -46,10 +46,10 @@ import kotlin.math.max
 
 private fun pct(d: Double) = "${(d * 100).toInt()}%"
 
-@Composable fun HunterScreen(main: MainVm, back: () -> Unit) {
+@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, back: () -> Unit) {
     val vm: HunterVm = viewModel()
     val deals by vm.deals.collectAsState()
-    var tab by remember { mutableStateOf("Лента") }
+    var tab by remember(initialMap) { mutableStateOf(if (initialMap) "Карта" else "Лента") }
     var openId by remember { mutableStateOf<Long?>(null) }
     var flt by remember { mutableStateOf(SavedFilter()) }
     var hideDups by remember { mutableStateOf(true) }
@@ -61,15 +61,20 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     val shown = sale.filter { Filters.matches(it.o, flt) && (!flt.onlyBelowMarket || it.below) && (!hideDups || it.repr) && (!favOnly || it.o.favorite) }
         .sortedWith(compareByDescending<Deal> { it.discount ?: -1.0 })
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("Поиск сделок") }
+        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; ScreenHeading("Поиск сделок", "${sale.size} предложений в источниках") }
         Chips(listOf("Лента", "Карта", "Фильтры", "Данные", "Подбор"), tab) { tab = it }
         if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         vm.log?.let { Text(it, color = Lime, style = MaterialTheme.typography.bodySmall) }
         Spacer(Modifier.height(8.dp))
         when (tab) {
             "Лента" -> FeedTab(vm, shown, sale.size, flt, { flt = it }, hideDups, { hideDups = it }, favOnly, { favOnly = it }) { openId = it }
-            "Карта" -> { Text("На карте: ${shown.count { it.o.lat != null }} из ${shown.size} (нужны координаты). Лаймовый маркер — дешевле рынка.", color = Muted, style = MaterialTheme.typography.bodySmall)
-                OfferMap(shown, Modifier.weight(1f).fillMaxWidth()) { openId = it } }
+            "Карта" -> {
+                val located = shown.filter { it.o.lat != null && it.o.lon != null }
+                Text("Карта объектов", style = MaterialTheme.typography.titleLarge)
+                Text(if (located.isEmpty()) "Метки появятся, когда источник передаст координаты." else "${located.size} объектов с координатами · выберите метку",
+                    color = Muted, modifier = Modifier.padding(bottom = 8.dp))
+                OfferMap(located, Modifier.weight(1f).fillMaxWidth()) { openId = it }
+            }
             "Фильтры" -> FiltersTab(vm) { flt = it; tab = "Лента" }
             "Данные" -> DataTab(vm, deals)
             else -> MatchTab(vm, main) { openId = it }

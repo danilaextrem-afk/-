@@ -3,6 +3,14 @@ package ru.vladis.realtorai.ui
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -34,21 +42,56 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
     var filter by remember { mutableStateOf("Предстоящие") }
     var adding by remember { mutableStateOf(false) }
     val now = System.currentTimeMillis()
-    val shown = when (filter) { "Предстоящие" -> tasks.filter { !it.done }; "Встречи" -> tasks.filter { it.kind == "meeting" && !it.done }; else -> tasks.filter { it.done } }
+    val today = LocalDate.now()
+    val zone = ZoneId.systemDefault()
+    var selected by remember { mutableStateOf<LocalDate?>(null) }
+    var week by remember { mutableStateOf(today.minusDays(today.dayOfWeek.value.toLong() - 1)) }
+    val staged = when (filter) { "Предстоящие" -> tasks.filter { !it.done }; "Встречи" -> tasks.filter { it.kind == "meeting" && !it.done }; else -> tasks.filter { it.done } }
+    val shown = staged.filter { selected == null || Instant.ofEpochMilli(it.dueAt).atZone(zone).toLocalDate() == selected }
     val groups = shown.groupBy { headFmt.format(Date(it.dueAt)) }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { Title("Задачи и встречи") }
+        item {
+            ScreenHeading("Задачи и встречи", "Календарь риелтора") {
+                FilledTonalIconButton({ adding = true }) { Icon(Icons.Default.Add, "Новая задача") }
+            }
+        }
+        item {
+            Surface(shape = RoundedCornerShape(22.dp), color = Surface1) {
+                Column(Modifier.fillMaxWidth().padding(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton({ week = week.minusWeeks(1) }) { Icon(Icons.Default.ArrowBack, "Предыдущая неделя") }
+                        Text(week.format(DateTimeFormatter.ofPattern("LLLL yyyy", Locale.forLanguageTag("ru"))).replaceFirstChar(Char::uppercase),
+                            Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        IconButton({ week = week.plusWeeks(1) }) { Icon(Icons.Default.ArrowForward, "Следующая неделя") }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        for (i in 0..6) {
+                            val day = week.plusDays(i.toLong())
+                            val count = staged.count { Instant.ofEpochMilli(it.dueAt).atZone(zone).toLocalDate() == day }
+                            Surface(onClick = { selected = if (selected == day) null else day }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp),
+                                color = if (selected == day) MaterialTheme.colorScheme.primaryContainer else Surface1) {
+                                Column(Modifier.padding(vertical = 7.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(day.format(DateTimeFormatter.ofPattern("EE", Locale.forLanguageTag("ru"))), color = Muted, style = MaterialTheme.typography.bodySmall)
+                                    Text(day.dayOfMonth.toString(), color = if (day == today || selected == day) Lime else MaterialTheme.colorScheme.onSurface)
+                                    Text(if (count > 0) count.toString() else " ", color = Lime, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
+                    if (selected != null) TextButton({ selected = null }) { Text("Показать все даты") }
+                }
+            }
+        }
         if (!notifications && android.os.Build.VERSION.SDK_INT >= 33) item {
-            OutlinedButton({ permission.launch(android.Manifest.permission.POST_NOTIFICATIONS) }) { Text("Включить напоминания") }
+            TextButton({ permission.launch(android.Manifest.permission.POST_NOTIFICATIONS) }) { Text("Включить напоминания") }
         }
         item { Chips(listOf("Предстоящие", "Встречи", "Выполнено"), filter) { filter = it } }
-        item { Button({ adding = true }) { Text("+ Задача / встреча") } }
         if (shown.isEmpty()) item { AppCard { Text(when (filter) { "Встречи" -> "Встречи пока не назначены"; "Выполнено" -> "Завершённые задачи появятся здесь"; else -> "Все задачи выполнены или ещё не запланированы" }, color = Muted) } }
         groups.forEach { (day, list) ->
             item { Text(day.replaceFirstChar { it.uppercase() }, color = Lime, style = MaterialTheme.typography.titleSmall) }
             items(list.size) { i ->
                 val t = list[i]
-                AppCard {
+                Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(t.done, { vm.saveTask(t.copy(done = it)) })
                         Column(Modifier.weight(1f)) {
@@ -57,6 +100,7 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
                         }
                         IconButton({ vm.deleteTask(t) }) { Icon(Icons.Default.Delete, "Удалить", tint = Muted) }
                     }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }
