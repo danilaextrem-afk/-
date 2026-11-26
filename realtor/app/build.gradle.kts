@@ -4,17 +4,45 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
+val releaseCredentials = listOf(
+    "REALTOR_SIGNING_STORE", "REALTOR_SIGNING_STORE_PASSWORD",
+    "REALTOR_SIGNING_ALIAS", "REALTOR_SIGNING_KEY_PASSWORD"
+).associateWith { providers.environmentVariable(it).orNull }
+require(releaseCredentials.values.all { it.isNullOrBlank() } || releaseCredentials.values.none { it.isNullOrBlank() }) {
+    "Production signing requires all four REALTOR_SIGNING_* settings."
+}
+
 android {
     namespace = "ru.vladis.realtorai"
     compileSdk = 35
     defaultConfig {
         applicationId = if (providers.gradleProperty("sideBySide").isPresent) "ru.vladis.realtorai.workspace" else "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
-        versionCode = 18; versionName = "0.18"
+        versionCode = 19; versionName = "1.0-rc1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += "arm64-v8a"
             if (providers.gradleProperty("emulatorAbi").isPresent) abiFilters += "x86_64"
+        }
+    }
+    signingConfigs {
+        if (!releaseCredentials.getValue("REALTOR_SIGNING_STORE").isNullOrBlank()) {
+            create("production") {
+                storeFile = file(requireNotNull(releaseCredentials.getValue("REALTOR_SIGNING_STORE")))
+                storePassword = releaseCredentials.getValue("REALTOR_SIGNING_STORE_PASSWORD")
+                keyAlias = releaseCredentials.getValue("REALTOR_SIGNING_ALIAS")
+                keyPassword = releaseCredentials.getValue("REALTOR_SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        val release = getByName("release")
+        release.signingConfig = signingConfigs.findByName("production")
+        create("preview") {
+            initWith(release)
+            applicationIdSuffix = ".preview"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
         }
     }
     externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.22.1" } }

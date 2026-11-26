@@ -1,4 +1,5 @@
 """Capture Realtor AI routes from the Android emulator via their accessible names."""
+import sys
 import re
 import subprocess
 import time
@@ -118,6 +119,9 @@ def settings():
     tap("Тёмная")
 
 Path("captures").mkdir(exist_ok=True)
+if sys.argv[1:] == ["--preview"]:
+    capture("release-candidate", "Мой рабочий день")
+    sys.exit(0)
 check("onboarding", lambda: capture("onboarding", "Подключите первый источник"))
 check("home", lambda: capture("home", "Мой рабочий день"))
 check("calendar", lambda: (tap("Задачи"), capture("calendar", "Задачи и встречи")))

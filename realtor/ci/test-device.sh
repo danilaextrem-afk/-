@@ -20,4 +20,12 @@ model_result=0
 (cd realtor && gradle -PemulatorAbi "-Pandroid.testInstrumentationRunnerArguments.class=$model_test" :app:connectedDebugAndroidTest) || model_result=$?
 cp -r realtor/app/build/reports/androidTests reports/model
 adb logcat -d -s DeviceInferenceTest:I > captures/inference.txt
-exit $((capture_result || model_result))
+preview_result=0
+(
+    (cd realtor && gradle -PemulatorAbi :app:assemblePreview) &&
+    adb install -r realtor/app/build/outputs/apk/preview/app-preview.apk &&
+    adb shell am start -W -n ru.vladis.realtorai.preview/ru.vladis.realtorai.MainActivity &&
+    python3 realtor/ci/capture.py --preview
+) > reports/release-candidate.txt 2>&1 || preview_result=$?
+cat reports/release-candidate.txt
+exit $((capture_result || model_result || preview_result))
