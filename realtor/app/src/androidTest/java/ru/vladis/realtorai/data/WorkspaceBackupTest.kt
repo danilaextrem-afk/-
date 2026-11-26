@@ -30,6 +30,8 @@ class WorkspaceBackupTest {
             db.publications().saveListing(Listing(id = 121, propertyId = 77, photos = photo.path, cover = photo.path))
             db.publications().savePub(Publication(listingId = 121, platform = "test", status = "exported"))
             db.dao().log(RunLog(summary = "Поиск"))
+            db.owners().event(ru.vladis.realtorai.owner.OwnerEvent(propertyId = 77, at = 11, kind = "report", text = "Первый отчёт"))
+            db.agent().insert(ru.vladis.realtorai.agent.AgentJob(goal = "Часть очереди", plan = "WEEK", clientId = null))
             val archive = ByteArrayOutputStream()
             WorkspaceBackup.write(ctx, db, archive)
             photo.delete()
@@ -42,6 +44,8 @@ class WorkspaceBackupTest {
             assertEquals("exported", db.publications().pubsOf(121).single().status)
             assertEquals(91L, db.hunter().points().first().single().offerId)
             assertEquals("Поиск", db.dao().recentRuns().first().single().summary)
+            assertEquals("Первый отчёт", db.owners().history(77).first().single().text)
+            assertEquals("cancelled", db.agent().recent().first().single().state)
             val bad = """{"clients":[],"properties":[],"interactions":[],"tasks":[{"id":1}]}"""
             assertTrue(runCatching { WorkspaceBackup.read(ctx, db, bad.byteInputStream()) }.isFailure)
             assertEquals(buyer, db.dao().allClients().single())
