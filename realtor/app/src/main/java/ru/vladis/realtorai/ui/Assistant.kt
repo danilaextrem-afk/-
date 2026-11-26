@@ -115,7 +115,7 @@ import ru.vladis.realtorai.data.Property
                             unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
                             focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
                             unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent))
-                    FilledIconButton(enabled = text.isNotBlank() && vm.deviceReady && !vm.busy, onClick = {
+                    FilledIconButton(enabled = text.isNotBlank() && (vm.deviceReady || vm.canSearch(text)) && !vm.busy, onClick = {
                         vm.ask(mode, text.trim(), pSel, cSel); text = ""
                     }) { Icon(Icons.Default.Send, "Отправить") }
                 }

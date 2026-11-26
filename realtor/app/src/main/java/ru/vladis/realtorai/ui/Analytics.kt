@@ -18,7 +18,7 @@ import ru.vladis.realtorai.MainVm
 import ru.vladis.realtorai.data.pricePerSqm
 
 @Composable fun Analytics(vm: MainVm, back: () -> Unit) {
-    val props by vm.properties.collectAsState()
+    val props by vm.searchableProperties.collectAsState()
     var segment by remember { mutableStateOf("Все объекты") }
     val ranked = props.filter { segment == "Все объекты" || it.type == if (segment == "Новостройки") "primary" else "secondary" }.filter { it.area > 0 && it.price > 0 }.sortedBy { it.pricePerSqm() }
     var sel by remember { mutableStateOf(setOf<Long>()) }

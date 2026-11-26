@@ -228,27 +228,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         fun number(name: String) = arg(name).takeIf(String::isNotBlank)?.toLong()
         val ctx = applicationContext
         return when (action.tool) {
-        AgentTool.FIND -> {
-            val query = ListingQuery.read(job.goal, action.args)
-            val geography = GeoPreferences.read(ctx)
-            val candidates = db.hunter().allOffers().asSequence().filter { query.matches(it) && geography.matches(it) }
-                .sortedBy { it.price }
-            val selected = mutableListOf<Offer>()
-            for (offer in candidates) {
-                if (selected.none { it.url.isNotBlank() && it.url == offer.url || Dedup.same(it, offer) }) selected += offer
-                if (selected.size >= 8) break
-            }
-            if (selected.isNotEmpty()) selected.joinToString("\n") {
-                "${it.title} · ${it.price.rub()} · ${it.address} · ${it.source}\n${it.url}"
-            } else if (query.seller != null) {
-                "В подключённых источниках нет совпадений с подтверждённым типом продавца. Для обычных объявлений подключите фид с полем продавца."
-            } else db.dao().allProperties().asSequence().filter { property ->
-                property.status == "active" && query.matches(Offer(source = "CRM", address = property.address,
-                    region = property.region, price = property.price, area = property.area, rooms = property.rooms, market = property.type)) &&
-                    geography.matches(Offer(source = "CRM", address = property.address, region = property.region))
-            }.sortedBy { it.price }.take(8).joinToString("\n") { "#${it.id} ${it.title} · ${it.price.rub()} · ${it.address}" }
-                .ifBlank { "По этим параметрам нет подтверждённых объектов в Москве и МО." }
-        }
+        AgentTool.FIND -> ListingSearch.run(ctx, db, job.goal, action.args)
         AgentTool.OWNER_REPORT -> OwnerService(ctx).draftReport(requireNotNull(number("property")) { "Нужен ID объекта" })
         AgentTool.LISTING -> db.withTransaction {
             val id = requireNotNull(number("property")) { "Нужен ID объекта" }
@@ -284,7 +264,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         }
         AgentTool.MATCH -> {
             val client = db.dao().allClients().firstOrNull { it.id == (number("client") ?: job.clientId) } ?: error("Клиент отсутствует в CRM")
-            AutoRules.matches(client, db.dao().allProperties()).joinToString("\n") {
+            AutoRules.matches(client, GeoScope.searchableProperties(db.dao().allProperties(), db.hunter().allOffers(), GeoPreferences.read(ctx))).joinToString("\n") {
                 "${it.title} · ${it.price.rub()} · ${it.address}\n${it.url}"
             }.ifBlank { "В CRM нет объектов по подтверждённым критериям клиента." }
         }

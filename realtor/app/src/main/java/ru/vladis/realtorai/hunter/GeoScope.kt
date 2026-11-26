@@ -2,6 +2,8 @@ package ru.vladis.realtorai.hunter
 
 import android.content.Context
 import com.google.gson.JsonParser
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
 import ru.vladis.realtorai.data.Property
 import java.util.Locale
 import kotlin.math.*
@@ -61,6 +63,13 @@ object GeoScope {
 
     fun normalize(value: String) = value.lowercase(Locale.ROOT).replace('ё','е').trim().replace(Regex("\\s+"), " ")
 
+    fun addressMatches(value: String, fragment: String): Boolean {
+        val strip = Regex("[^\\p{L}\\p{N}]+")
+        fun canonical(text: String) = normalize(text).replace(strip, " ").trim()
+        val query = canonical(fragment)
+        return query.isBlank() || (" " + canonical(value) + " ").contains(" $query ")
+    }
+
     fun textRegion(value: String): String? {
         val text = normalize(value).replace(prefix, "")
         return when {
@@ -91,6 +100,23 @@ object GeoScope {
     fun region(property: Property) = classify(property.address, property.region, null, null)
     fun eligible(offer: Offer, now: Long = System.currentTimeMillis()): Boolean =
         offer.active && offer.lastSeen >= now - staleMs && (offer.expiresAt == null || offer.expiresAt > now) && region(offer) != null
+
+    fun searchableProperties(properties: List<Property>, offers: List<Offer>, scope: GeoQuery): List<Property> {
+        val bySource = HashMap<String, Offer>()
+        val byUrl = HashMap<String, Offer>()
+        for (offer in offers) {
+            if (!eligible(offer) || !scope.matches(offer)) continue
+            ru.vladis.realtorai.autopilot.AutoRules.sourceKey(offer)?.let { bySource[it] = offer }
+            ru.vladis.realtorai.autopilot.AutoRules.urlKey(offer.url)?.let { byUrl[it] = offer }
+        }
+        return properties.filter { property ->
+            val source = property.description.lineSequence().firstOrNull { it.startsWith("[AUTO-SOURCE:") }
+            val tracked = source != null || property.description.lineSequence().firstOrNull()?.startsWith("Источник: ") == true
+            val link = ru.vladis.realtorai.autopilot.AutoRules.urlKey(property.url)
+            if (tracked) (source != null && bySource.containsKey(source)) || (link != null && byUrl.containsKey(link))
+            else scope.matches(Offer(source = "CRM", address = property.address, region = property.region))
+        }
+    }
 
     fun point(lat: Double?, lon: Double?): Point? =
         if (lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0) Point(lat,lon) else null
@@ -153,7 +179,7 @@ data class GeoQuery(
     fun matches(offer: Offer): Boolean {
         if (GeoScope.region(offer) == null) return false
         if (locations.isNotEmpty() && locations.none { GeoScope.within(it, offer) }) return false
-        if (address.isNotBlank() && !GeoScope.normalize(offer.address).contains(GeoScope.normalize(address))) return false
+        if (address.isNotBlank() && !GeoScope.addressMatches(offer.address, address)) return false
         val stationKeys = offer.transit.orEmpty().split(';').map(GeoScope::normalize)
         if (stations.isNotEmpty() && stations.none { GeoScope.normalize(it) in stationKeys }) return false
         val point = GeoScope.point(offer.lat, offer.lon)
@@ -171,6 +197,13 @@ object GeoPreferences {
             p.getString("address", "").orEmpty(),
             GeoScope.point(p.getString("lat", null)?.toDoubleOrNull(), p.getString("lon", null)?.toDoubleOrNull()),
             p.getString("radius", null)?.toDoubleOrNull(), p.getString("mkad", null)?.toDoubleOrNull())
+    }
+    fun observe(ctx: Context) = callbackFlow {
+        val preferences = ctx.getSharedPreferences("work_geography", Context.MODE_PRIVATE)
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(read(ctx)) }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        trySend(read(ctx))
+        awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
     fun split(value: String) = value.split(';').map(String::trim).filter(String::isNotBlank).distinct().take(40)
     fun save(ctx: Context, query: GeoQuery) {

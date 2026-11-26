@@ -54,7 +54,7 @@ class HunterLogicTest {
 
     @Test fun planDetectsNewChangedAndSkipped() {
         val existing = listOf(o(1, price = 100).copy(externalId = "A"))
-        val rows = listOf(o(0, price = 90).copy(externalId = "A"), o(0, price = 50, addr = "новый 7").copy(externalId = "B"), o(0, price = 0).copy(externalId = "C"))
+        val rows = listOf(o(0, price = 90).copy(externalId = "A"), o(0, price = 50, addr = "Москва, Новый переулок, 7").copy(externalId = "B"), o(0, price = 0).copy(externalId = "C"))
         val p = HunterImport.plan(existing, rows, 1L)
         assertEquals(1, p.inserts.size); assertEquals(1, p.updates.size); assertTrue(p.updates[0].second); assertEquals(1, p.skipped)
         assertEquals(90L, p.updates[0].first.price)

@@ -104,6 +104,7 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
 @Composable fun ClientDetail(vm: MainVm, id: Long, back: () -> Unit) {
     val clients by vm.clients.collectAsState()
     val props by vm.properties.collectAsState()
+    val searchable by vm.searchableProperties.collectAsState()
     val history by vm.interactions(id).collectAsState(emptyList())
     val ctx = LocalContext.current
     val c = clients.find { it.id == id }
@@ -160,7 +161,7 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
             }
         }
         if (c.role == "buyer") {
-            val picks = ru.vladis.realtorai.autopilot.AutoRules.matches(c, props)
+            val picks = ru.vladis.realtorai.autopilot.AutoRules.matches(c, searchable)
             if (picks.isNotEmpty()) item {
                 val clip = androidx.compose.ui.platform.LocalClipboardManager.current
                 AppCard {

@@ -26,6 +26,10 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     val listings = db.publications().listings().state(emptyList())
     val properties = dao.properties().state(emptyList())
+    val searchableProperties = combine(dao.properties(), db.hunter().offers(), ru.vladis.realtorai.hunter.GeoPreferences.observe(ctx)) { properties, offers, scope ->
+        ru.vladis.realtorai.hunter.GeoScope.searchableProperties(properties, offers, scope)
+    }.state(emptyList())
+
     val clients = dao.clients().state(emptyList())
     val tasks = dao.tasks().state(emptyList())
     fun interactions(id: Long) = dao.interactions(id)
@@ -204,15 +208,32 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun stopGeneration() { generationJob?.cancel() }
     fun clearChat() { if (!busy) { chat.clear(); error = null } }
 
+    fun canSearch(text: String) = ru.vladis.realtorai.agent.ListingSearch.accepts(text)
+
     fun ask(mode: String, text: String, p: Property?, c: Client?) {
+        if (busy) return
+        if (canSearch(text)) {
+            chat.add("user" to text)
+            error = null
+            busy = true
+            generationJob = viewModelScope.launch {
+                try {
+                    val results = withContext(Dispatchers.IO) { ru.vladis.realtorai.agent.ListingSearch.run(ctx, db, text, refresh = true) }
+                    chat.add("assistant" to results)
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (e: Exception) { error = e.localizedMessage }
+                finally { busy = false }
+            }
+            return
+        }
         if (!deviceReady) { error = "Сначала скачайте локальную модель"; return }
         val system = Prompts.BASE + " " + (Prompts.modes.firstOrNull { it.first == mode }?.second ?: "")
         val content = buildString {
             c?.let { appendLine("Клиент: ${it.name.take(50)}; бюджет ${it.budget} ₽; ${listOfNotNull(it.searchArea, it.desiredKind, it.wishes).joinToString().take(100)}. ${it.notes.take(80)}") }
             p?.let { appendLine("Объект: ${it.title.take(65)}, ${it.address.take(80)}, ${it.price} ₽, ${it.area} м², ${it.rooms} комн. ${it.description.take(90)}") }
             if (mode == "Подбор") {
-                val candidates = c?.let { ru.vladis.realtorai.autopilot.AutoRules.matches(it, properties.value) }
-                    ?: properties.value.filter { it.status == "active" && ru.vladis.realtorai.hunter.GeoScope.region(it) != null }
+                val candidates = c?.let { ru.vladis.realtorai.autopilot.AutoRules.matches(it, searchableProperties.value) }
+                    ?: searchableProperties.value.filter { it.status == "active" }
                 candidates.take(3).forEach { appendLine("${it.title.take(35)} · ${it.address.take(50)} · ${it.price} ₽ · ${it.area} м²") }
                 if (candidates.isEmpty()) appendLine("Подходящих объектов в базе нет.")
             }

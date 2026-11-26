@@ -98,7 +98,7 @@ class AutoVm(app: Application): AndroidViewModel(app) {
 }
 
 @Composable fun AutopilotScreen(main: MainVm, openHunter: () -> Unit, openCrm: () -> Unit, openTasks: () -> Unit, back: () -> Unit, vm: AutoVm = viewModel()) {
-    val properties by main.properties.collectAsState()
+    val properties by main.searchableProperties.collectAsState()
     val clients by main.clients.collectAsState()
     val tasks by main.tasks.collectAsState()
     val history by vm.history.collectAsState(initial=emptyList())
