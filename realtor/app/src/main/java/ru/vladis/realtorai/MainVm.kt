@@ -139,6 +139,21 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             finally { busy = false }
         }
     }
+    fun importModel(spec: ModelSpec, uri: android.net.Uri) {
+        if (downloading != null || busy) return
+        downloading = spec
+        modelProgress = 0
+        modelSpeed = ""
+        error = null
+        downloadJob = viewModelScope.launch {
+            try {
+                DeviceModel.importVerified(ctx, uri, spec) { withContext(Dispatchers.Main) { modelProgress = it } }
+                chooseModel(spec)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { error = e.localizedMessage }
+            finally { downloading = null; modelProgress = null }
+        }
+    }
     fun pauseModel() { downloadJob?.cancel() }
     fun installModel(spec: ModelSpec) {
         if (downloading != null) return

@@ -55,6 +55,39 @@ object DeviceModel {
         } }
     }
 
+    suspend fun importVerified(ctx: Context, uri: android.net.Uri, spec: ModelSpec, progress: suspend (Int) -> Unit) =
+        downloadLock.withLock { withContext(Dispatchers.IO) {
+            require(spec in models && spec.file.endsWith(".gguf"))
+            if (installed(ctx, spec)) return@withContext
+            check(ctx.noBackupFilesDir.usableSpace > spec.size + 100_000_000L) { "Недостаточно места для копии модели" }
+            val temporary = File.createTempFile("gguf-import-", ".tmp", ctx.noBackupFilesDir)
+            try {
+                val digest = MessageDigest.getInstance("SHA-256")
+                checkNotNull(ctx.contentResolver.openInputStream(uri)) { "Файл недоступен" }.use { input ->
+                    temporary.outputStream().buffered().use { output ->
+                        val buffer = ByteArray(262144)
+                        var size = 0L
+                        var lastPercent = -1
+                        while (true) {
+                            currentCoroutineContext().ensureActive()
+                            val read = input.read(buffer)
+                            if (read < 0) break
+                            size += read
+                            check(size <= spec.size) { "Файл крупнее выбранной модели" }
+                            digest.update(buffer, 0, read)
+                            output.write(buffer, 0, read)
+                            val percent = (size * 100 / spec.size).toInt()
+                            if (percent != lastPercent) { progress(percent); lastPercent = percent }
+                        }
+                    }
+                }
+                val hash = digest.digest().joinToString("") { "%02x".format(it) }
+                check(temporary.length() == spec.size && hash == spec.sha) { "GGUF не совпадает с выбранной моделью по SHA-256" }
+                check(temporary.renameTo(file(ctx, spec)))
+                File(ctx.noBackupFilesDir, spec.file + ".part").delete()
+            } finally { temporary.delete() }
+        } }
+
     suspend fun download(ctx: Context, spec: ModelSpec = selected(ctx), progress: suspend (Int) -> Unit) =
         downloadLock.withLock { withContext(Dispatchers.IO) {
             if (installed(ctx, spec)) return@withContext

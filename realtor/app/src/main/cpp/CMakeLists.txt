@@ -11,8 +11,8 @@ set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-FetchContent_Declare(llama URL https://codeload.github.com/ggml-org/llama.cpp/tar.gz/4762ad7316dcdec20016ab5985fb46a27902204d
-    URL_HASH SHA256=06b6a3a1c2d12becc05d02c701274ab1f6d033399b4a20a166b919289e19233c)
+FetchContent_Declare(llama URL https://codeload.github.com/ggml-org/llama.cpp/tar.gz/892e3c333a634f818acc195dc699468c08ff5e80
+    URL_HASH SHA256=64cda961f4e9528494408f32c3472f5b510e5583df7c7d47b42e43263b78e5e2)
 FetchContent_MakeAvailable(llama)
 add_library(realtor_inference SHARED inference.cpp)
 target_compile_features(realtor_inference PRIVATE cxx_std_17)

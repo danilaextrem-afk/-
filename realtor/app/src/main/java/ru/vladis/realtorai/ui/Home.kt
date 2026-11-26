@@ -35,6 +35,9 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
     val clients by vm.clients.collectAsState()
     val tasks by vm.tasks.collectAsState()
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    val jobFlow = remember(ctx) { ru.vladis.realtorai.data.WorkspaceDb.get(ctx).agent().recent() }
+    val jobs by jobFlow.collectAsState(emptyList())
+    val work = jobs.firstOrNull { it.state == "running" || it.state == "queued" }
     val prefs = remember { ctx.getSharedPreferences("first_run", 0) }
     var welcome by remember { mutableStateOf(!prefs.getBoolean("seen", false)) }
     fun dismissWelcome() { prefs.edit().putBoolean("seen", true).apply(); welcome = false }
@@ -51,7 +54,9 @@ fun fmtDate(ms: Long): String = dayFmt.format(Date(ms))
         item {
             AppCard {
                 Text("Центр управления", style = MaterialTheme.typography.titleLarge)
-                Text("Поиск, подбор и рабочие планы из данных CRM", color = Muted)
+                Text(work?.let { (if (it.state == "running") "Выполняется: " else "В очереди: ") + it.goal }
+                    ?: "Поиск, подбор и рабочие планы из данных CRM", color = Muted)
+                Text("Завершено в журнале: " + jobs.count { it.state == "done" }, color = Lime)
                 Button(openAgent) { Text("Поручить агенту") }
             }
         }

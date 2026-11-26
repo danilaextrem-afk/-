@@ -28,7 +28,9 @@ fun AgentScreen(vm: MainVm, back: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var submitting by remember { mutableStateOf(false) }
-    val plan = remember(goal) { AgentPlan.fromGoal(goal) }
+    var proposed by remember(goal) { mutableStateOf<List<AgentTool>?>(null) }
+    var planning by remember { mutableStateOf(false) }
+    val plan = proposed ?: remember(goal) { AgentPlan.fromGoal(goal) }
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             TextButton(back) { Text("Назад") }
@@ -39,6 +41,23 @@ fun AgentScreen(vm: MainVm, back: () -> Unit) {
                 Field(goal, { goal = it.take(500) }, "Что поручить агенту?", single = false)
                 VoiceInput({ goal = (goal + " " + it).trim().take(500) }, { error = it })
                 Chips(listOf("Найди выгодные квартиры", "Подбери под бюджет клиента", "Составь план на неделю"), "") { goal = it }
+                if (vm.deviceReady) OutlinedButton({
+                    val request = goal.trim()
+                    planning = true
+                    scope.launch {
+                        try {
+                            val answer = ru.vladis.realtorai.ai.DeviceModel.answer(ctx,
+                                "Верни только до 4 кодов инструментов через запятую без пояснений. FEEDS поиск по источникам и импорт, MATCH подбор покупателю, MARKET цены, LEADS импортированные контакты, WEEK план недели, OWNERS обновить сроки отчётов собственникам. Используй только этот список. Команд отправки и публикации нет.",
+                                listOf("user" to request))
+                            if (request == goal.trim()) proposed = AgentPlan.fromModel(answer)
+                            error = null
+                        } catch (e: CancellationException) { throw e }
+                        catch (e: Exception) { error = e.localizedMessage }
+                        finally { planning = false }
+                    }
+                }, enabled = goal.isNotBlank() && !planning && !submitting) {
+                    Text(if (planning) "Модель планирует…" else "Составить план локальной моделью")
+                }
                 if (AgentTool.MATCH in plan) Box {
                     OutlinedButton({ menu = true }) { Text(buyers.firstOrNull { it.id == client }?.name ?: "Выбрать покупателя") }
                     DropdownMenu(menu, { menu = false }) {
@@ -60,7 +79,7 @@ fun AgentScreen(vm: MainVm, back: () -> Unit) {
                         catch (e: Exception) { error = e.localizedMessage }
                         finally { submitting = false }
                     }
-                }, enabled = !submitting && plan.isNotEmpty() && (AgentTool.MATCH !in plan || client != null)) { Text("Запустить план") }
+                }, enabled = !submitting && !planning && plan.isNotEmpty() && (AgentTool.MATCH !in plan || client != null)) { Text("Запустить план") }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         }

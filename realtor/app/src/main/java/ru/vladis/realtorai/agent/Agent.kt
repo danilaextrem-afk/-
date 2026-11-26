@@ -45,6 +45,14 @@ enum class AgentTool(val label: String, val network: Boolean = false) {
 }
 
 object AgentPlan {
+    fun fromModel(text: String): List<AgentTool> {
+        val trimmed = text.trim()
+        require(trimmed.length <= 80) { "Ответ модели не соответствует формату плана" }
+        val tokens = trimmed.split(',').map(String::trim)
+        require(tokens.size in 1..4 && tokens.distinct().size == tokens.size) { "Некорректный план" }
+        return tokens.map { token -> AgentTool.entries.firstOrNull { it.name == token } ?: error("Инструмент недоступен") }
+    }
+
     fun fromGoal(goal: String): List<AgentTool> {
         val text = goal.lowercase().replace('ё', 'е')
         return buildList {
@@ -63,7 +71,7 @@ class AgentQueue(private val context: Context) {
     private val dao = WorkspaceDb.get(context).agent()
     private val work = WorkManager.getInstance(context)
     suspend fun submit(goal: String, plan: List<AgentTool>, client: Long?) {
-        require(goal.isNotBlank() && goal.length <= 500 && plan.isNotEmpty() && plan == AgentPlan.fromGoal(goal))
+        require(goal.isNotBlank() && goal.length <= 500 && plan.isNotEmpty() && plan.size <= AgentTool.entries.size && plan.distinct().size == plan.size)
         require(AgentTool.MATCH !in plan || client != null && client > 0)
         enqueue(dao.insert(AgentJob(goal = goal, plan = plan.joinToString(",") { it.name }, clientId = client)), plan.any { it.network })
     }

@@ -23,7 +23,7 @@ class OwnerService(private val context: Context) {
 
     suspend fun advance(id: Long, expected: OwnerStep, evidence: String) {
         require(evidence.isNotBlank() && evidence.length <= 4000)
-        db.withTransaction {
+        val finishedTasks = db.withTransaction {
             val current = requireNotNull(dao.get(id))
             check(current.step == expected.name && expected != OwnerStep.FINISHED) { "Этап уже изменился" }
             val step = OwnerRules.next(expected)
@@ -31,8 +31,9 @@ class OwnerService(private val context: Context) {
             dao.save(current.copy(step = step.name, activatedAt = if (expected == OwnerStep.ACTIVATION) now else current.activatedAt))
             dao.event(OwnerEvent(propertyId = id, at = now, kind = "stage", text = "${expected.title}: ${evidence.trim()}"))
             val kind = "owner/$id/stage"
-            db.dao().allTasks().filter { it.kind == kind && !it.done }.forEach { db.dao().saveTask(it.copy(done = true)) }
+            db.dao().allTasks().filter { it.kind == kind && !it.done }.onEach { db.dao().saveTask(it.copy(done = true)) }
         }
+        finishedTasks.forEach { Reminder.cancel(context, it.id) }
         syncTasks()
     }
 
@@ -80,8 +81,12 @@ class OwnerService(private val context: Context) {
             val scheduled = mutableListOf<TaskItem>()
             val cases = dao.active()
             val active = cases.mapTo(mutableSetOf()) { it.id }
+            val closed = mutableListOf<Long>()
             for (task in tasks.filter { !it.done && it.kind.startsWith("owner/") }) {
-                if (task.kind.split('/').getOrNull(1)?.toLongOrNull() !in active) db.dao().saveTask(task.copy(done = true))
+                if (task.kind.split('/').getOrNull(1)?.toLongOrNull() !in active) {
+                    db.dao().saveTask(task.copy(done = true))
+                    closed += task.id
+                }
             }
             suspend fun ensure(kind: String, title: String, due: Long, repeat: Boolean = false) {
                 val open = tasks.firstOrNull { it.kind == kind && !it.done }
@@ -102,9 +107,10 @@ class OwnerService(private val context: Context) {
                     ensure("owner/${case.id}/report", "Отчёт собственнику · ${property.title}", due, true)
                 }
             }
-            scheduled
+            scheduled to closed
         }
-        changes.forEach { Reminder.schedule(context, it.id, it.title, it.dueAt) }
+        changes.second.forEach { Reminder.cancel(context, it) }
+        changes.first.forEach { Reminder.schedule(context, it.id, it.title, it.dueAt) }
     }
 
     companion object {

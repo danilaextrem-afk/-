@@ -38,6 +38,10 @@ import ru.vladis.realtorai.data.Property
             Title("ИИ-ассистент"); Spacer(Modifier.weight(1f))
             TextButton({ vm.clearChat() }) { Text("Очистить") }
         }
+        var importFor by remember { mutableStateOf<ru.vladis.realtorai.ai.ModelSpec?>(null) }
+        val importFile = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+        ) { uri -> if (uri != null) importFor?.let { vm.importModel(it, uri) }; importFor = null }
         var manager by remember { mutableStateOf(false) }
         OutlinedButton({ manager = true }) { Text(if (vm.deviceReady) vm.activeModel.label else "Скачать локальную модель") }
         if (manager) AlertDialog(onDismissRequest = { manager = false }, title = { Text("Модели на устройстве") },
@@ -61,6 +65,9 @@ import ru.vladis.realtorai.data.Property
                         TextButton({ vm.removeModel(spec) }, enabled = !vm.busy && vm.downloading == null) { Text("Удалить веса " + spec.label) }
                     } else TextButton({ vm.installModel(spec) }, enabled = vm.downloading == null) {
                         Text(if (vm.partialModel(spec) > 0) "Продолжить загрузку" else "Скачать")
+                    }
+                    if (!present && spec.file.endsWith(".gguf") && vm.downloading == null) {
+                        TextButton({ importFor = spec; importFile.launch(arrayOf("*/*")) }, enabled = !vm.busy) { Text("Импорт файла GGUF") }
                     }
                 }
                 vm.error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
