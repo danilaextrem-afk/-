@@ -17,7 +17,18 @@ def find(label):
         except (subprocess.CalledProcessError, ET.ParseError):
             time.sleep(1)
             continue
-        for node in root.iter("node"):
+        nodes = list(root.iter("node"))
+        # The emulator launcher can become unresponsive during the first cold boot.
+        # Close only that system dialog and leave Realtor AI crash dialogs visible.
+        if any("Pixel Launcher isn't responding" in node.get("text", "") for node in nodes):
+            for node in nodes:
+                if node.get("resource-id", "").endswith(":id/aerr_close") or node.get("text") == "Close app":
+                    x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
+                    adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
+                    break
+            time.sleep(1)
+            continue
+        for node in nodes:
             if node.get("resource-id", "").endswith(":id/permission_allow_button") and node.get("package", "").endswith("permissioncontroller"):
                 x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
                 adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
