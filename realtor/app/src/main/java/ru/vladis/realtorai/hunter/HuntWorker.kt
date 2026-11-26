@@ -47,7 +47,10 @@ object HuntRun {
             runCatching {
                 val text = withContext(Dispatchers.IO) {
                     http.newCall(Request.Builder().url(s.url).header("User-Agent", "RealtorAI/1.0").build()).execute().use { r ->
-                        if (!r.isSuccessful) error("HTTP ${r.code}"); r.peekBody(5_000_000).string() }
+                        if (!r.isSuccessful) error("HTTP ${r.code}")
+                        val source = checkNotNull(r.body).source()
+                        require(!source.request(5_000_001L)) { "Фид превышает 5 МБ" }
+                        source.readUtf8() }
                 }
                 val source = "feed:${s.name}"
                 val rows = when(s.format) {
@@ -83,10 +86,16 @@ object HuntRun {
 
 class HuntWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
     override suspend fun doWork(): Result {
-        runCatching { ru.vladis.realtorai.automation.LeadInbox.refresh(applicationContext) }.onFailure {
-            if (it is kotlinx.coroutines.CancellationException) throw it
-        }
-        val s = HuntRun.refreshAll(applicationContext); if (ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(applicationContext)) ru.vladis.realtorai.autopilot.AutopilotEngine.sync(applicationContext, s.errors); HuntRun.notifyDeals(applicationContext, s); return Result.success()
+        val leadError = try {
+            if (ru.vladis.realtorai.automation.LeadInbox.connected(applicationContext)) {
+                val result = ru.vladis.realtorai.automation.LeadInbox.refresh(applicationContext)
+                ru.vladis.realtorai.data.WorkspaceDb.get(applicationContext).dao().log(ru.vladis.realtorai.data.RunLog(summary = result))
+            }
+            emptyList()
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (e: Exception) { listOf("Канал заявок: ${e.message}") }
+        val s = HuntRun.refreshAll(applicationContext);
+ if (ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(applicationContext)) ru.vladis.realtorai.autopilot.AutopilotEngine.sync(applicationContext, s.errors + leadError); HuntRun.notifyDeals(applicationContext, s); return Result.success()
     }
     companion object {
         fun schedule(ctx: Context, on: Boolean) {

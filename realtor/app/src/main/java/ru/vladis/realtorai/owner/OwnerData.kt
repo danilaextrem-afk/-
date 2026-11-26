@@ -40,6 +40,8 @@ interface OwnerDao {
     @Query("SELECT * FROM OwnerCase WHERE id=:id") suspend fun get(id: Long): OwnerCase?
     @Query("SELECT * FROM OwnerCase WHERE step != 'FINISHED'") suspend fun active(): List<OwnerCase>
     @Query("SELECT * FROM OwnerEvent WHERE propertyId=:id ORDER BY at DESC, id DESC") fun history(id: Long): Flow<List<OwnerEvent>>
+    @Query("SELECT * FROM OwnerEvent WHERE propertyId=:id AND kind='draft' ORDER BY at DESC LIMIT 1")
+    suspend fun latestDraft(id: Long): OwnerEvent?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun save(record: OwnerCase)
     @Insert suspend fun event(event: OwnerEvent)
     @Query("DELETE FROM OwnerEvent WHERE propertyId=:id") suspend fun clearEvents(id: Long)

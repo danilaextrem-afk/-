@@ -34,7 +34,7 @@ fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             TextButton(back) { Text("Назад") }
-            Title("Поручения агенту")
+            ScreenHeading("Поручения агенту", "Поиск, CRM, отчёты и рабочие задачи")
         }
         item {
             AppCard {
@@ -76,7 +76,11 @@ fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
                 Text(job.goal, style = MaterialTheme.typography.titleLarge)
                 Text((mapOf("queued" to "В очереди", "running" to "Выполняется", "done" to "Выполнено",
                     "waiting" to "Нужно уточнение", "failed" to "Ошибка", "cancelled" to "Отменено")[job.state] ?: job.state) + " · " + fmtDate(job.createdAt), color = Lime)
-                if (job.result.isNotBlank()) SelectionContainer { Text(job.result) }
+                if (job.state == "running" && job.result.isBlank()) LinearProgressIndicator(Modifier.fillMaxWidth())
+                if (job.result.isNotBlank()) {
+                    HorizontalDivider(Modifier.padding(vertical = 6.dp))
+                    SelectionContainer { Text(job.result, style = MaterialTheme.typography.bodyMedium) }
+                }
                 if (job.state == "waiting") TextButton({ answerTo = job; reply = "" }) { Text("Ответить агенту") }
                 if (job.state in listOf("queued", "running")) TextButton({ scope.launch { queue.cancel(job) } }) { Text("Отменить") }
                 if (job.state in listOf("failed", "cancelled")) TextButton({ scope.launch { queue.resume(job) } }) { Text("Продолжить") }

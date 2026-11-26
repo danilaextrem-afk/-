@@ -29,4 +29,18 @@ class AgentQueueTest {
             assertTrue(job.result.contains("Проверено активных объектов:"))
         } finally { db.dao().deleteTask(TaskItem(id = task, title = "", dueAt = 0)) }
     }
+    @Test fun resumesFromCheckpointWithoutRepeatingPriorStep(): Unit = runBlocking {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val dao = WorkspaceDb.get(ctx).agent()
+        val goal = "Проверка сохранённого этапа"
+        val plan = """{"adaptive":false,"pending":[{"tool":"WEEK","args":{}}],"steps":["Предыдущий шаг обработан"]}"""
+        val id = dao.insert(ru.vladis.realtorai.agent.AgentJob(goal = goal, plan = plan, clientId = null, state = "cancelled"))
+        AgentQueue(ctx).resume(checkNotNull(dao.get(id)))
+        val completed = withTimeout(60_000) {
+            dao.recent().first { jobs -> jobs.any { it.id == id && it.state in setOf("done", "failed") } }.first { it.id == id }
+        }
+        assertEquals(completed.result, "done", completed.state)
+        assertEquals(1, Regex("Предыдущий шаг обработан").findAll(completed.result).count())
+        assertTrue(completed.result.contains("План задач на неделю"))
+    }
 }

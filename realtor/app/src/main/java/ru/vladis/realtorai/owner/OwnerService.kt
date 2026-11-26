@@ -107,6 +107,19 @@ class OwnerService(private val context: Context) {
         }
     }
 
+    suspend fun prepareDueReports(now: Long = System.currentTimeMillis()) {
+        for (case in dao.active()) {
+            val reference = case.lastReportAt ?: case.activatedAt ?: continue
+            val due = OwnerRules.reportDue(reference, case.reportsPerWeek, ZoneId.systemDefault())
+            if (due > now || dao.latestDraft(case.id)?.at?.let { it >= due } == true) continue
+            db.withTransaction {
+                if (dao.get(case.id) == case && db.dao().property(case.id) != null &&
+                    dao.latestDraft(case.id)?.at?.let { it >= due } != true)
+                    dao.event(OwnerEvent(propertyId = case.id, at = now, kind = "draft", text = draftReport(case.id)))
+            }
+        }
+    }
+
     suspend fun syncTasks() {
         val changes = db.withTransaction {
             val now = System.currentTimeMillis()
@@ -157,7 +170,9 @@ class OwnerService(private val context: Context) {
 
 class OwnerWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        OwnerService(applicationContext).syncTasks()
+        val service = OwnerService(applicationContext)
+        service.syncTasks()
+        service.prepareDueReports()
         return Result.success()
     }
 }

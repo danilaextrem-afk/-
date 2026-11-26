@@ -185,7 +185,8 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
             item { Title("История работы") }
             items(history, key = { it.id }) { entry ->
                 AppCard {
-                    Text(fmtDate(entry.at), color = Lime)
+                    Text(if (entry.kind == "draft") "Автоматический черновик · " + fmtDate(entry.at) else fmtDate(entry.at), color = Lime)
+                    if (entry.kind == "draft") TextButton({ draft = entry.text }) { Text("Загрузить для проверки") }
                     SelectionContainer { Text(entry.text) }
                 }
             }
@@ -193,7 +194,7 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
     }
     approval?.let { (previous, proposed) ->
         AlertDialog(onDismissRequest = { approval = null }, title = { Text("Изменить цену в CRM?") },
-            text = { Text("${previous.rub()} → ${proposed.rub()}. Для обновления публикаций откройте Smart Publish.") },
+            text = { Text("${previous.rub()} → ${proposed.rub()}. Цена в карточке Smart Publish обновится. Площадки проверяются отдельно.") },
             confirmButton = { Button({
                 approval = null
                 action { service.changePrice(id, previous, proposed); price = "" }

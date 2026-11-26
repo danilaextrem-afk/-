@@ -165,10 +165,11 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             while (!isStopped && dao.get(job.id)?.state == "running") {
                 if (progress.pending.isEmpty()) {
                     if (!progress.adaptive || progress.steps.size >= 8) {
-                        dao.checkpoint(job.id, AgentProtocol.save(progress), progress.steps.joinToString("\n\n"), "done")
+                        val result = progress.steps + if (progress.adaptive) listOf("Выполнено восемь шагов. Проверьте результаты поручения.") else emptyList()
+                        dao.checkpoint(job.id, AgentProtocol.save(progress), result.joinToString("\n\n"), "done")
                         return Result.success()
                     }
-                    val prior = dao.context(job.clientId).filter { it.id != job.id }.firstOrNull()?.result.orEmpty().take(160)
+                    val prior = job.clientId?.let { dao.context(it).firstOrNull()?.result }.orEmpty().take(160)
                     val decision = decide(job, progress, prior)
                     if (decision.action == null) {
                         val message = decision.question ?: decision.finish.orEmpty()
@@ -200,7 +201,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
 
     private suspend fun decide(job: AgentJob, progress: AgentProgress, prior: String): AgentDecision {
         val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market}; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Если данных критически не хватает, ask."""
-        val brief = "Цель: ${job.goal.takeLast(440)}. Клиент ID: ${job.clientId ?: "нет"}. Память: $prior. Результаты: ${progress.steps.map { it.take(310) }.joinToString().takeLast(510)}"
+        val brief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Клиент ID: ${job.clientId ?: "нет"}. Память: $prior. Результаты: ${progress.steps.map { it.take(310) }.joinToString().takeLast(510)}"
         val messages = listOf("user" to brief)
         val first = DeviceModel.answer(applicationContext, system, messages)
         return try { AgentProtocol.parse(first) } catch (_: RuntimeException) {
