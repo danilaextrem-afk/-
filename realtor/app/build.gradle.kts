@@ -12,7 +12,10 @@ android {
         minSdk = 26; targetSdk = 35
         versionCode = 8; versionName = "0.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        ndk { abiFilters += "arm64-v8a" }
+        ndk {
+            abiFilters += "arm64-v8a"
+            if (providers.gradleProperty("emulatorAbi").isPresent) abiFilters += "x86_64"
+        }
     }
     buildFeatures { compose = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
