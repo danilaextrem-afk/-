@@ -43,7 +43,7 @@ object GeoScope {
         if (boundaries != null) return
         synchronized(this) {
             if (boundaries != null) return
-            val data = java.util.zip.GZIPInputStream(ctx.assets.open("moscow-boundaries.json.gz")).bufferedReader().use { JsonParser.parseReader(it).asJsonObject }
+            val data = readGeometry(ctx, "moscow-boundaries.json").asJsonObject
             val parsed = data.entrySet().associate { (key, polygons) ->
                 key to polygons.asJsonArray.map { polygon ->
                     polygon.asJsonArray.mapNotNull { ring ->
@@ -52,13 +52,21 @@ object GeoScope {
                     }
                 }
             }
-            mkad = java.util.zip.GZIPInputStream(ctx.assets.open("mkad.json.gz")).bufferedReader().use { reader ->
-                    JsonParser.parseReader(reader).asJsonArray.map { way ->
-                        way.asJsonArray.map { pair -> Point(pair.asJsonArray[0].asDouble, pair.asJsonArray[1].asDouble) }
-                    }
-                }
+            mkad = readGeometry(ctx, "mkad.json").asJsonArray.map { way ->
+                way.asJsonArray.map { pair -> Point(pair.asJsonArray[0].asDouble, pair.asJsonArray[1].asDouble) }
+            }
             boundaries = parsed
         }
+    }
+
+    private fun readGeometry(ctx: Context, name: String): com.google.gson.JsonElement {
+        // AAPT expands .gz assets and removes the suffix when packaging.
+        val stream = try {
+            ctx.assets.open(name)
+        } catch (_: java.io.FileNotFoundException) {
+            java.util.zip.GZIPInputStream(ctx.assets.open("$name.gz"))
+        }
+        return stream.bufferedReader().use { JsonParser.parseReader(it) }
     }
 
     fun normalize(value: String) = value.lowercase(Locale.ROOT).replace('ё','е').trim().replace(Regex("\\s+"), " ")

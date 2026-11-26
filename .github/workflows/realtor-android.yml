@@ -33,11 +33,11 @@ jobs:
       - name: Verify APK
         run: |
           mkdir dist
-          cp realtor/app/build/outputs/apk/debug/app-debug.apk dist/RealtorAI-1.0-rc3-debug.apk
-          (cd dist && sha256sum RealtorAI-1.0-rc3-debug.apk > SHA256SUMS.txt)
+          cp realtor/app/build/outputs/apk/debug/app-debug.apk dist/RealtorAI-1.0-rc4-debug.apk
+          (cd dist && sha256sum RealtorAI-1.0-rc4-debug.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: RealtorAI-1.0-rc3-Android-debug
+          name: RealtorAI-1.0-rc4-Android-debug
           path: dist/
           if-no-files-found: error
       - name: Build and verify the installable release candidate
@@ -45,18 +45,20 @@ jobs:
         run: |
           gradle --no-daemon :app:assemblePreview
           mkdir -p ../candidate
-          cp app/build/outputs/apk/preview/app-preview.apk ../candidate/RealtorAI-1.0-rc3.apk
+          cp app/build/outputs/apk/preview/app-preview.apk ../candidate/RealtorAI-1.0-rc4.apk
           apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$apksigner" verify --verbose --print-certs ../candidate/RealtorAI-1.0-rc3.apk
+          "$apksigner" verify --verbose --print-certs ../candidate/RealtorAI-1.0-rc4.apk
           aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$aapt" dump badging ../candidate/RealtorAI-1.0-rc3.apk > ../candidate/manifest.txt
-          grep -F "package: name='ru.vladis.realtorai.preview3'" ../candidate/manifest.txt
+          "$aapt" dump badging ../candidate/RealtorAI-1.0-rc4.apk > ../candidate/manifest.txt
+          grep -F "package: name='ru.vladis.realtorai.preview4'" ../candidate/manifest.txt
           grep -E "^native-code: 'arm64-v8a'[[:space:]]*$" ../candidate/manifest.txt
           if grep -Fx 'application-debuggable' ../candidate/manifest.txt; then exit 1; fi
-          (cd ../candidate && sha256sum RealtorAI-1.0-rc3.apk > SHA256SUMS.txt)
+          unzip -p ../candidate/RealtorAI-1.0-rc4.apk assets/moscow-boundaries.json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert all(d[name] for name in ("moscow","oblast","new-moscow"))'
+          unzip -p ../candidate/RealtorAI-1.0-rc4.apk assets/mkad.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)) > 100'
+          (cd ../candidate && sha256sum RealtorAI-1.0-rc4.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: RealtorAI-1.0-rc3
+          name: RealtorAI-1.0-rc4
           path: candidate/
           if-no-files-found: error
       - name: Enable KVM
@@ -126,12 +128,12 @@ jobs:
           "$sdkmanager" 'platforms;android-35' 'build-tools;35.0.0' 'cmake;3.22.1' 'ndk;27.2.12479018'
           gradle --no-daemon :app:assembleRelease
           mkdir -p ../release
-          cp app/build/outputs/apk/release/app-release.apk ../release/RealtorAI-1.0-rc3-signed.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs ../release/RealtorAI-1.0-rc3-signed.apk
-          (cd ../release && sha256sum RealtorAI-1.0-rc3-signed.apk > SHA256SUMS.txt)
+          cp app/build/outputs/apk/release/app-release.apk ../release/RealtorAI-1.0-rc4-signed.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs ../release/RealtorAI-1.0-rc4-signed.apk
+          (cd ../release && sha256sum RealtorAI-1.0-rc4-signed.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         if: steps.signing.outputs.configured == 'true'
         with:
-          name: RealtorAI-1.0-rc3-signed
+          name: RealtorAI-1.0-rc4-signed
           path: release/
           if-no-files-found: error
