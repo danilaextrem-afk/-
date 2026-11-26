@@ -27,19 +27,56 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
     var agency by remember { mutableStateOf(vm.agencyPct.toString()) }
     var share by remember { mutableStateOf(vm.sharePct.toString()) }
     var status by remember { mutableStateOf("") }
-    val exp = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        if (uri != null) scope.launch {
-            runCatching { vm.exportBackup(uri) }.onSuccess { status = "Копия сохранена" }
-                .onFailure { status = "Ошибка сохранения: ${it.message}" }
-        }
+    var selected by remember { mutableStateOf<android.net.Uri?>(null) }
+    var exporting by remember { mutableStateOf(false) }
+    var askPassword by remember { mutableStateOf(false) }
+    var restoreLegacy by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    val exp = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri != null) { selected = uri; exporting = true; askPassword = true }
     }
     val imp = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
-            runCatching {
-                vm.importBackup(uri)
-            }.onSuccess { status = "Данные восстановлены" }.onFailure { status = "Ошибка импорта файла" }
+            runCatching { vm.isEncryptedBackup(uri) }.onSuccess {
+                selected = uri
+                exporting = false
+                if (it) askPassword = true else restoreLegacy = true
+            }.onFailure { status = "Не удалось открыть копию" }
         }
     }
+
+    fun transfer(password: CharArray?) {
+        val uri = selected ?: return
+        val save = exporting
+        askPassword = false
+        restoreLegacy = false
+        busy = true
+        scope.launch {
+            try {
+                if (save) vm.exportBackup(uri, requireNotNull(password)) else vm.importBackup(uri, password)
+                status = if (save) "Защищённая копия сохранена" else "Данные восстановлены"
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) {
+                status = if (e is javax.crypto.AEADBadTagException) "Пароль неверен или архив повреждён"
+                    else "Операция не завершена: " + (e.localizedMessage ?: "ошибка чтения")
+            } finally { password?.fill('\u0000'); busy = false; selected = null }
+        }
+    }
+
+    if (askPassword) {
+        var password by remember { mutableStateOf("") }
+        AlertDialog(onDismissRequest = { askPassword = false }, title = { Text(if (exporting) "Пароль резервной копии" else "Восстановить рабочую базу?") },
+            text = { Column {
+                if (!exporting) Text("Данные в приложении будут заменены содержимым копии.")
+                Field(password, { password = it.take(256) }, "Пароль, от 8 символов", password = true)
+            } }, confirmButton = { Button({ transfer(password.toCharArray()) }, enabled = password.length >= 8) {
+                Text(if (exporting) "Зашифровать и сохранить" else "Восстановить")
+            } }, dismissButton = { TextButton({ askPassword = false }) { Text("Отмена") } })
+    }
+    if (restoreLegacy) AlertDialog(onDismissRequest = { restoreLegacy = false }, title = { Text("Восстановить старую копию?") },
+        text = { Text("Данные в приложении будут заменены содержимым копии.") },
+        confirmButton = { Button({ transfer(null) }) { Text("Восстановить") } },
+        dismissButton = { TextButton({ restoreLegacy = false }) { Text("Отмена") } })
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("Настройки") } }
         item { AppCard {
@@ -67,10 +104,10 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
                 Text("Резервная копия", fontWeight = FontWeight.SemiBold)
                 Text("Рабочая база и фотографии", color = Muted)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton({ exp.launch("realtor-ai.zip") }) { Text("Экспорт") }
-                    OutlinedButton({ imp.launch(arrayOf("application/json", "*/*")) }) { Text("Импорт") }
+                    OutlinedButton({ exp.launch("realtor-ai.raibak") }, enabled = !busy) { Text("Защищённый экспорт") }
+                    OutlinedButton({ imp.launch(arrayOf("*/*")) }, enabled = !busy) { Text("Импорт") }
                 }
-                Text("Архив восстанавливает CRM, поиск, историю цен, публикации, фотографии и журнал. Старая JSON-копия восстанавливает только CRM.", color = Muted, style = MaterialTheme.typography.bodySmall)
+                Text("Архив защищён паролем. Он включает CRM, поиск, цены, публикации, фотографии, сопровождение и поручения.", color = Muted, style = MaterialTheme.typography.bodySmall)
             }
         }
         item {

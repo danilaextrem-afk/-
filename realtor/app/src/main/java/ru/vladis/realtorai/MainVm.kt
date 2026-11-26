@@ -213,12 +213,27 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    suspend fun exportBackup(uri: android.net.Uri) = withContext(Dispatchers.IO) {
-        checkNotNull(ctx.contentResolver.openOutputStream(uri, "wt")).use { WorkspaceBackup.write(ctx, db, it) }
+    suspend fun exportBackup(uri: android.net.Uri, password: CharArray) = withContext(Dispatchers.IO) {
+        checkNotNull(ctx.contentResolver.openOutputStream(uri, "wt")).use { raw ->
+            BackupEncryption.output(raw, password).use { encrypted -> WorkspaceBackup.write(ctx, db, encrypted) }
+        }
     }
 
-    suspend fun importBackup(uri: android.net.Uri) = withContext(Dispatchers.IO) {
-        val previous = checkNotNull(ctx.contentResolver.openInputStream(uri)).use { WorkspaceBackup.read(ctx, db, it) }
+    suspend fun isEncryptedBackup(uri: android.net.Uri): Boolean = withContext(Dispatchers.IO) {
+        checkNotNull(ctx.contentResolver.openInputStream(uri)).buffered().use(BackupEncryption::detected)
+    }
+
+    suspend fun importBackup(uri: android.net.Uri, password: CharArray? = null) = withContext(Dispatchers.IO) {
+        val previous = checkNotNull(ctx.contentResolver.openInputStream(uri)).buffered().use { input ->
+            if (!BackupEncryption.detected(input)) WorkspaceBackup.read(ctx, db, input)
+            else {
+                val temporary = java.io.File.createTempFile("restore-", ".zip", ctx.cacheDir)
+                try {
+                    temporary.outputStream().use { BackupEncryption.decrypt(input, it, requireNotNull(password)) }
+                    temporary.inputStream().use { WorkspaceBackup.read(ctx, db, it) }
+                } finally { temporary.delete() }
+            }
+        }
         previous.forEach { Reminder.cancel(ctx, it.id) }
         dao.allTasks().filterNot { it.done }.forEach { Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
     }
