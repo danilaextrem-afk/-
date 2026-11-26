@@ -138,9 +138,10 @@ object DeviceModel {
             check(part.renameTo(file(ctx, spec))) { "Не удалось сохранить модель" }
         } }
 
-    suspend fun answer(ctx: Context, system: String, messages: List<Pair<String, String>>, onPartial: ((String) -> Unit)? = null): String =
-        generationLock.withLock { withContext(Dispatchers.IO) {
-            val spec = selected(ctx)
+    suspend fun answer(
+        ctx: Context, system: String, messages: List<Pair<String, String>>,
+        spec: ModelSpec = selected(ctx), onPartial: ((String) -> Unit)? = null
+    ): String = generationLock.withLock { withContext(Dispatchers.IO) {
             check(installed(ctx, spec)) { "Скачайте выбранную модель" }
             if (Build.VERSION.SDK_INT >= 29) check(ctx.getSystemService(PowerManager::class.java).currentThermalStatus < PowerManager.THERMAL_STATUS_SEVERE) { "Устройство перегрето. Повторите после охлаждения." }
             val mem = ActivityManager.MemoryInfo().also { ctx.getSystemService(ActivityManager::class.java).getMemoryInfo(it) }
