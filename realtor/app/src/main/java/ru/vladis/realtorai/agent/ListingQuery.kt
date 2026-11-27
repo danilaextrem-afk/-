@@ -15,7 +15,7 @@ internal data class ListingQuery(
     val place: String = "", val budget: Long = Long.MAX_VALUE,
     val rooms: Int? = null, val minArea: Double = 0.0,
     val market: String? = null, val seller: String? = null,
-    val address: String = "", val station: String = ""
+    val address: String = "", val station: String = "", val cheapestFirst: Boolean = false
 ) {
     fun matches(offer: Offer): Boolean {
         return GeoScope.eligible(offer) && offer.deal == "sale" && offer.price in 1..budget &&
@@ -97,13 +97,14 @@ internal object ListingSearch {
             ru.vladis.realtorai.autopilot.AutoRules.urlKey(it)
         }
         val previouslyShown = offers.filter { identity(it) in seen || "record:${it.id}" in seen }
+        val order = compareByDescending<Offer> { ListingOrigin.ownerApartment(it) }
+        val ranked = if (query.cheapestFirst) order.thenBy { it.price }.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }
+            else order.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }.thenBy { it.price }
         val candidates = offers.asSequence().filter {
             query.matches(it) && geography.matches(it) && identity(it) != null &&
                 !it.source.startsWith("Торги.Открыто") &&
                 GeoScope.normalize(it.housingKind.orEmpty()) in setOf("", "квартира", "квартиры", "flat", "apartment")
-        }.sortedWith(compareByDescending<Offer> { ListingOrigin.ownerApartment(it) }
-            .thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }
-            .thenBy { it.price })
+        }.sortedWith(ranked)
         val selected = mutableListOf<Offer>()
         for (offer in candidates) {
             val key = identity(offer)
@@ -125,6 +126,7 @@ internal object ListingSearch {
         val report = if (update != null && update.errors.isNotEmpty()) {
             answer + "\n\nЧасть источников не ответила: " + update.errors.take(3).joinToString(" · ")
         } else answer
-        return ListingReply(report, selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}") })
+        return ListingReply(report, selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}") },
+            selected.minOfOrNull { it.price })
     }
 }

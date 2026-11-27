@@ -272,7 +272,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun clearChat() {
         if (busy) return
         chat.clear()
-        saveSearchConversation(searchConversation.copy(current = null, seen = emptyList()))
+        saveSearchConversation(searchConversation.copy(current = null, seen = emptyList(), lastLowestPrice = null))
         saveTranscript()
         cloudHistory.clear()
         previousRequest = null
@@ -340,7 +340,10 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                     val reply = withContext(Dispatchers.IO) {
                         ListingSearch.results(ctx, db, search.query, refresh = true, seen = previous.toSet())
                     }
-                    saveSearchConversation(searchConversation.copy(current = search.query, seen = (previous + reply.keys).distinct().takeLast(600)))
+                    val recent = (searchConversation.recent.orEmpty() + search.query).takeLast(30)
+                    saveSearchConversation(searchConversation.copy(current = search.query,
+                        seen = (previous + reply.keys).distinct().takeLast(600), recent = recent,
+                        lastLowestPrice = reply.lowestPrice ?: searchConversation.lastLowestPrice.takeIf { search.kind == "refine" }))
                     chat.add("listings" to Gson().toJson(reply.copy(keys = emptyList())))
                     saveTranscript()
                     return@launch

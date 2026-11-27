@@ -8,11 +8,13 @@ import ru.vladis.realtorai.hunter.GeoScope
 internal data class SearchConversation(
     val current: ListingQuery? = null,
     val preferences: ListingQuery = ListingQuery(),
-    val seen: List<String> = emptyList()
+    val seen: List<String> = emptyList(),
+    val recent: List<ListingQuery>? = null,
+    val lastLowestPrice: Long? = null
 )
 
 internal data class SearchTurn(val kind: String, val query: ListingQuery)
-internal data class ListingReply(val text: String, val ids: List<Long> = emptyList(), val keys: List<String> = emptyList())
+internal data class ListingReply(val text: String, val ids: List<Long> = emptyList(), val keys: List<String> = emptyList(), val lowestPrice: Long? = null)
 
 internal object SearchLanguage {
     private val gson = Gson()
@@ -23,6 +25,7 @@ internal object SearchLanguage {
         «Ещё», «следующие», «а в Химках?», «до 15 миллионов», «теперь только двушки» после выдачи означают refine.
         Вопрос о недвижимости сам по себе не всегда означает поиск.
         Для search/refine/remember верни {"kind":"...","criteria":{...}}. Для chat верни {"kind":"chat"}.
+        Если пользователь просит «подешевле» относительно выдачи, передай cheaper: true.
         Поля criteria: area (район или город), budget (верхняя цена целым числом в рублях), rooms (целое, 0 для студии),
         minArea (м²), market (primary или secondary), seller (owner/developer/agent), address, station.
         Указывай только ограничения из нового сообщения, не додумывай. Чтобы снять ограничение передай null.
@@ -45,8 +48,15 @@ internal object SearchLanguage {
         if (kind !in setOf("search", "refine", "remember")) return null
         val values = value.get("criteria")?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
         val base = if (kind == "refine") state.current ?: state.preferences else state.preferences
-        return SearchTurn(kind, patch(base, values))
+        val result = patch(base, values)
+        val cheaper = value.get("cheaper")?.takeIf { it.isJsonPrimitive }?.asString == "true"
+        return SearchTurn(kind, if (kind == "refine" && cheaper) cheaper(result, state.lastLowestPrice) else result)
     }
+
+    private fun cheaper(query: ListingQuery, previous: Long?): ListingQuery = query.copy(
+        budget = previous?.takeIf { it > 1 }?.let { minOf(query.budget, it - 1) } ?: query.budget,
+        cheapestFirst = true
+    )
 
     private fun patch(base: ListingQuery, value: JsonObject): ListingQuery {
         fun field(key: String) = value.get(key)?.takeIf { it.isJsonPrimitive }?.asString?.trim()
@@ -67,15 +77,19 @@ internal object SearchLanguage {
         val clean = GeoScope.normalize(text)
         val prior = state.current
         val inferred = ListingQuery.read(text)
-        val continuation = prior != null && (inferred != ListingQuery() || clean in
-            setOf("еще", "еще варианты", "давай еще", "продолжай", "следующие", "еще есть", "что еще есть"))
+        val more = clean in setOf("еще", "еще варианты", "давай еще", "продолжай", "следующие", "еще есть", "что еще есть")
+        val wantsCheaper = "подешевле" in clean || clean == "дешевле"
+        val qualifier = listOf("а ", "теперь ", "только ", "до ", "не дороже ", "не больше ", "без ").any(clean::startsWith)
+        val continuation = prior != null && (more || wantsCheaper || qualifier && inferred != ListingQuery())
         if (!continuation && !ListingSearch.accepts(text)) return null
         val base = if (continuation) requireNotNull(prior) else state.preferences
-        return SearchTurn(if (continuation) "refine" else "search", base.copy(
+        val query = base.copy(
             place = inferred.place.ifBlank { base.place }, address = inferred.address.ifBlank { base.address },
             station = inferred.station.ifBlank { base.station }, budget = inferred.budget.takeUnless { it == Long.MAX_VALUE } ?: base.budget,
             rooms = inferred.rooms ?: base.rooms, minArea = inferred.minArea.takeIf { it > 0 } ?: base.minArea,
             market = inferred.market ?: base.market, seller = inferred.seller ?: base.seller
-        ))
+        )
+        return SearchTurn(if (continuation) "refine" else "search",
+            if (wantsCheaper && continuation) cheaper(query, state.lastLowestPrice) else query)
     }
 }
