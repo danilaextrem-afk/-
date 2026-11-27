@@ -112,8 +112,10 @@ object GeoScope {
     fun searchableProperties(properties: List<Property>, offers: List<Offer>, scope: GeoQuery): List<Property> {
         val bySource = HashMap<String, Offer>()
         val byUrl = HashMap<String, Offer>()
+        val activeIds = HashSet<Long>()
         for (offer in offers) {
             if (!eligible(offer) || !scope.matches(offer)) continue
+            activeIds += offer.id
             ru.vladis.realtorai.autopilot.AutoRules.sourceKey(offer)?.let { bySource[it] = offer }
             ru.vladis.realtorai.autopilot.AutoRules.urlKey(offer.url)?.let { byUrl[it] = offer }
         }
@@ -121,7 +123,9 @@ object GeoScope {
             val source = property.description.lineSequence().firstOrNull { it.startsWith("[AUTO-SOURCE:") }
             val tracked = source != null || property.description.lineSequence().firstOrNull()?.startsWith("Источник: ") == true
             val link = ru.vladis.realtorai.autopilot.AutoRules.urlKey(property.url)
-            if (tracked) (source != null && bySource.containsKey(source)) || (link != null && byUrl.containsKey(link))
+            val sourceId = property.sourceOfferId
+            if (sourceId != null) sourceId in activeIds
+            else if (tracked) (source != null && bySource.containsKey(source)) || (link != null && byUrl.containsKey(link))
             else scope.matches(Offer(source = "CRM", address = property.address, region = property.region))
         }
     }

@@ -6,7 +6,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 
 object ListingOrigin {
-    data class Original(val url: String, val id: String)
+    data class Original(val url: String, val id: String, val identity: String)
     private val numeric = Regex("[0-9]{5,}")
     private val slugId = Regex("(?:.*_)?([0-9]{5,})")
     private val lotId = Regex("[A-Za-z0-9_-]{4,100}")
@@ -35,7 +35,9 @@ object ListingOrigin {
             hostIs("torgiopen.ru") -> last.takeIf { path.size == 2 && path[0] == "lot" && it.matches(lotId) }
             else -> offer.externalId.trim().takeIf { it.matches(lotId) && path.size >= 2 && last == it && path[path.lastIndex - 1] in setOf("listing", "listings", "offer", "offers", "property", "properties", "object", "objects") }
         } ?: return null
-        return Original(url.newBuilder().query(null).fragment(null).build().toString(), id)
+        val provider = listOf("cian.ru", "avito.ru", "domclick.ru", "realty.yandex.ru", "move.ru", "mirkvartir.ru", "torgiopen.ru")
+            .firstOrNull(::hostIs) ?: host.removePrefix("www.")
+        return Original(url.newBuilder().query(null).fragment(null).build().toString(), id, "$provider:$id")
     }
 
     fun photos(value: String?): List<String> = value.orEmpty().lineSequence().flatMap { it.split('|').asSequence() }
@@ -62,5 +64,5 @@ object ListingOrigin {
     }
 
     fun ownerApartment(offer: Offer): Boolean = offer.seller == "owner" && offer.market == "secondary" &&
-        GeoScope.normalize(offer.housingKind.orEmpty()) in setOf("квартира", "квартиры", "apartment", "flat")
+        GeoScope.normalize(offer.housingKind.orEmpty()) in setOf("", "квартира", "квартиры", "apartment", "flat")
 }

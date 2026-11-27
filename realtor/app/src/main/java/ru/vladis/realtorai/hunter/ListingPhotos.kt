@@ -39,10 +39,11 @@ private object PhotoLoader {
     private val client = OkHttpClient.Builder()
         .proxy(Proxy.NO_PROXY)
         .followSslRedirects(false)
-        .dns { hostname ->
-            Dns.SYSTEM.lookup(hostname).filter(::publicAddress).takeIf { it.isNotEmpty() }
-                ?: throw UnknownHostException("Photo host is not public")
-        }
+        .dns(object : Dns {
+            override fun lookup(hostname: String): List<InetAddress> =
+                Dns.SYSTEM.lookup(hostname).filter { publicAddress(it) }.takeIf { it.isNotEmpty() }
+                    ?: throw UnknownHostException("Photo host is not public")
+        })
         .callTimeout(12, TimeUnit.SECONDS).build()
 
     private fun publicAddress(ip: InetAddress): Boolean {

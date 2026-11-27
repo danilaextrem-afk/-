@@ -93,9 +93,7 @@ internal object ListingSearch {
         val update = if (refresh) HuntRun.refreshAll(ctx, includeCatalog = false) else null
         val geography = GeoPreferences.read(ctx)
         val offers = db.hunter().allOffers()
-        fun identity(offer: Offer): String? = ListingOrigin.original(offer)?.url?.let {
-            ru.vladis.realtorai.autopilot.AutoRules.urlKey(it)
-        }
+        fun identity(offer: Offer): String? = ListingOrigin.original(offer)?.identity
         val previouslyShown = offers.filter { identity(it) in seen || "record:${it.id}" in seen }
         val order = compareByDescending<Offer> { ListingOrigin.ownerApartment(it) }
         val ranked = if (query.cheapestFirst) order.thenBy { it.price }.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }

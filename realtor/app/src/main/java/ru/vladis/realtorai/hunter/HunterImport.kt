@@ -41,12 +41,12 @@ object HunterImport {
         "seller" to listOf("продавец", "seller", "seller_type"),
         "expiry" to listOf("действует до", "expires_at", "expiresAt", "expiresat"),
         "status" to listOf("статус", "status", "active"),
-        "owner_name" to listOf("owner_name", "имя собственника"),
-        "owner_phone" to listOf("owner_phone", "телефон собственника"),
+        "owner_name" to listOf("owner_name", "ownername", "contact_name", "имя собственника"),
+        "owner_phone" to listOf("owner_phone", "ownerphone", "contact_phone", "телефон собственника"),
         "crm_allowed" to listOf("crm_allowed", "разрешен импорт контакта"),
         "photos" to listOf("photos", "photo_urls", "images", "image", "photo", "фото"),
         "description" to listOf("description", "описание"),
-        "updated_at" to listOf("updated_at", "updatedat", "last_update_date", "дата обновления"),
+        "updated_at" to listOf("updated_at", "updatedat", "last_updated", "lastupdated", "last_update_date", "дата обновления"),
         "id" to listOf("id", "external_id", "listing_id"), "title" to listOf("заголовок", "title"), "deal" to listOf("сделка", "deal"), "market" to listOf("рынок", "market"))
 
     private fun num(s: String?): Double? = s?.filter { it.isDigit() || it == ',' || it == '.' || it == '-' }?.replace(',', '.')?.toDoubleOrNull()
@@ -117,7 +117,7 @@ object HunterImport {
     fun plan(existing: List<Offer>, rows: List<Offer>, now: Long): Plan {
         val known = HashMap<String, Offer>()
         fun keys(o: Offer) = listOfNotNull(o.externalId.takeIf { it.isNotBlank() }?.let { "${o.source}|e|$it" },
-            ListingOrigin.original(o)?.url?.let { "${o.source}|u|$it" }, o.fingerprint.takeIf { it.length > 6 }?.let { "${o.source}|f|$it" })
+            ListingOrigin.original(o)?.identity?.let { "${o.source}|u|$it" }, o.fingerprint.takeIf { it.length > 6 }?.let { "${o.source}|f|$it" })
         existing.forEach { o -> keys(o).forEach { known[it] = o } }
         val ins = mutableListOf<Offer>(); val upd = mutableListOf<Pair<Offer, Boolean>>(); var skipped = 0
         val updatedIds = mutableSetOf<Long>()
@@ -147,9 +147,9 @@ object HunterImport {
         for (row in rows) {
             if (row.active && row.expiresAt?.let { it <= now } != true && GeoScope.region(row) != null) continue
             val sourceId = row.externalId.takeIf { it.isNotBlank() }
-            val url = ListingOrigin.original(row)?.url
+            val url = ListingOrigin.original(row)?.identity
             val existing = old.values.firstOrNull { it.source == row.source &&
-                (sourceId != null && it.externalId == sourceId || url != null && ListingOrigin.original(it)?.url == url) }
+                (sourceId != null && it.externalId == sourceId || url != null && ListingOrigin.original(it)?.identity == url) }
             if (existing?.active == true) dao.saveOffer(existing.copy(active = false))
         }
         val p = plan(old.values.toList(), rows, now)

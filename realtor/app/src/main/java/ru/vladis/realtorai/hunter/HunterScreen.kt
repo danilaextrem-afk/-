@@ -319,9 +319,9 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
                 runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(original.url))) }
                     .onFailure { message = "Не удалось открыть браузер" }
             }, Modifier.fillMaxWidth()) { Text("Открыть оригинал объявления") }
+            if (o.seller == "owner") (o.contactName ?: o.ownerName)?.let { Text(it) }
             if (contact == null) Text("Источник не предоставил номер собственника", color = Muted)
             else {
-                (o.contactName ?: o.ownerName)?.let { Text(it) }
                 OutlinedButton({
                     runCatching { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", contact, null))) }
                         .onFailure { message = "Не удалось открыть приложение для звонков" }
