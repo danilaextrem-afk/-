@@ -36,6 +36,14 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     var hasKey by mutableStateOf(store.apiKey.isNotBlank()); private set
     var model by mutableStateOf(store.model); private set
+    var cloudReady by mutableStateOf(CloudAi.enabled(ctx)); private set
+    fun configureCloud(key: String?, enabled: Boolean) {
+        if (key != null) store.cloudKey = key.trim()
+        store.cloudEnabled = enabled && store.cloudKey.isNotBlank()
+        cloudReady = CloudAi.enabled(ctx)
+    }
+    fun removeCloud() = configureCloud("", false)
+    suspend fun testCloud(): String = CloudAi.answer(ctx, "Ответь одним словом по-русски.", "Скажи: готово")
     var agencyPct by mutableStateOf(store.agencyPct); private set
     var sharePct by mutableStateOf(store.sharePct); private set
 
@@ -226,7 +234,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             }
             return
         }
-        if (!deviceReady) { error = "Сначала скачайте локальную модель"; return }
+        if (!deviceReady && !cloudReady) { error = "Подключите облачный ИИ или скачайте локальную модель"; return }
         val system = Prompts.BASE + " " + (Prompts.modes.firstOrNull { it.first == mode }?.second ?: "")
         val content = buildString {
             c?.let { appendLine("Клиент: ${it.name.take(50)}; бюджет ${it.budget} ₽; ${listOfNotNull(it.searchArea, it.desiredKind, it.wishes).joinToString().take(100)}. ${it.notes.take(80)}") }
@@ -244,7 +252,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         chat.add("user" to text); error = null; busy = true
         generationJob = viewModelScope.launch {
             try {
-                val answer = DeviceModel.answer(ctx, system, hist) { partial ->
+                val answer = if (cloudReady) CloudAi.answer(ctx, system, text) else DeviceModel.answer(ctx, system, hist) { partial ->
                     viewModelScope.launch { if (generationJob?.isActive == true) streamingAnswer = partial }
                 }
                 chat.add("assistant" to answer)

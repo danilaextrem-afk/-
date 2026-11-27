@@ -15,6 +15,13 @@ class Store(ctx: Context) {
     var apiKey: String
         get() = "" // local-only build: cloud AI disabled
         set(v) { secure.edit().putString("groq_key", v).apply() }
+    // Separate opt-in key: legacy import/publish paths remain local-only.
+    var cloudKey: String
+        get() = secure.getString("groq_cloud_key", "").orEmpty()
+        set(v) { secure.edit().putString("groq_cloud_key", v).apply() }
+    var cloudEnabled: Boolean
+        get() = plain.getBoolean("groq_cloud_enabled", false)
+        set(v) { plain.edit().putBoolean("groq_cloud_enabled", v).apply() }
     var model: String
         get() = plain.getString("model", "llama-3.3-70b-versatile") ?: "llama-3.3-70b-versatile"
         set(v) { plain.edit().putString("model", v).apply() }

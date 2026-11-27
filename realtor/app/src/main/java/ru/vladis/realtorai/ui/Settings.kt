@@ -24,6 +24,9 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var model by remember { mutableStateOf(vm.model) }
+    var cloudKey by remember { mutableStateOf("") }
+    var cloudConsent by remember { mutableStateOf(false) }
+    var cloudTesting by remember { mutableStateOf(false) }
     var agency by remember { mutableStateOf(vm.agencyPct.toString()) }
     var share by remember { mutableStateOf(vm.sharePct.toString()) }
     var status by remember { mutableStateOf("") }
@@ -82,6 +85,35 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
         item {
             Text("Внешний вид", style = MaterialTheme.typography.titleLarge)
             Chips(listOf("Системная", "Тёмная", "Светлая"), theme, setTheme)
+        }
+        item {
+            AppCard {
+                Text("Облачный ИИ · GPT-OSS 120B", fontWeight = FontWeight.SemiBold)
+                Text(if (vm.cloudReady) "Облачный режим включён" else "Локальный режим", color = Muted)
+                Text("Запросы в облачном режиме отправляются в Groq. Не вводите персональные данные клиентов. Карточки CRM и история чата автоматически не передаются. Квоты и тарифы определяет Groq.", color = Muted)
+                Field(cloudKey, { cloudKey = it.trim().take(300) }, "API-ключ Groq", password = true)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(cloudConsent, { cloudConsent = it })
+                    Text("Разрешаю отправку моих запросов в Groq")
+                }
+                Button({
+                    vm.configureCloud(cloudKey, true)
+                    cloudKey = ""
+                    status = "Ключ сохранён на устройстве"
+                }, enabled = cloudConsent && cloudKey.startsWith("gsk_") && cloudKey.length > 20) { Text("Подключить") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton({
+                        cloudTesting = true
+                        scope.launch {
+                            try { vm.testCloud(); status = "Groq: соединение проверено" }
+                            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                            catch (e: Exception) { status = e.localizedMessage ?: "Ошибка подключения" }
+                            finally { cloudTesting = false }
+                        }
+                    }, enabled = vm.cloudReady && !cloudTesting) { Text("Проверить") }
+                    TextButton({ vm.removeCloud(); status = "Ключ удалён с устройства" }) { Text("Отключить") }
+                }
+            }
         }
         item {
             AppCard {

@@ -138,7 +138,7 @@ class AgentQueue(private val context: Context) {
     }
     suspend fun adaptive(goal: String, client: Long?) {
         require(goal.isNotBlank() && goal.length <= 500)
-        require(DeviceModel.installed(context)) { "Скачайте локальную модель" }
+        require(DeviceModel.installed(context) || ru.vladis.realtorai.ai.CloudAi.enabled(context)) { "Подключите облачный ИИ или скачайте локальную модель" }
         enqueue(dao.insert(AgentJob(goal = goal, plan = "adaptive", clientId = client)), false)
     }
     suspend fun answer(job: AgentJob, reply: String) {
@@ -216,10 +216,20 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         fun validate(raw: String): AgentDecision = AgentProtocol.parse(raw).also {
             require(it.action == null || it.action !in progress.used.orEmpty()) { "Модель повторила выполненный вызов" }
         }
-        val first = DeviceModel.answer(applicationContext, system, listOf("user" to brief))
+        suspend fun plan(prompt: String, retry: Boolean = false): String {
+            if (ru.vladis.realtorai.ai.CloudAi.enabled(applicationContext)) {
+                val safeBrief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Клиент ID: ${job.clientId ?: "нет"}. Выполненные инструменты: " +
+                    progress.used.orEmpty().joinToString(",") { it.tool.name } +
+                    ". Результаты CRM не передаются. Не выдумывай их. Если нужен конкретный ID, уточни."
+                return ru.vladis.realtorai.ai.CloudAi.answer(applicationContext, system,
+                    (if (retry) "Исправь формат или повтор вызова. " else "") + safeBrief)
+            }
+            return DeviceModel.answer(applicationContext, system, listOf("user" to prompt))
+        }
+        val first = plan(brief)
         return try { validate(first) } catch (_: RuntimeException) {
             val correction = "Последний ответ недопустим или повторяет выполненное. Верни следующий шаг, уточнение или итог.\n"
-            validate(DeviceModel.answer(applicationContext, system, listOf("user" to (correction + brief).take(1200))))
+            validate(plan((correction + brief).take(1200), retry = true))
         }
     }
 

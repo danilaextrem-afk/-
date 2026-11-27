@@ -11,6 +11,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object Groq {
+    const val PRIMARY = "openai/gpt-oss-120b"
     private val http = OkHttpClient.Builder().callTimeout(60, TimeUnit.SECONDS).build()
 
     suspend fun chat(key: String, model: String, system: String, history: List<Pair<String, String>>): String =
@@ -23,10 +24,27 @@ object Groq {
                 .header("Authorization", "Bearer $key").post(body).build()
             http.newCall(req).execute().use { r ->
                 val s = r.body?.string().orEmpty()
-                if (!r.isSuccessful) error("Groq ${r.code}: ${s.take(200)}")
+                if (!r.isSuccessful) error(when (r.code) {
+                    401, 403 -> "Groq: проверьте API-ключ и доступ к модели"
+                    429 -> "Groq: исчерпана квота. Повторите позже или переключитесь на локальную модель"
+                    else -> "Groq: ошибка HTTP " + r.code
+                })
                 JSONObject(s).getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
             }
         }
+}
+
+/** Cloud use is explicit; no automatic uploads of CRM cards, notes or history. */
+object CloudAi {
+    fun enabled(ctx: android.content.Context): Boolean = ru.vladis.realtorai.data.Store(ctx).let {
+        it.cloudEnabled && it.cloudKey.isNotBlank()
+    }
+    suspend fun answer(ctx: android.content.Context, system: String, prompt: String): String {
+        val store = ru.vladis.realtorai.data.Store(ctx)
+        check(store.cloudEnabled && store.cloudKey.isNotBlank()) { "Облачный ИИ не подключён" }
+        return Groq.chat(store.cloudKey, Groq.PRIMARY, system, listOf("user" to prompt))
+            .also { check(it.isNotBlank()) { "Groq вернул пустой ответ" } }
+    }
 }
 
 object Prompts {

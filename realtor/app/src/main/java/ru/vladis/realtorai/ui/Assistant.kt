@@ -46,7 +46,7 @@ import ru.vladis.realtorai.data.Property
             TextButton({ vm.clearChat() }) { Text("Очистить") }
         }
         TextButton(openModels, contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)) {
-            Text(if (vm.deviceReady) vm.activeModel.label + " · на устройстве" else "Выбрать локальную модель", color = Lime)
+            Text(if (vm.cloudReady) "GPT-OSS 120B · Groq" else if (vm.deviceReady) vm.activeModel.label + " · на устройстве" else "Выбрать локальную модель", color = Lime)
         }
         Chips(Prompts.modes.map { it.first }, mode) { mode = it }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -71,9 +71,9 @@ import ru.vladis.realtorai.data.Property
                     Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center) { Icon(Icons.Default.Star, null, tint = Lime) }
                     Text("Чем помочь?", style = MaterialTheme.typography.headlineMedium)
-                    Text(if (vm.deviceReady) "Подключите карточку объекта или клиента, чтобы дать контекст."
+                    Text(if (vm.cloudReady) "Облачный режим: отправляется только ваш текущий запрос, без карточек CRM." else if (vm.deviceReady) "Подключите карточку объекта или клиента, чтобы дать контекст."
                         else "Выберите модель. После загрузки разговор работает на телефоне.", color = Muted)
-                    if (!vm.deviceReady) FilledTonalButton(openModels) { Text("Открыть модели") }
+                    if (!vm.deviceReady && !vm.cloudReady) FilledTonalButton(openModels) { Text("Открыть модели") }
                     else listOf("Подготовь меня к показу квартиры", "Составь сообщение собственнику", "Помоги ответить на возражение").forEach { idea ->
                         Surface(onClick = { text = idea }, shape = RoundedCornerShape(12.dp), color = Surface1) {
                             Text(idea, Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
@@ -115,7 +115,7 @@ import ru.vladis.realtorai.data.Property
                             unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
                             focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
                             unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent))
-                    FilledIconButton(enabled = text.isNotBlank() && (vm.deviceReady || vm.canSearch(text)) && !vm.busy, onClick = {
+                    FilledIconButton(enabled = text.isNotBlank() && (vm.deviceReady || vm.cloudReady || vm.canSearch(text)) && !vm.busy, onClick = {
                         vm.ask(mode, text.trim(), pSel, cSel); text = ""
                     }) { Icon(Icons.Default.Send, "Отправить") }
                 }

@@ -39,6 +39,7 @@ fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
         item {
             AppCard {
                 Field(goal, { goal = it.take(500) }, "Что поручить агенту?", single = false)
+                if (vm.cloudReady) Text("GPT-OSS 120B: в Groq отправляется поручение и коды выполненных инструментов, без карточек CRM.", color = Muted)
                 VoiceInput({ goal = (goal + " " + it).trim().take(500) }, { error = it })
                 Chips(listOf("Составь план на неделю", "Найди выгодные квартиры", "Подбери под бюджет клиента"), "") { goal = it }
                 if (buyers.any { it.role == "buyer" }) Box {
@@ -49,8 +50,8 @@ fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
                         }
                     }
                 }
-                if (!vm.deviceReady && plan.isEmpty() && goal.isNotBlank()) Text("Попробуйте поиск, цены, подбор, контакты, план недели или сопровождение.", color = Muted)
-                if (!vm.deviceReady) plan.forEachIndexed { i, tool -> Text("${i + 1}. ${tool.label}") }
+                if (!vm.deviceReady && !vm.cloudReady && plan.isEmpty() && goal.isNotBlank()) Text("Попробуйте поиск, цены, подбор, контакты, план недели или сопровождение.", color = Muted)
+                if (!vm.deviceReady && !vm.cloudReady) plan.forEachIndexed { i, tool -> Text("${i + 1}. ${tool.label}") }
                 if (plan.any { it.network }) Text("Поручение использует существующие настройки Deal Hunter и сохраняет результаты в CRM.", color = Muted)
                 Button({
                     val request = goal.trim()
@@ -58,14 +59,14 @@ fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
                     submitting = true
                     scope.launch {
                         try {
-                            if (vm.deviceReady) queue.adaptive(request, selected) else queue.submit(request, plan, selected)
+                            if (vm.deviceReady || vm.cloudReady) queue.adaptive(request, selected) else queue.submit(request, plan, selected)
                             goal = ""; error = null
                         }
                         catch (e: CancellationException) { throw e }
                         catch (e: Exception) { error = e.localizedMessage }
                         finally { submitting = false }
                     }
-                }, enabled = !submitting && goal.isNotBlank() && (vm.deviceReady || plan.isNotEmpty() && (AgentTool.MATCH !in plan || client != null))) { Text("Дать поручение") }
+                }, enabled = !submitting && goal.isNotBlank() && (vm.deviceReady || vm.cloudReady || plan.isNotEmpty() && (AgentTool.MATCH !in plan || client != null))) { Text("Дать поручение") }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         }
