@@ -39,6 +39,8 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
     var chooseShare by remember { mutableStateOf(false) }
     var shareTarget by remember { mutableStateOf<ShareChoice?>(null) }
     var advertisingPolicy by remember { mutableStateOf<JSONObject?>(null) }
+    var ownerPortal by remember { mutableStateOf<Pair<OfficeRow, JSONObject>?>(null) }
+    var ownerLink by remember { mutableStateOf<String?>(null) }
     var advertisingOffer by remember { mutableStateOf<Pair<OfficeRow, JSONObject>?>(null) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
@@ -145,6 +147,9 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
                                 advertisingOffer = row to offer
                             }
                         }, enabled = !busy) { Text("Фид Яндекс Недвижимости") }
+                        TextButton({
+                            operation { ownerPortal = row to OfficeClient(requireNotNull(session)).ownerReport(row.id) }
+                        }, enabled = !busy) { Text("Отчёт собственнику") }
                     }
                     if (current?.canAssign == true) TextButton({
                         operation {
@@ -179,6 +184,30 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
         }
     }
 
+    ownerPortal?.let { (row, snapshot) ->
+        OfficeOwnerReport(row, snapshot, busy, close = { ownerPortal = null },
+            save = { revision, views, inquiries, note ->
+                operation {
+                    val client = OfficeClient(requireNotNull(session))
+                    ownerPortal = row to client.saveOwnerReport(row.id, revision, views, inquiries, note)
+                    status = "Отчёт собственнику обновлён"
+                }
+            }, issue = {
+                operation {
+                    val client = OfficeClient(requireNotNull(session))
+                    ownerLink = client.issueOwnerLink(row.id)
+                    ownerPortal = null
+                }
+            }, revoke = {
+                operation {
+                    val client = OfficeClient(requireNotNull(session))
+                    client.revokeOwnerLink(row.id)
+                    ownerPortal = row to client.ownerReport(row.id)
+                    status = "Доступ собственника закрыт"
+                }
+            }, problem = problem)
+    }
+    ownerLink?.let { link -> OfficeOwnerLink(link) { ownerLink = null } }
     advertisingPolicy?.let { policy ->
         OfficeAdvertisingPolicy(policy, current?.role == "admin", { advertisingPolicy = null }) { enabled, limit ->
             advertisingPolicy = null

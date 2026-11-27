@@ -106,6 +106,24 @@ internal class OfficeClient(private val session: OfficeSession) {
         }
     }
 
+    suspend fun ownerReport(id: String) = request(listOf("owner-portal", id, "report"))
+
+    suspend fun saveOwnerReport(id: String, revision: Int, views: Long?, inquiries: Long?, note: String) =
+        request(listOf("owner-portal", id, "report"), method = "PUT", revision = revision, data = JSONObject()
+            .put("views", views ?: JSONObject.NULL).put("inquiries", inquiries ?: JSONObject.NULL)
+            .put("recommendation", note))
+
+    suspend fun issueOwnerLink(id: String): String {
+        val response = request(listOf("owner-portal", id, "access"), method = "PUT",
+            data = JSONObject().put("owner_share_consent", true))
+        val secret = response.getString("token")
+        check(secret.matches(Regex("[A-Za-z0-9_-]{43}"))) { "Сервер вернул некорректную ссылку" }
+        return base.newBuilder().addPathSegment("owner").fragment(secret).build().toString()
+    }
+
+    suspend fun revokeOwnerLink(id: String) =
+        request(listOf("owner-portal", id, "access"), method = "DELETE")
+
     suspend fun advertisingPolicy() = request(listOf("advertising", "policy"))
 
     suspend fun saveAdvertisingPolicy(enabled: Boolean, limit: Int) = request(

@@ -1,0 +1,14 @@
+:root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
+body { margin: 0; background: light-dark(#f0f5f2, #101714); color: light-dark(#16251e, #eef9f2); }
+main { box-sizing: border-box; max-width: 42rem; margin: 0 auto; padding: clamp(1.25rem, 6vw, 4rem) 1.25rem; }
+.brand { color: light-dark(#176348, #83dabb); font-weight: 750; }
+h1, h2, h3, p { margin: 0 0 .75rem; overflow-wrap: anywhere; }
+h1 { line-height: 1.15; }
+article { background: light-dark(#fff, #1b2821); border-radius: 1.25rem; padding: clamp(1rem, 4vw, 2rem); margin-top: 1.5rem; }
+.price { font-size: 1.6rem; font-weight: 750; }
+section { border-top: 1px solid light-dark(#baccc1, #475d50); padding-top: 1rem; margin-top: 1rem; }
+dl { display: flex; flex-wrap: wrap; gap: 1rem 2rem; margin-block: .75rem; }
+dd { margin: 0; font-weight: 750; }
+#recommendation { white-space: pre-wrap; }
+#measured, #updated { font-size: .9rem; opacity: .82; }
+#updated { margin: 1.25rem 0 0; }

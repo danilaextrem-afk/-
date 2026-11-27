@@ -46,11 +46,11 @@ jobs:
       - name: Verify APK
         run: |
           mkdir dist
-          cp realtor/app/build/outputs/apk/debug/app-debug.apk dist/RealtorAI-1.0-rc13-debug.apk
-          (cd dist && sha256sum RealtorAI-1.0-rc13-debug.apk > SHA256SUMS.txt)
+          cp realtor/app/build/outputs/apk/debug/app-debug.apk dist/RealtorAI-1.0-rc14-debug.apk
+          (cd dist && sha256sum RealtorAI-1.0-rc14-debug.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: RealtorAI-1.0-rc13-Android-debug
+          name: RealtorAI-1.0-rc14-Android-debug
           path: dist/
           if-no-files-found: error
       - name: Build and verify the installable release candidate
@@ -58,14 +58,14 @@ jobs:
         run: |
           gradle --no-daemon :app:assemblePreview
           mkdir -p ../candidate
-          cp app/build/outputs/apk/preview/app-preview.apk ../candidate/RealtorAI-1.0-rc13.apk
-          bash ci/verify-apk.sh ../candidate/RealtorAI-1.0-rc13.apk ru.vladis.realtorai.preview13 1.0-rc13
-          unzip -p ../candidate/RealtorAI-1.0-rc13.apk assets/moscow-boundaries.json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert all(d[name] for name in ("moscow","oblast","new-moscow"))'
-          unzip -p ../candidate/RealtorAI-1.0-rc13.apk assets/mkad.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)) > 100'
-          (cd ../candidate && sha256sum RealtorAI-1.0-rc13.apk > SHA256SUMS.txt)
+          cp app/build/outputs/apk/preview/app-preview.apk ../candidate/RealtorAI-1.0-rc14.apk
+          bash ci/verify-apk.sh ../candidate/RealtorAI-1.0-rc14.apk ru.vladis.realtorai.preview14 1.0-rc14
+          unzip -p ../candidate/RealtorAI-1.0-rc14.apk assets/moscow-boundaries.json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert all(d[name] for name in ("moscow","oblast","new-moscow"))'
+          unzip -p ../candidate/RealtorAI-1.0-rc14.apk assets/mkad.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)) > 100'
+          (cd ../candidate && sha256sum RealtorAI-1.0-rc14.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: RealtorAI-1.0-rc13
+          name: RealtorAI-1.0-rc14
           path: candidate/
           if-no-files-found: error
       - name: Enable KVM

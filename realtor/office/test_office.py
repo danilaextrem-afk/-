@@ -4,6 +4,7 @@ import sqlite3
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from contextlib import closing
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -227,6 +228,66 @@ class OfficeTest(unittest.TestCase):
             dict(PROPERTY, address="Другой адрес"), **{"If-Match": '"1"'})[0])
         self.assertEqual([], self.yandex())
         self.assertEqual(412, self.request("PUT", offer, self.one, self.materials(), **{"If-Match": '"1"'})[0])
+
+    def test_owner_portal_only_exposes_the_shared_property(self):
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        self.assertEqual(200, self.create("buyers", BUYER)[0])
+        access = "/v1/owner-portal/entry/access"
+        report = "/v1/owner-portal/entry/report"
+        confirmed = dict(owner_share_consent=True)
+        self.assertEqual(404, self.request("GET", report, self.two)[0])
+        self.assertEqual(404, self.request("PUT", access, self.two, confirmed)[0])
+        self.assertEqual(400, self.request("PUT", access, self.one, dict(owner_share_consent=1))[0])
+        self.assertEqual(401, self.request("GET", "/owner/report", self.one)[0])
+        self.assertEqual(401, self.request("GET", "/owner/report")[0])
+        token = self.request("PUT", access, self.one, confirmed)[1]["token"]
+        self.assertEqual(401, self.request("GET", "/v1/buyers", token)[0])
+        self.assertEqual(401, self.request("GET", report, token)[0])
+        portal = self.request("GET", "/owner/report", token)[1]
+        self.assertEqual(PROPERTY["title"], portal["property"]["title"])
+        self.assertIsNone(portal["report"]["views"])
+        self.assertIsNone(portal["report"]["inquiries"])
+        self.assertNotIn(BUYER["name"], json.dumps(portal, ensure_ascii=False))
+        self.assertNotIn("assigned_to", portal)
+        with closing(self.office.connect()) as db:
+            stored = db.execute("SELECT token_hash FROM owner_access").fetchone()[0]
+            self.assertNotEqual(token, stored)
+        metrics = dict(views=0, inquiries=None, recommendation="Обновить фотографии")
+        self.assertEqual(412, self.request("PUT", report, self.one, metrics)[0])
+        self.assertEqual(400, self.request("PUT", report, self.one, dict(metrics, views=-1),
+                                         **{"If-Match": '"0"'})[0])
+        self.assertEqual(200, self.request("PUT", report, self.one, metrics, **{"If-Match": '"0"'})[0])
+        owner_report = self.request("GET", "/owner/report", token)[1]["report"]
+        self.assertEqual(0, owner_report["views"])
+        self.assertIsNone(owner_report["inquiries"])
+        self.assertEqual(metrics["recommendation"], owner_report["recommendation"])
+        self.assertEqual(412, self.request("PUT", report, self.manager, metrics, **{"If-Match": '"0"'})[0])
+        self.assertEqual(200, self.request("PUT", "/v1/properties/entry", self.one,
+            dict(PROPERTY, price=14_200_000), **{"If-Match": '"1"'})[0])
+        self.assertEqual(14_200_000, self.request("GET", "/owner/report", token)[1]["property"]["price"])
+
+    def test_owner_link_expires_rotates_and_revokes_on_reassignment(self):
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        access = "/v1/owner-portal/entry/access"
+        confirmed = dict(owner_share_consent=True)
+        first = self.request("PUT", access, self.one, confirmed)[1]
+        with patch("owner_portal.time.time", return_value=first["expires_at"]):
+            self.assertEqual(401, self.request("GET", "/owner/report", first["token"])[0])
+            self.assertIsNone(self.request("GET", access, self.one)[1]["expires_at"])
+        second = self.request("PUT", access, self.one, confirmed)[1]["token"]
+        self.assertEqual(401, self.request("GET", "/owner/report", first["token"])[0])
+        self.assertEqual(200, self.request("GET", "/owner/report", second)[0])
+        self.assertEqual(200, self.request("DELETE", access, self.one)[0])
+        self.assertEqual(401, self.request("GET", "/owner/report", second)[0])
+        third = self.request("PUT", access, self.one, confirmed)[1]["token"]
+        self.assertEqual(200, self.request("PATCH", "/v1/properties/entry", self.manager,
+                         dict(assigned_to="two"), **{"If-Match": '"1"'})[0])
+        self.assertEqual(401, self.request("GET", "/owner/report", third)[0])
+        self.assertEqual(404, self.request("GET", access, self.one)[0])
+        fourth = self.request("PUT", access, self.two, confirmed)[1]["token"]
+        self.assertTrue(self.office.revoke("two"))
+        self.office.issue("two", "Второй", "agent")
+        self.assertEqual(401, self.request("GET", "/owner/report", fourth)[0])
 
     def test_online_backup_preserves_data_and_refuses_overwrite(self):
         self.assertEqual(200, self.create("properties", PROPERTY)[0])

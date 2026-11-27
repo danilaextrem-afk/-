@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from advertising import Advertising, SCHEMA as ADVERTISING_SCHEMA
+from owner_portal import OwnerPortal, SCHEMA as OWNER_SCHEMA
 
 ROLES = {"admin", "manager", "agent"}
 PRIVATE_KINDS = {"buyers", "deals"}
@@ -86,6 +87,7 @@ class Office:
     def __init__(self, path, feed_key=None):
         self.path = path
         self.advertising = Advertising(feed_key, Problem)
+        self.owner_portal = OwnerPortal(Problem, SLUG, TOKEN)
         with closing(self.connect()) as db:
             db.executescript("""
                 PRAGMA journal_mode = WAL;
@@ -105,6 +107,7 @@ class Office:
                     action TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL);
             """)
             db.executescript(ADVERTISING_SCHEMA)
+            db.executescript(OWNER_SCHEMA)
             with db:
                 if "deleted" not in {row["name"] for row in db.execute("PRAGMA table_info(record)")}:
                     db.execute("ALTER TABLE record ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
@@ -151,6 +154,7 @@ class Office:
         with closing(self.connect()) as db, db:
             changed = db.execute("UPDATE employee SET token_hash=NULL WHERE id=? AND token_hash IS NOT NULL", (identifier,)).rowcount
             if changed:
+                db.execute("DELETE FROM owner_access WHERE issued_by=?", (identifier,))
                 self.audit(db, "local-cli", "revoke", "employee", identifier)
             return bool(changed)
 
@@ -256,6 +260,8 @@ class Office:
                        (int(time.time()), kind, identifier))
             if kind == "properties":
                 self.advertising.withdraw(self, db, identifier, actor["id"], "property_deleted")
+                self.owner_portal.revoke(self, db, identifier, actor["id"], "property_deleted")
+                db.execute("DELETE FROM owner_report WHERE property_id=?", (identifier,))
             self.audit(db, actor["id"], "delete", kind, identifier)
             return {"deleted": True}
         if method == "PATCH":
@@ -267,6 +273,8 @@ class Office:
             ).fetchone():
                 raise Problem(400, "invalid_assignee")
             body = row["body"]
+            if kind == "properties" and assignee != row["assigned_to"]:
+                self.owner_portal.revoke(self, db, identifier, actor["id"], "property_reassigned")
             if kind == "buyers" and assignee != row["assigned_to"]:
                 affected = db.execute("""UPDATE record SET assigned_to=?, revision=revision+1, updated_at=?
                     WHERE kind='deals' AND json_extract(body, '$.buyer_id')=? RETURNING id""",
@@ -312,6 +320,11 @@ def handler(office):
             self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Content-Security-Policy",
+                             "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; "
+                             "base-uri 'none'; frame-ancestors 'none'; form-action 'none'")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -326,7 +339,12 @@ def handler(office):
             payload = wire_mutation(self) if method in {"PUT", "PATCH"} else None
             with closing(office.connect()) as db, db:
                 db.execute("BEGIN" if method == "GET" else "BEGIN IMMEDIATE")
-                actor = office.actor(db, self.headers.get("Authorization", ""))
+                authorization = self.headers.get("Authorization", "")
+                if method == "GET" and parts == ["owner", "report"]:
+                    return office.owner_portal.authenticate(office, db, authorization)
+                actor = office.actor(db, authorization)
+                if parts[:2] == ["v1", "owner-portal"]:
+                    return office.owner_portal.route(office, db, actor, method, parts, payload, self.headers.get("If-Match", ""))
                 if method == "GET" and parts == ["v1", "me"]:
                     return dict(actor)
                 if method == "GET" and parts == ["v1", "employees"]:
@@ -357,10 +375,21 @@ def handler(office):
                     match = "*"
                 return office.mutate(db, actor, kind, identifier, method, payload, match)
 
+        def owner_page(self, path):
+            filename, content_type = {
+                "/owner": ("owner.html", "text/html"),
+                "/owner/portal.js": ("portal.js", "application/javascript"),
+                "/owner/portal.css": ("portal.css", "text/css"),
+            }[path]
+            body = (Path(__file__).with_name("portal") / filename).read_bytes()
+            self.send_bytes(200, body, content_type + "; charset=utf-8")
+
         def dispatch(self):
             try:
                 path = urlsplit(self.path).path
-                if self.command == "GET" and office.advertising.feed_path(path):
+                if self.command == "GET" and path in {"/owner", "/owner/portal.js", "/owner/portal.css"}:
+                    self.owner_page(path)
+                elif self.command == "GET" and office.advertising.feed_path(path):
                     with closing(office.connect()) as db, db:
                         db.execute("BEGIN")
                         body = office.advertising.xml(db)

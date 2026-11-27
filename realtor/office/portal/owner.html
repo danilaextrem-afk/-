@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Отчёт собственнику · Realtor AI</title>
+  <link rel="stylesheet" href="owner/portal.css">
+  <script src="owner/portal.js" defer></script>
+</head>
+<body>
+  <main>
+    <p class="brand">Realtor AI</p>
+    <h1>Отчёт собственнику</h1>
+    <p id="status" role="status">Загружаем отчёт…</p>
+    <noscript>Для открытия отчёта включите JavaScript.</noscript>
+    <article id="report" hidden>
+      <h2 id="title"></h2>
+      <p id="address"></p>
+      <p id="price" class="price"></p>
+      <p id="facts"></p>
+      <section aria-labelledby="advertising-heading">
+        <h3 id="advertising-heading">Продвижение</h3>
+        <p id="advertising"></p>
+        <dl>
+          <div><dt>Просмотры</dt><dd id="views"></dd></div>
+          <div><dt>Обращения</dt><dd id="inquiries"></dd></div>
+        </dl>
+        <p id="measured"></p>
+      </section>
+      <section aria-labelledby="recommendations-heading">
+        <h3 id="recommendations-heading">Следующий шаг</h3>
+        <p id="recommendation"></p>
+      </section>
+      <p id="updated"></p>
+    </article>
+  </main>
+</body>
+</html>
