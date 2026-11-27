@@ -74,11 +74,17 @@ object WorkspaceDb {
         }
     }
 
+    internal val saleApproval = object : androidx.room.migration.Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE Listing ADD COLUMN approvedAt INTEGER")
+        }
+    }
+
     fun get(context: Context): AppDb = instance ?: synchronized(this) {
         val app = context.applicationContext
         ru.vladis.realtorai.hunter.GeoScope.initialize(app)
         instance ?: Room.databaseBuilder(app, AppDb::class.java, "workspace.db")
-            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow, agentQueue, moscowGeography, listingDetails)
+            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow, agentQueue, moscowGeography, listingDetails, saleApproval)
             .addCallback(LegacyImport(app)).build().also { instance = it }
     }
 }

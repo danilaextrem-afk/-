@@ -19,7 +19,8 @@ import kotlinx.coroutines.flow.Flow
     val title: String = "", val description: String = "",
     val photos: String = "", val cover: String = "", val features: String = "", // пути файлов через \n
     val status: String = "draft",     // draft | sold
-    val updatedAt: Long = System.currentTimeMillis())
+    val updatedAt: Long = System.currentTimeMillis(),
+    val approvedAt: Long? = null)
 
 fun Listing.photoList(): List<String> = photos.lines().filter { it.isNotBlank() }
 /** Фото, обложка первой */

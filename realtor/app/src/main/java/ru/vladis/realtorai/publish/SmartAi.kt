@@ -92,7 +92,21 @@ object SmartAi {
                 }.getOrNull()
             }.maxByOrNull { it.second }?.first ?: l.cover } finally { labeler.close() }
             val title = (if (l.rooms > 0) "${l.rooms}-комнатная квартира" else "Квартира") + (if (l.area > 0) ", ${l.area} м²" else "")
-            Draft(cover, title.take(50), factsText(l) + "\nСвяжитесь для уточнения деталей и организации просмотра.", l.features.lines().filter { it.isNotBlank() })
+            val base = Draft(cover, title.take(50), factsText(l) + "\nСвяжитесь для уточнения деталей и организации просмотра.", l.features.lines().filter { it.isNotBlank() })
+            if (!ru.vladis.realtorai.ai.CloudAi.enabled(ctx)) return@withContext base
+            try {
+                val facts = factsText(l.copy(address = "", extra = "", renovation = "", features = "", phone = ""))
+                    .lineSequence().filter { it != "Адрес: " }.joinToString("\n")
+                val raw = ru.vladis.realtorai.ai.CloudAi.answer(ctx,
+                    "Подготовь объявление о продаже жилья на русском. Используй только переданные характеристики. Без вымышленных преимуществ, состояния, мест и новых чисел. Ответ JSON с title и description.",
+                    facts)
+                val parsed = json(raw)
+                val output = base.copy(title = parsed.getString("title").trim().take(50), description = parsed.getString("description").trim().take(1500))
+                check(output.title.isNotBlank() && output.description.isNotBlank())
+                require(check(l.copy(title = output.title, description = output.description)).isEmpty())
+                output
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { base }
         }
         val photos = l.photoList().take(10)
         var cover = l.cover; val feats = linkedSetOf<String>()

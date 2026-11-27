@@ -50,7 +50,7 @@ import kotlin.math.max
 
 private fun pct(d: Double) = "${(d * 100).toInt()}%"
 
-@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, topLevel: Boolean = false, selectedOffer: Long? = null, openOnline: ((String) -> Unit)? = null, back: () -> Unit) {
+@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, topLevel: Boolean = false, selectedOffer: Long? = null, openOnline: ((String) -> Unit)? = null, openSale: ((Long) -> Unit)? = null, back: () -> Unit) {
     val vm: HunterVm = viewModel()
     val allDeals by vm.deals.collectAsState()
     val geoContext = LocalContext.current
@@ -66,7 +66,7 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     fun closeOffer() { if (selectedOffer != null) back() else openId = null }
     BackHandler(openId != null) { closeOffer() }
     val open = allDeals.find { it.o.id == openId }
-    if (open != null) { DealDetail(vm, main, open, deals) { closeOffer() }; return }
+    if (open != null) { DealDetail(vm, main, open, deals, openSale) { closeOffer() }; return }
     if (selectedOffer != null) {
         Column(Modifier.padding(20.dp)) {
             TextButton(back) { Text("Назад") }
@@ -288,7 +288,7 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     }
 }
 
-@Composable fun DealDetail(vm: HunterVm, main: MainVm, d: Deal, all: List<Deal>, close: () -> Unit) {
+@Composable fun DealDetail(vm: HunterVm, main: MainVm, d: Deal, all: List<Deal>, openSale: ((Long) -> Unit)?, close: () -> Unit) {
     val ctx = LocalContext.current; val clip = LocalClipboardManager.current
     val o = d.o; val hist by vm.pointsOf(o.id).collectAsState(emptyList())
     val store = remember { Store(ctx) }
@@ -355,6 +355,18 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
                     finally { saveRequested = false }
                 }
             }, enabled = !saveRequested && o.deal == "sale", modifier = Modifier.fillMaxWidth()) { Text("Взять в работу") }
+            if (openSale != null) Button({
+                saveRequested = true
+                scope.launch {
+                    try {
+                        val taken = main.takeForSale(o.id)
+                        message = "Объект и черновик сохранены. Подходящих покупателей: ${taken.buyers}"
+                        openSale(taken.listingId)
+                    } catch (e: CancellationException) { throw e }
+                    catch (e: Exception) { message = e.message ?: "Не удалось подготовить объект" }
+                    finally { saveRequested = false }
+                }
+            }, enabled = !saveRequested && o.deal == "sale", modifier = Modifier.fillMaxWidth()) { Text("Взять в продажу") }
             message?.let { Text(it, color = Muted) }
         } }
         o.sourceDescription?.takeIf(String::isNotBlank)?.let { description ->

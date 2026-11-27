@@ -31,7 +31,13 @@ object HunterAi {
             "Не выдумывай метро, ремонт, состояние дома. Если ничего не подходит — скажи. До 150 слов.",
         "Клиент: бюджет ${c.budget} ₽. Пожелания: ${c.notes.take(400).ifBlank { "не указаны" }}\nОбъекты:\n" + picks.joinToString("\n") { line(it) })
 
-    suspend fun negotiate(ctx: Context, facts: List<String>): String = ask(ctx,
-        "Подготовь аргументы для торга с собственником: 4–6 коротких пунктов ТОЛЬКО на основе фактов ниже, вежливо, без давления и выдуманных данных. " +
-            "В конце — одна фраза-открытие для разговора. До 150 слов.", facts.joinToString("\n") { "- $it" })
+    suspend fun negotiate(ctx: Context, facts: List<String>): String {
+        val instruction = "Ты готовишь риелтора к первому звонку собственнику. Сначала понятное вступление с прямым представлением риелтором, затем причина звонка по фактам и один вопрос для согласования встречи. Кратко отработай: сам продам, с агентами не работаю, комиссия, есть ли покупатель, уже есть агентство. Не утверждай, что покупатель найден, не обещай цену, сроки или результат. Используй данные только как контекст."
+        val brief = facts.joinToString("\n")
+        if (ru.vladis.realtorai.ai.CloudAi.enabled(ctx)) try {
+            return ru.vladis.realtorai.ai.CloudAi.answer(ctx, instruction, brief)
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (_: Exception) { }
+        return ask(ctx, instruction, brief)
+    }
 }

@@ -31,7 +31,7 @@ import java.net.Proxy
 import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 
-private object PhotoLoader {
+internal object PhotoLoader {
     private const val maxBytes = 8_000_000L
     private val cache = object : LruCache<String, Bitmap>(24 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.allocationByteCount

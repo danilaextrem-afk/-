@@ -59,6 +59,13 @@ import ru.vladis.realtorai.MainVm
         vm.ask("", prompt, null, null)
     }
 
+    LaunchedEffect(vm.sharedListing) {
+        vm.sharedListing?.let { sub = "publication/$it"; clientId = null; vm.dismissSharedListing() }
+    }
+    vm.shareError?.let { issue ->
+        AlertDialog(onDismissRequest = vm::dismissSharedListing, title = { Text("Импорт объявления") },
+            text = { Text(issue) }, confirmButton = { TextButton(vm::dismissSharedListing) { Text("Закрыть") } })
+    }
     BackHandler(sub != null || clientId != null) { if (clientId != null) clientId = null else sub = null }
     val tabs = listOf(Triple("home", "Главная", Icons.Default.Home), Triple("search", "Поиск", Icons.Default.Search),
         Triple("ai", "ИИ", Icons.Default.Star), Triple("crm", "CRM", Icons.Default.Person),
@@ -122,17 +129,19 @@ import ru.vladis.realtorai.MainVm
                         s == "tasks" -> Tasks(vm)
                         s == "properties" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" }, { sub = "offer/$it" })
                         s?.startsWith("offer/") == true -> ru.vladis.realtorai.hunter.HunterScreen(vm,
-                            selectedOffer = s.substringAfter('/').toLong()) { sub = null }
+                            selectedOffer = s.substringAfter('/').toLong(), openSale = { sub = "publication/$it" }) { sub = null }
+                        s?.startsWith("publication/") == true -> ru.vladis.realtorai.publish.PublishScreen(vm,
+                            initialId = s.substringAfter('/').toLong()) { sub = null }
                         s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm) { sub = null }
                         s == "sales" -> SalesWorkspace(vm) { sub = null }
                         s == "leads" -> LeadWorkspace(vm, { sub = null }, { clientId = it })
-                        s == "hunter" || s == "map" -> ru.vladis.realtorai.hunter.HunterScreen(vm, s == "map", openOnline = if (s == "hunter") ::onlineSearch else null) { sub = null }
+                        s == "hunter" || s == "map" -> ru.vladis.realtorai.hunter.HunterScreen(vm, s == "map", openOnline = if (s == "hunter") ::onlineSearch else null, openSale = { sub = "publication/$it" }) { sub = null }
                         else -> when (t) {
                             "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" },
                                 { request ->
                                     if (request == "Найди выгодные квартиры") onlineSearch("") else { command = request; sub = "agent" }
                                 }, { sub = "properties" }, { tab = "crm" }, { sub = "tasks" }, { sub = "owner/$it" })
-                            "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, topLevel = true, openOnline = ::onlineSearch) { tab = "home" }
+                            "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, topLevel = true, openOnline = ::onlineSearch, openSale = { sub = "publication/$it" }) { tab = "home" }
                             "crm" -> Crm(vm) { clientId = it }
                             "profile" -> Profile(vm) { sub = it }
                             else -> Assistant(vm, { sub = "models" }, { sub = "settings" }, { sub = "offer/$it" }) { request ->

@@ -69,7 +69,7 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     @Query("SELECT * FROM TaskItem") suspend fun allTasks(): List<TaskItem>
 }
 
-@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class, OwnerCase::class, OwnerEvent::class, AgentJob::class], version = 9, exportSchema = false)
+@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class, OwnerCase::class, OwnerEvent::class, AgentJob::class], version = 10, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): AppDao
     abstract fun agent(): AgentDao

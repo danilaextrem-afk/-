@@ -149,6 +149,7 @@ fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, open
                                 runCatching { browser.openUri(hit.url) }
                                     .onFailure { vm.error = "Не удалось открыть объявление" }
                             }) { Text("Открыть объявление") }
+                            TextButton({ vm.acceptSharedListing(hit.url) }, enabled = !vm.busy) { Text("Взять в продажу") }
                         }
                     }
                     val needsKey = listingReply?.sources.orEmpty().any { it.status == "Индекс не настроен" }

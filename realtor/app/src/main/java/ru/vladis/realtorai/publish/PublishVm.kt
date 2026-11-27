@@ -5,7 +5,7 @@ import android.net.Uri
 import androidx.compose.runtime.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.Room
+import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -15,7 +15,8 @@ import java.io.File
 
 class PublishVm(app: Application) : AndroidViewModel(app) {
     private val ctx = app.applicationContext
-    private val dao = ru.vladis.realtorai.data.WorkspaceDb.get(app).publications()
+    private val db = ru.vladis.realtorai.data.WorkspaceDb.get(app)
+    private val dao = db.publications()
     val secrets = PublishSecrets(app)
     val listings = dao.listings().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val pubs = dao.publications().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -53,8 +54,12 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
     fun create(l: Listing, onId: (Long) -> Unit) = viewModelScope.launch { onId(dao.saveListing(l)) }
     fun save(l: Listing) = operation {
         val current = dao.listing(l.id) ?: return@operation
-        dao.saveListing(l.copy(status = current.status, photos = current.photos,
-            cover = l.cover.takeIf { it in current.photoList() } ?: current.cover, updatedAt = System.currentTimeMillis()))
+        val updated = l.copy(status = current.status, photos = current.photos, approvedAt = current.approvedAt,
+            cover = l.cover.takeIf { it in current.photoList() } ?: current.cover, updatedAt = current.updatedAt)
+        if (updated != current) dao.saveListing(updated.copy(
+            approvedAt = current.approvedAt.takeIf { updated.copy(price = current.price) == current },
+            updatedAt = System.currentTimeMillis()))
+
     }
     fun delete(l: Listing) = operation {
         if (dao.pubsOf(l.id).any { it.status in setOf("published", "outdated", "removal_pending", "exported", "unknown") }) {
@@ -83,22 +88,60 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
         val rest = cur.photoList() - path
         if (path !in cur.photoList()) return@operation
         File(path).delete()
-        dao.saveListing(cur.copy(photos = rest.joinToString("\n"), cover = if (cur.cover == path) rest.firstOrNull() ?: "" else cur.cover))
+        dao.saveListing(cur.copy(approvedAt = null, photos = rest.joinToString("\n"), cover = if (cur.cover == path) rest.firstOrNull() ?: "" else cur.cover))
     }
 
     /** Фото уходят в Groq. Результат — черновик: пользователь обязан просмотреть и при необходимости поправить. */
     fun runAi(l: Listing) = operation {
         runCatching { SmartAi.run(ctx, l, secrets.get("vision_model", SmartAi.DEFAULT_VISION)) }
-            .onSuccess { d -> dao.saveListing(l.copy(title = d.title, description = d.description, cover = d.cover.ifBlank { l.cover },
+            .onSuccess { d -> dao.saveListing(l.copy(approvedAt = null, title = d.title, description = d.description, cover = d.cover.ifBlank { l.cover },
                 features = d.features.joinToString("\n"), updatedAt = System.currentTimeMillis())) }
             .onFailure { log = "ИИ: ${err(it)}" }
     }
 
+    fun activate(draft: Listing) = operation {
+        val current = requireNotNull(dao.listing(draft.id))
+        check(current.status != "sold") { "Объект уже продан" }
+        require(Checks.blocking(draft).isEmpty()) { "Заполните обязательные параметры" }
+        val offer = current.propertyId?.let { db.dao().property(it)?.sourceOfferId }?.let { db.hunter().offer(it) }
+        val images = if (current.photos.isBlank() && offer != null) copyApprovedPhotos(current.id, offer.photoUrls) else current.photoList()
+        val approved = draft.copy(approvedAt = System.currentTimeMillis(), photos = images.joinToString("\n"),
+            cover = current.cover.ifBlank { images.firstOrNull().orEmpty() }, updatedAt = System.currentTimeMillis())
+        dao.saveListing(approved)
+        val connected = Platform.entries.filter { it.isApi && publisher(it) != null }
+        if (connected.isEmpty()) {
+            log = "Карточка согласована. Реклама не запущена: Telegram и ВКонтакте не подключены. Доступен экспорт фидов."
+        } else {
+            sendToChannels(listOf(approved.id), connected)
+            val sent = dao.pubsOf(approved.id).count { it.status == "published" && Platform.valueOf(it.platform) in connected }
+            log = "Подтверждено площадками: $sent из ${connected.size}. Для XML-площадок доступен экспорт фидов."
+        }
+    }
+
+    private suspend fun copyApprovedPhotos(id: Long, urls: String?): List<String> = withContext(Dispatchers.IO) {
+        val dir = File(ctx.filesDir, "publish/$id").apply { mkdirs() }
+        ru.vladis.realtorai.hunter.ListingOrigin.photos(urls).take(12).mapNotNull { url ->
+            val image = ru.vladis.realtorai.hunter.PhotoLoader.load(url) ?: return@mapNotNull null
+            val path = File.createTempFile("approved-", ".jpg", dir)
+            try {
+                path.outputStream().use { check(image.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, it)) }
+                path.absolutePath
+            } catch (e: java.io.IOException) { path.delete(); null }
+            catch (e: IllegalStateException) { path.delete(); null }
+        }
+    }
+
     /** Реальная отправка (Telegram, VK). Уже опубликованное пропускается — дублей нет. */
     fun publishApi(ids: List<Long>, platforms: List<Platform>) = operation {
+        val awaiting = ids.count { dao.listing(it)?.approvedAt == null }
+        sendToChannels(ids, platforms)
+        log = if (awaiting == 0) "Статусы отправки сохранены в карточках." else "$awaiting карточек ждут согласия собственника."
+    }
+
+    private suspend fun sendToChannels(ids: List<Long>, platforms: List<Platform>) {
         for (id in ids) {
             val l = dao.listing(id) ?: continue
-            if (l.status == "sold") continue
+            if (l.status == "sold" || l.approvedAt == null) continue
             val missing = Checks.blocking(l)
             for (pl in platforms.filter { it.isApi }) {
                 if (dao.pubsOf(id).find { it.platform == pl.name }?.status in setOf("published", "unknown", "outdated", "removal_pending")) continue
@@ -116,7 +159,6 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
                 record(l, pl, r)
             }
         }
-        log = "Готово. Результат по каждой площадке — в карточках."
     }
 
     /** Файл выгрузки: фиды + фото + тексты. Статус «exported» = файл создан, а НЕ опубликовано. */
@@ -124,6 +166,7 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
         runCatching {
             val ls = ids.distinct().mapNotNull { dao.listing(it) }
             require(ls.isNotEmpty()) { "Нет выбранных объектов" }
+            require(ls.none { it.status != "sold" && it.approvedAt == null }) { "Сначала подтвердите согласие на размещение для всех выбранных объектов" }
             val bad = ls.filter { it.status != "sold" && Checks.blocking(it).isNotEmpty() }
             require(bad.isEmpty()) { "Заполните обязательные поля ${bad.size} объект(ов)" }
             withContext(Dispatchers.IO) { ctx.contentResolver.openOutputStream(uri)!!.use { Feeds.writeZip(it, ls, platforms.toSet(), cfg()) } }
@@ -140,7 +183,10 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
         require(newPrice > 0) { "Цена должна быть положительной" }
         val l = (dao.listing(id) ?: return@operation).copy(price = newPrice, updatedAt = System.currentTimeMillis())
         require(l.status != "sold") { "Объект уже продан" }
-        dao.saveListing(l)
+        db.withTransaction {
+            dao.saveListing(l)
+            l.propertyId?.let { db.dao().property(it) }?.let { db.dao().saveProperty(it.copy(price = newPrice)) }
+        }
         for (p in dao.pubsOf(id)) {
             val pl = Platform.valueOf(p.platform)
             if (p.status in setOf("published", "outdated") && pl.isApi && p.externalId.isNotBlank()) {
@@ -154,7 +200,10 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
 
     fun markSold(id: Long) = operation {
         val l = (dao.listing(id) ?: return@operation).copy(status = "sold", updatedAt = System.currentTimeMillis())
-        dao.saveListing(l)
+        db.withTransaction {
+            dao.saveListing(l)
+            l.propertyId?.let { db.dao().property(it) }?.let { db.dao().saveProperty(it.copy(status = "deal")) }
+        }
         for (p in dao.pubsOf(id)) {
             val pl = Platform.valueOf(p.platform)
             if (p.status in setOf("published", "outdated", "removal_pending") && pl.isApi && p.externalId.isNotBlank()) {

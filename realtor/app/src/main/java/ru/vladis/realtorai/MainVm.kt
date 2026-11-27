@@ -102,6 +102,20 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         task?.let { Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
     }
 
+    var sharedListing by mutableStateOf<Long?>(null); private set
+    var shareError by mutableStateOf<String?>(null); private set
+    fun dismissSharedListing() { sharedListing = null; shareError = null }
+    fun acceptSharedListing(text: String) = viewModelScope.launch {
+        try { sharedListing = ru.vladis.realtorai.publish.SaleIntake.fromShare(db, text).listingId }
+        catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (e: Exception) { shareError = e.localizedMessage ?: "Не удалось принять объявление" }
+    }
+    suspend fun takeForSale(offerId: Long): ru.vladis.realtorai.publish.SaleIntake.Result {
+        val result = ru.vladis.realtorai.publish.SaleIntake.fromOffer(db, offerId)
+        ru.vladis.realtorai.owner.OwnerService(ctx).start(result.propertyId)
+        return result
+    }
+
     fun saveProperty(p: Property) = viewModelScope.launch { dao.saveProperty(p) }
     fun deleteProperty(p: Property) = viewModelScope.launch {
         val tasks = db.withTransaction {

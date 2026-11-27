@@ -42,10 +42,10 @@ private val statusText = mapOf("published" to "опубликовано (под�
     bmp?.let { Image(it, null, modifier, contentScale = ContentScale.Crop) } ?: Box(modifier.background(Surface2))
 }
 
-@Composable fun PublishScreen(main: MainVm, back: () -> Unit) {
+@Composable fun PublishScreen(main: MainVm, initialId: Long? = null, back: () -> Unit) {
     val pvm: PublishVm = viewModel()
-    var openId by remember { mutableStateOf<Long?>(null) }
-    if (openId == null) ListingList(pvm, main, { openId = it }, back) else ListingEditor(pvm, openId!!) { openId = null }
+    var openId by remember(initialId) { mutableStateOf(initialId) }
+    if (openId == null) ListingList(pvm, main, { openId = it }, back) else ListingEditor(pvm, main, openId!!) { if (initialId != null) back() else openId = null }
 }
 
 @Composable fun PubLines(pubs: List<Publication>, compact: Boolean) {
@@ -170,11 +170,17 @@ private val statusText = mapOf("published" to "опубликовано (под�
     }
 }
 
-@Composable fun ListingEditor(pvm: PublishVm, id: Long, close: () -> Unit) {
+@Composable fun ListingEditor(pvm: PublishVm, main: MainVm, id: Long, close: () -> Unit) {
     val ctx = LocalContext.current
     val ls by pvm.listings.collectAsState(); val pubs by pvm.pubs.collectAsState()
     val cur = ls.find { it.id == id }
     if (cur == null) { LinearProgressIndicator(Modifier.fillMaxWidth()); return }
+    val properties by main.properties.collectAsState()
+    val clients by main.clients.collectAsState()
+    val property = properties.firstOrNull { it.id == cur.propertyId }
+    val matches = property?.let { p ->
+        clients.filter { ru.vladis.realtorai.autopilot.AutoRules.matches(it, listOf(p)).isNotEmpty() }
+    }.orEmpty()
     var address by remember(id) { mutableStateOf(cur.address) }
     var price by remember(id) { mutableStateOf(if (cur.price > 0) cur.price.toString() else "") }
     var area by remember(id) { mutableStateOf(if (cur.area > 0) cur.area.toString() else "") }
@@ -190,6 +196,8 @@ private val statusText = mapOf("published" to "опубликовано (под�
     var desc by remember(cur.description) { mutableStateOf(cur.description) }
     var preview by remember { mutableStateOf(false) }; var priceDlg by remember { mutableStateOf(false) }
     var soldDlg by remember { mutableStateOf(false) }; var delDlg by remember { mutableStateOf(false) }
+    var approve by remember(id) { mutableStateOf(false) }
+    var rights by remember(id) { mutableStateOf(false) }
     fun draft() = cur.copy(address = address.trim(), price = price.toLongOrNull() ?: 0, area = area.replace(',', '.').toDoubleOrNull() ?: 0.0,
         rooms = rooms.toIntOrNull() ?: 0, floor = floor.toIntOrNull() ?: 0, floorsTotal = floors.toIntOrNull() ?: 0,
         kitchenArea = kitchen.replace(',', '.').toDoubleOrNull() ?: 0.0, renovation = reno.trim(), extra = extra.trim(), phone = phone.trim(),
@@ -200,6 +208,21 @@ private val statusText = mapOf("published" to "опубликовано (под�
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { Row(verticalAlignment = Alignment.CenterVertically) { IconButton({ pvm.save(draft()); close() }, enabled = !pvm.busy) { Icon(Icons.Default.ArrowBack, "Назад") }; Title("Карточка объекта") } }
         if (cur.status == "sold") item { Text("ПРОДАНО — объект исключён из выгрузок", color = Lime, fontWeight = FontWeight.Bold) }
+        if (cur.status != "sold") item {
+            AppCard {
+                Text("Запуск рекламы", style = MaterialTheme.typography.titleLarge)
+                if (property?.status == "review") Text("Ссылка сохранена. Характеристики ещё не подтверждены.", color = Muted)
+                if (property != null) Text("Подбор по CRM · ${matches.size} покупателей", color = Muted)
+                Text(if (cur.approvedAt == null) "Ожидается согласие собственника" else "Согласие зафиксировано", color = Muted)
+                Checks.blocking(draft()).takeIf { it.isNotEmpty() }?.let {
+                    Text("Для запуска нужны " + it.joinToString(", "), color = Muted)
+                }
+                Button({ rights = false; approve = true }, enabled = !pvm.busy, modifier = Modifier.fillMaxWidth()) {
+                    Text("Активировать и разместить")
+                }
+                pvm.log?.let { Text(it, color = Muted) }
+            }
+        }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(cur.photoList(), key = { it }) { p ->
@@ -244,13 +267,23 @@ private val statusText = mapOf("published" to "опубликовано (под�
         item { OutlinedButton({
             val share = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, draft().postText()) }
             ctx.startActivity(Intent.createChooser(share, "Отправить текст объявления"))
-        }, modifier = Modifier.fillMaxWidth(), enabled = cur.status != "sold" && title.isNotBlank() && desc.isNotBlank()) { Text("Поделиться текстом без ключей") } }
+        }, modifier = Modifier.fillMaxWidth(), enabled = cur.status != "sold" && cur.approvedAt != null && title.isNotBlank() && desc.isNotBlank()) { Text("Поделиться текстом без ключей") } }
         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton({ priceDlg = true }, enabled = cur.status != "sold" && !pvm.busy) { Text("Изменить цену") }
             OutlinedButton({ soldDlg = true }, enabled = !pvm.busy && (cur.status != "sold" || myPubs.any { it.status == "removal_pending" && Platform.valueOf(it.platform).isApi })) { Text(if (cur.status == "sold") "Повторить снятие" else "Продано") } } }
         if (myPubs.any { it.status != "none" }) item { AppCard { Text("Площадки", fontWeight = FontWeight.SemiBold); PubLines(myPubs, false) } }
         item { TextButton({ delDlg = true }) { Text("Удалить карточку", color = MaterialTheme.colorScheme.error) } }
     }
+    if (approve) AlertDialog(onDismissRequest = { approve = false }, title = { Text("Подтвердите разрешение") }, text = {
+        Column {
+            Text("Карточка будет отправлена в подключённые Telegram и ВКонтакте. Площадки с XML принимают отдельный экспорт. Платное продвижение здесь не запускается.")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(rights, { rights = it })
+                Text("Собственник согласовал размещение. У меня есть права на текст, фотографии и планировки.")
+            }
+        }
+    }, confirmButton = { Button({ pvm.activate(draft()); approve = false }, enabled = rights && Checks.blocking(draft()).isEmpty()) { Text("Запустить") } },
+        dismissButton = { TextButton({ approve = false }) { Text("Отмена") } })
     if (preview) {
         val d = draft()
         AlertDialog(onDismissRequest = { preview = false }, confirmButton = { TextButton({ preview = false }) { Text("Закрыть") } }, title = { Text("Предпросмотр") }, text = {
