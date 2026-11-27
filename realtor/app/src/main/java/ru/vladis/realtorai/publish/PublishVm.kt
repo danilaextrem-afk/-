@@ -88,6 +88,7 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
 
     /** Фото уходят в Groq. Результат — черновик: пользователь обязан просмотреть и при необходимости поправить. */
     fun runAi(l: Listing) = operation {
+        require(dao.listing(l.id)?.status != "sold") { "Объект уже продан" }
         runCatching { SmartAi.run(ctx, l, secrets.get("vision_model", SmartAi.DEFAULT_VISION)) }
             .onSuccess { d -> dao.saveListing(l.copy(approvedAt = null, title = d.title, description = d.description, cover = d.cover.ifBlank { l.cover },
                 features = d.features.joinToString("\n"), updatedAt = System.currentTimeMillis())) }
@@ -116,7 +117,11 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
         } else {
             sendToChannels(listOf(approved.id), connected)
             val sent = dao.pubsOf(approved.id).count { it.status == "published" && Platform.valueOf(it.platform) in connected }
-            log = "Подтверждено площадками: $sent из ${connected.size}. Для XML-площадок доступен экспорт фидов."
+            if (sent > 0 && approved.propertyId != null)
+                ru.vladis.realtorai.owner.OwnerService(ctx).recordPublishingStarted(approved.propertyId, sent)
+            val photoNote = if (offer != null && offer.photoUrls?.isNotBlank() == true && images.isEmpty())
+                " Фотографии из источника загрузить не удалось." else ""
+            log = "Подтверждено площадками: $sent из ${connected.size}. Для XML-площадок доступен экспорт фидов.$photoNote"
         }
     }
 

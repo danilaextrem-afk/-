@@ -272,7 +272,7 @@ private val statusText = mapOf("published" to "опубликовано (под�
             Button({ pvm.save(draft()) }, enabled = !pvm.busy) { Text("Сохранить") }
             FilledTonalButton({ preview = true }) { Text("Предпросмотр") } } }
         item { OutlinedButton({
-            val share = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, draft().postText()) }
+            val share = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, cur.postText()) }
             ctx.startActivity(Intent.createChooser(share, "Отправить текст объявления"))
         }, modifier = Modifier.fillMaxWidth(), enabled = cur.status != "sold" && cur.approvedAt != null && title.isNotBlank() && desc.isNotBlank()) { Text("Поделиться текстом без ключей") } }
         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

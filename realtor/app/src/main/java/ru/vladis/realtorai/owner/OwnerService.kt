@@ -23,6 +23,20 @@ class OwnerService(private val context: Context) {
         }
     }.also { schedule(context); syncTasks() }
 
+    suspend fun recordPublishingStarted(id: Long, channels: Int) {
+        if (channels <= 0) return
+        start(id)
+        db.withTransaction {
+            val current = dao.get(id) ?: return@withTransaction
+            if (current.activatedAt != null) return@withTransaction
+            val now = System.currentTimeMillis()
+            dao.save(current.copy(activatedAt = now))
+            dao.event(OwnerEvent(propertyId = id, at = now, kind = "publication",
+                text = "Размещение подтвердили площадки: $channels. Запланирован отчёт собственнику."))
+        }
+        syncTasks()
+    }
+
     suspend fun advance(id: Long, expected: OwnerStep, evidence: String) {
         require(evidence.isNotBlank() && evidence.length <= 4000)
         val finishedTasks = db.withTransaction {
@@ -30,7 +44,7 @@ class OwnerService(private val context: Context) {
             check(current.step == expected.name && expected != OwnerStep.FINISHED) { "Этап уже изменился" }
             val step = OwnerRules.next(expected)
             val now = System.currentTimeMillis()
-            dao.save(current.copy(step = step.name, activatedAt = if (expected == OwnerStep.ACTIVATION) now else current.activatedAt))
+            dao.save(current.copy(step = step.name, activatedAt = current.activatedAt ?: now.takeIf { expected == OwnerStep.ACTIVATION }))
             dao.event(OwnerEvent(propertyId = id, at = now, kind = "stage", text = "${expected.title}: ${evidence.trim()}"))
             val kind = "owner/$id/stage"
             db.dao().allTasks().filter { it.kind == kind && !it.done }.onEach { db.dao().saveTask(it.copy(done = true)) }
