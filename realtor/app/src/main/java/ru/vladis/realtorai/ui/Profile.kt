@@ -19,6 +19,9 @@ fun Profile(vm: MainVm, open: (String) -> Unit) {
             Text("Профиль", style = MaterialTheme.typography.displaySmall)
         }
         item {
+            OutlinedButton({ open("office") }, Modifier.fillMaxWidth()) { Text("Общая база офиса") }
+        }
+        item {
             HorizontalDivider()
             DashboardLine(Icons.Default.Settings, "Настройки", "Groq, оформление и копии базы") { open("settings") }
             DashboardLine(Icons.Default.Star, "Модели на устройстве", vm.activeModel.label) { open("models") }

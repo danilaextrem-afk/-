@@ -155,6 +155,7 @@ if sys.argv[1:] == ["--preview"]:
 check("onboarding", lambda: capture("onboarding", "Подключите первый источник"))
 check("home", lambda: capture("home", "Мой рабочий день"))
 check("calendar", lambda: (tap("Профиль"), capture("profile", "Профиль"), tap("Календарь"), capture("calendar", "Задачи и встречи")))
+check("office_setup", lambda: (tap("Профиль"), tap("Общая база офиса"), capture("office-setup", "Токен сотрудника")))
 check("chat_and_models", models)
 check("deals_and_owner", properties)
 check("crm_and_client", crm)
