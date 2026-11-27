@@ -58,7 +58,8 @@ class SaleIntakeTest {
 
     @Test fun explicitCallOutcomeSchedulesMeetingAndOptOutCancelsIt(): Unit = runBlocking {
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        Room.inMemoryDatabaseBuilder(ctx, AppDb::class.java).build().use { db ->
+        val db = Room.inMemoryDatabaseBuilder(ctx, AppDb::class.java).build()
+        try {
             val now = System.currentTimeMillis()
             val owner = db.dao().saveClient(Client(name = "Тест", phone = "+79991234567", role = "owner"))
             val property = db.dao().saveProperty(Property(title = "Квартира", ownerId = owner))
@@ -72,6 +73,6 @@ class SaleIntakeTest {
             assertTrue(db.dao().allTasks().single().done)
             assertTrue(db.dao().client(owner)!!.doNotContact)
             assertTrue(db.dao().property(property)!!.ownerContactBlocked)
-        }
+        } finally { db.close() }
     }
 }

@@ -165,6 +165,20 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             if (objection.isBlank()) "" else "\n\n" + ru.vladis.realtorai.local.OfflineLogic.objection(objection)
     }
 
+    internal suspend fun rolePlay(scenario: String, turns: List<Pair<String, String>>, feedback: Boolean): String {
+        val instruction = if (feedback)
+            "Дай короткий разбор тренировки: что сработало, чего не хватило и как переформулировать одну фразу."
+        else "Играй виртуального собственника. Отвечай естественно от первого лица одной или двумя репликами. Дай собеседнику возможность ответить."
+        val rules = "$instruction Учебный сценарий: $scenario. Реальных данных, объектов и покупателей нет."
+        if (cloudReady && turns.none { CloudAi.containsContact(it.second) || CloudAi.referencesClients(it.second, clients.value) }) {
+            try { return CloudAi.complete(ctx, rules, turns, stream = false).text }
+            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { /* Try the local model if it is installed. */ }
+        }
+        check(deviceReady) { "ИИ недоступен. Подключите Groq или локальную модель." }
+        return DeviceModel.answer(ctx, rules, turns)
+    }
+
     internal suspend fun recordCall(
         id: Long, outcome: ru.vladis.realtorai.local.CallOutcome, note: String, dueAt: Long?
     ) {

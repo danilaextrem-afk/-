@@ -11,13 +11,16 @@ object SaleIntake {
     data class Result(val listingId: Long, val propertyId: Long, val buyers: Int, val pending: Boolean)
 
     internal fun sharedLink(raw: String): ListingOrigin.Original? = urlPattern.findAll(raw.take(8_000)).firstNotNullOfOrNull {
-        ListingOrigin.original(Offer(source = "Поделиться", url = it.value.trimEnd('.', ',', ';', '!', ']')))
+        val candidate = it.value.trimEnd('.', ',', ';', '!', ']')
+        val path = ListingOrigin.webUrl(candidate)?.pathSegments.orEmpty()
+        if (path.firstOrNull() == "rent") null else ListingOrigin.original(Offer(source = "Поделиться", url = candidate))
     }
 
     internal fun requested(text: String): Boolean {
         val goal = GeoScope.normalize(text)
         val action = Regex("""(?:^|\s)(?:возьми|взять|добавь|добавить|прими|принять)\s""")
-        return action.containsMatchIn(goal) && "продаж" in goal && sharedLink(text) != null
+        val explicitlyForbidden = goal.contains(Regex("""(?:^|\s)не\s+(?:возьми|бери|взять|добавь|добавляй|добавить|прими|принимай|принять)\b"""))
+        return !explicitlyForbidden && action.containsMatchIn(goal) && "продаж" in goal && sharedLink(text) != null
     }
 
     // Parse only explicit, unambiguous values in Android's shared text. No network

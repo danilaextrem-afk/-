@@ -33,7 +33,7 @@ import ru.vladis.realtorai.local.OfflineLogic
     }
 }
 
-@Composable fun SalesWorkspace(vm: MainVm, back: () -> Unit) {
+@Composable fun SalesWorkspace(vm: MainVm, openTrainer: () -> Unit, back: () -> Unit) {
     var price by remember { mutableStateOf("") }; var down by remember { mutableStateOf("") }
     var rate by remember { mutableStateOf("") }; var years by remember { mutableStateOf("20") }
     var objection by remember { mutableStateOf("") }; var response by remember { mutableStateOf("") }
@@ -56,7 +56,10 @@ import ru.vladis.realtorai.local.OfflineLogic
     val r = rate.replace(',', '.').toDoubleOrNull(); val y = years.toIntOrNull()
     val payment = if (p != null && d in 0..p && r != null && y != null && y in 1..50) OfflineLogic.mortgage(p-d,r,y*12) else null
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { WorkspaceHeader("Продажи", "Sales Assistant", back) }
+        item {
+            WorkspaceHeader("Продажи", "Подготовка к переговорам", back)
+            OutlinedButton(openTrainer, Modifier.fillMaxWidth()) { Text("Тренажёр переговоров") }
+        }
         item { AppCard {
             Text("Ипотека и комиссия", style = MaterialTheme.typography.titleLarge)
             Text("Аннуитетный расчёт без страховок и сборов", color = Muted)

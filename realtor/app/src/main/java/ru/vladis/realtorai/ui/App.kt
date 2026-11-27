@@ -136,7 +136,8 @@ import ru.vladis.realtorai.MainVm
                         s?.startsWith("publication/") == true -> ru.vladis.realtorai.publish.PublishScreen(vm,
                             initialId = s.substringAfter('/').toLong(), openCall = { sub = "call/$it" }) { sub = null }
                         s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm, openCall = { sub = "call/$it" }) { sub = null }
-                        s == "sales" -> SalesWorkspace(vm) { sub = null }
+                        s == "sales" -> SalesWorkspace(vm, { sub = "trainer" }) { sub = null }
+                        s == "trainer" -> NegotiationTrainer(vm) { sub = "sales" }
                         s == "leads" -> LeadWorkspace(vm, { sub = null }, { clientId = it })
                         s == "hunter" || s == "map" -> ru.vladis.realtorai.hunter.HunterScreen(vm, s == "map", openOnline = if (s == "hunter") ::onlineSearch else null, openSale = { sub = "publication/$it" }) { sub = null }
                         else -> when (t) {
