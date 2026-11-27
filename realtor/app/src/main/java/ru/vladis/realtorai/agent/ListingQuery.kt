@@ -84,7 +84,10 @@ internal object ListingSearch {
     }
 
     suspend fun run(ctx: Context, db: AppDb, goal: String, args: JsonObject = JsonObject(), refresh: Boolean = false): String {
-        return results(ctx, db, ListingQuery.read(goal, args), refresh).text
+        val reply = results(ctx, db, ListingQuery.read(goal, args), refresh)
+        val links = reply.indexed.orEmpty().take(8).joinToString("\n") { "${it.source} · ${it.title}\n${it.url}" }
+        return listOfNotNull(reply.text, links.takeIf(String::isNotBlank)?.let { "Ссылки индекса для проверки:\n$it" })
+            .joinToString("\n\n")
     }
 
     suspend fun results(

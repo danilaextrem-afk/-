@@ -309,6 +309,8 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
             Text("${o.address} ${o.district}".trim(), color = Muted)
             Text("${o.area} м² · ${o.rooms} комн. · эт. ${o.floor}/${o.floorsTotal} · ${Market.ppsm(o).toLong().rub()}/м² · ${if (o.market == "primary") "первичка" else "вторичка"}")
             Text("Источник: ${o.source}", color = Muted, style = MaterialTheme.typography.bodySmall)
+            val seller = when(o.seller) { "owner" -> "Собственник"; "agent" -> "Агентство или агент"; "developer" -> "Застройщик"; else -> "Тип продавца не подтверждён" }
+            Text(seller, color = Muted, style = MaterialTheme.typography.bodySmall)
             Text(original?.let { "ID объявления: ${it.id}" }
                 ?: o.externalId.takeIf(String::isNotBlank)?.let { "ID в фиде: $it" } ?: "Источник не передал ID", color = Muted)
             if (original == null) Text("Непроверенное объявление: нет прямой ссылки с ID", color = MaterialTheme.colorScheme.error)
