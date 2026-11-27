@@ -52,7 +52,8 @@ object Groq {
         history: List<Pair<String, String>>,
         stream: Boolean = false,
         model: String = PRIMARY,
-        onPartial: (String) -> Unit = {}
+        onPartial: (String) -> Unit = {},
+        listingTool: Boolean = false
     ): CloudReply = suspendCancellableCoroutine { continuation ->
         val messages = JSONArray().put(JSONObject().put("role", "system").put("content", system))
         history.forEach { (role, text) ->
@@ -62,6 +63,7 @@ object Groq {
             .put("model", model)
             .put("messages", messages)
             .put("stream", stream)
+            .apply { if (listingTool) put("tools", JSONArray().put(searchTool())).put("tool_choice", "auto") }
             .apply { if (stream) put("stream_options", JSONObject().put("include_usage", true)) }
             .put("temperature", 0.4)
             .apply { if (model == PRIMARY) put("reasoning_effort", "low").put("include_reasoning", false) }
@@ -77,13 +79,39 @@ object Groq {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val result = runCatching { response.use { read(it, stream, onPartial) } }
+                val result = runCatching { response.use { read(it, stream, onPartial, listingTool) } }
                 continuation.resumeWith(result)
             }
         })
     }
 
-    internal fun read(response: Response, stream: Boolean, onPartial: (String) -> Unit): CloudReply {
+    private fun searchTool(): JSONObject {
+        val schema = JSONObject("""{"type":"object","required":["kind"],"additionalProperties":false,
+          "properties":{"kind":{"type":"string","enum":["search","refine","remember"]},
+          "cheaper":{"type":"boolean"},"criteria":{"type":"object","additionalProperties":false,
+          "properties":{"area":{"type":["string","null"]},"budget":{"type":["integer","null"]},
+          "rooms":{"type":["integer","null"]},"minArea":{"type":["number","null"]},
+          "market":{"type":["string","null"]},"seller":{"type":["string","null"]},
+          "address":{"type":["string","null"]},"station":{"type":["string","null"]}}}}}""")
+        return JSONObject().put("type","function").put("function", JSONObject()
+            .put("name","search_apartments").put("description","Поиск, уточнение либо сохранение параметров продажи квартир.").put("parameters",schema))
+    }
+
+    internal fun searchArguments(message: JSONObject): String {
+        val calls = message.optJSONArray("tool_calls") ?: return """{"kind":"chat"}"""
+        require(calls.length() == 1) { "Groq вернул несколько команд вместо одной" }
+        val call = calls.getJSONObject(0)
+        val function = call.getJSONObject("function")
+        require(call.optString("type") == "function" && function.optString("name") == "search_apartments")
+        val args = function.getString("arguments")
+        require(args.length <= 4096 && JSONObject(args).optString("kind") in setOf("search", "refine", "remember"))
+        return args
+    }
+
+    internal fun read(response: Response, stream: Boolean, onPartial: (String) -> Unit): CloudReply =
+        read(response, stream, onPartial, false)
+
+    private fun read(response: Response, stream: Boolean, onPartial: (String) -> Unit, listingTool: Boolean): CloudReply {
         if (!response.isSuccessful) error(when (response.code) {
             401, 403 -> "Groq отклонил ключ или доступ к модели"
             429 -> quota(response.headers).retryAfter?.let { "Квота Groq исчерпана. Повторите через $it сек." }
@@ -95,8 +123,9 @@ object Groq {
         val body = checkNotNull(response.body) { "Groq вернул пустой ответ" }
         if (!stream) {
             val packet = JSONObject(body.string())
+            val message = packet.getJSONArray("choices").getJSONObject(0).getJSONObject("message")
             return CloudReply(
-                packet.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content"),
+                if (listingTool) searchArguments(message) else message.getString("content"),
                 quota(response.headers, usedTokens(packet))
             )
         }
@@ -146,6 +175,13 @@ object CloudAi {
     }
 
     fun enabled(ctx: Context): Boolean = Store(ctx).let { it.cloudEnabled && it.cloudKey.isNotBlank() }
+
+    suspend fun routeListing(ctx: Context, rules: String, prompt: String): String {
+        val store = Store(ctx)
+        check(store.cloudEnabled && store.cloudKey.isNotBlank())
+        check(!containsContact(prompt))
+        return Groq.complete(store.cloudKey, rules, listOf("user" to prompt), listingTool = true).text
+    }
 
     suspend fun answer(ctx: Context, system: String, prompt: String): String =
         complete(ctx, system, listOf("user" to prompt), stream = false).text

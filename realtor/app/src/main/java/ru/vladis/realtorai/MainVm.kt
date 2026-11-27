@@ -80,17 +80,26 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun earning(p: Property): Double = p.price * agencyPct / 100 * sharePct / 100
 
     val sourceOffers = db.hunter().offers().state(emptyList())
-    suspend fun saveOfferProperty(offer: ru.vladis.realtorai.hunter.Offer) {
+    suspend fun saveOfferProperty(offer: ru.vladis.realtorai.hunter.Offer, takeInWork: Boolean = false) {
         val rules = ru.vladis.realtorai.autopilot.AutoRules
-        db.withTransaction {
+        val task = db.withTransaction {
             val stored = db.hunter().offer(offer.id) ?: error("Объявление удалено")
             check(ru.vladis.realtorai.hunter.GeoScope.eligible(stored) && rules.valid(stored)) {
                 "Объявление больше недоступно"
             }
             val existing = dao.allProperties().firstOrNull { rules.isDuplicate(stored, it) }
-            if (existing == null) dao.saveProperty(rules.propertyFromOffer(stored))
-            else if (existing.sourceOfferId == null) dao.saveProperty(existing.copy(sourceOfferId = stored.id))
+            val propertyId = when {
+                existing == null -> dao.saveProperty(rules.propertyFromOffer(stored))
+                existing.sourceOfferId == null -> dao.saveProperty(existing.copy(sourceOfferId = stored.id))
+                else -> existing.id
+            }
+            val kind = "listing/$propertyId/work"
+            if (!takeInWork || dao.allTasks().any { it.kind == kind && !it.done }) return@withTransaction null
+            val entry = TaskItem(title = "Проверить объявление · ${stored.title.ifBlank { stored.address }}", kind = kind,
+                dueAt = System.currentTimeMillis() + 3_600_000)
+            entry.copy(id = dao.saveTask(entry))
         }
+        task?.let { Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
     }
 
     fun saveProperty(p: Property) = viewModelScope.launch { dao.saveProperty(p) }
@@ -323,7 +332,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             try {
                 val routed = if (useCloud) {
                     val (rules, brief) = SearchLanguage.prompt(text, searchConversation)
-                    try { SearchLanguage.resolve(CloudAi.answer(ctx, rules, brief), searchConversation) }
+                    try { SearchLanguage.resolve(CloudAi.routeListing(ctx, rules, brief), searchConversation) }
                     catch (e: kotlinx.coroutines.CancellationException) { throw e }
                     catch (e: Exception) { null }
                 } else null
@@ -337,11 +346,13 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                 if (search != null && search.kind in setOf("search", "refine")) {
                     val previous = searchConversation.seen.takeIf { search.kind == "refine" && !retry }.orEmpty()
                     streamingAnswer = "Проверяю квартиры в подключённых источниках…"
+                    val indexPage = if (search.kind == "refine" && search.query == searchConversation.current)
+                        (searchConversation.indexPage + if (retry) 0 else 1).coerceAtMost(9) else 0
                     val reply = withContext(Dispatchers.IO) {
-                        ListingSearch.results(ctx, db, search.query, refresh = true, seen = previous.toSet())
+                        ListingSearch.results(ctx, db, search.query, refresh = true, seen = previous.toSet(), indexPage = indexPage)
                     }
                     val recent = (searchConversation.recent.orEmpty() + search.query).takeLast(30)
-                    saveSearchConversation(searchConversation.copy(current = search.query,
+                    saveSearchConversation(searchConversation.copy(current = search.query, indexPage = indexPage,
                         seen = (previous + reply.keys).distinct().takeLast(600), recent = recent,
                         lastLowestPrice = reply.lowestPrice ?: searchConversation.lastLowestPrice.takeIf { search.kind == "refine" }))
                     chat.add("listings" to Gson().toJson(reply.copy(keys = emptyList())))

@@ -10,21 +10,21 @@ internal data class SearchConversation(
     val preferences: ListingQuery = ListingQuery(),
     val seen: List<String> = emptyList(),
     val recent: List<ListingQuery>? = null,
-    val lastLowestPrice: Long? = null
+    val lastLowestPrice: Long? = null, val indexPage: Int = 0
 )
 
 internal data class SearchTurn(val kind: String, val query: ListingQuery)
-internal data class ListingReply(val text: String, val ids: List<Long> = emptyList(), val keys: List<String> = emptyList(), val lowestPrice: Long? = null)
+internal data class ListingReply(val text: String, val ids: List<Long> = emptyList(), val keys: List<String> = emptyList(), val lowestPrice: Long? = null, val indexed: List<IndexedListing>? = null, val sources: List<SearchSourceStatus>? = null)
 
 internal object SearchLanguage {
     private val gson = Gson()
     private val protocol = """
-        Ты маршрутизатор запросов в рабочем приложении риелтора. Отвечай только JSON.
+        Ты маршрутизатор запросов риелтора. Для поиска, уточнения или сохранения предпочтений вызови search_apartments.
         kind: search (новый поиск), refine (продолжение или уточнение), remember (явная просьба запомнить предпочтения),
         либо chat (совет, обсуждение, подготовка документа и прочее). Даже короткая просьба показать недвижимость означает поиск.
         «Ещё», «следующие», «а в Химках?», «до 15 миллионов», «теперь только двушки» после выдачи означают refine.
         Вопрос о недвижимости сам по себе не всегда означает поиск.
-        Для search/refine/remember верни {"kind":"...","criteria":{...}}. Для chat верни {"kind":"chat"}.
+        Передай kind и criteria как аргументы инструмента. Для обычного диалога инструмент не вызывай.
         Если пользователь просит «подешевле» относительно выдачи, передай cheaper: true.
         Поля criteria: area (район или город), budget (верхняя цена целым числом в рублях), rooms (целое, 0 для студии),
         minArea (м²), market (primary или secondary), seller (owner/developer/agent), address, station.
@@ -77,7 +77,7 @@ internal object SearchLanguage {
         val clean = GeoScope.normalize(text)
         val prior = state.current
         val inferred = ListingQuery.read(text)
-        val more = clean in setOf("еще", "еще варианты", "давай еще", "продолжай", "следующие", "еще есть", "что еще есть")
+        val more = clean in setOf("еще", "найди еще", "найди еще квартиры", "еще варианты", "давай еще", "продолжай", "следующие", "еще есть", "что еще есть")
         val wantsCheaper = "подешевле" in clean || clean == "дешевле"
         val qualifier = listOf("а ", "теперь ", "только ", "до ", "не дороже ", "не больше ", "без ").any(clean::startsWith)
         val continuation = prior != null && (more || wantsCheaper || qualifier && inferred != ListingQuery())

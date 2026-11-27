@@ -36,6 +36,9 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
     var askPassword by remember { mutableStateOf(false) }
     var restoreLegacy by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    val store = remember(ctx) { ru.vladis.realtorai.data.Store(ctx) }
+    var indexKey by remember { mutableStateOf("") }
+    var indexEnabled by remember { mutableStateOf(store.propertyIndexKey.isNotBlank()) }
     val exp = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
         if (uri != null) { selected = uri; exporting = true; askPassword = true }
     }
@@ -86,6 +89,17 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
         item {
             Text("Внешний вид", style = MaterialTheme.typography.titleLarge)
             Chips(listOf("Системная", "Тёмная", "Светлая"), theme, setTheme)
+        }
+        item {
+            AppCard {
+                Text("Поиск по площадкам", style = MaterialTheme.typography.titleLarge)
+                Text(if (indexEnabled) "Ключ индекса сохранён. Статус появится после поиска." else "Brave Search API получает поисковые параметры. Данные CRM остаются на устройстве.", color = Muted)
+                Field(indexKey, { indexKey = it.trim().take(300) }, "Ключ Brave Search API", password = true)
+                Row {
+                    TextButton({ store.propertyIndexKey = indexKey; indexKey = ""; indexEnabled = true }, enabled = indexKey.isNotBlank()) { Text("Сохранить ключ") }
+                    if (indexEnabled) TextButton({ store.propertyIndexKey = ""; indexEnabled = false }) { Text("Отключить") }
+                }
+            }
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

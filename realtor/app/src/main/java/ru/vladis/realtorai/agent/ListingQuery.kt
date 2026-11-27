@@ -1,6 +1,7 @@
 package ru.vladis.realtorai.agent
 
 import android.content.Context
+import kotlinx.coroutines.async
 import com.google.gson.JsonObject
 import ru.vladis.realtorai.data.AppDb
 import ru.vladis.realtorai.hunter.Dedup
@@ -87,9 +88,10 @@ internal object ListingSearch {
     }
 
     suspend fun results(
-        ctx: Context, db: AppDb, query: ListingQuery, refresh: Boolean, seen: Set<String> = emptySet()
+        ctx: Context, db: AppDb, query: ListingQuery, refresh: Boolean, seen: Set<String> = emptySet(), indexPage: Int = 0
     ): ListingReply {
-        // Ordinary apartments arrive from configured feeds. The auctions connector is not a substitute.
+        return kotlinx.coroutines.coroutineScope {
+        val web = if (refresh) async { PropertyIndex.search(ctx, query, indexPage, seen) } else null
         val update = if (refresh) HuntRun.refreshAll(ctx, includeCatalog = false) else null
         val geography = GeoPreferences.read(ctx)
         val offers = db.hunter().allOffers()
@@ -124,7 +126,16 @@ internal object ListingSearch {
         val report = if (update != null && update.errors.isNotEmpty()) {
             answer + "\n\nЧасть источников не ответила: " + update.errors.take(3).joinToString(" · ")
         } else answer
-        return ListingReply(report, selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}") },
-            selected.minOfOrNull { it.price })
+        val index = web?.await()
+        val originals = selected.mapNotNull { ListingOrigin.original(it)?.url }.toSet()
+        val links = index?.pages.orEmpty().filterNot { it.url in originals }
+        val feedStatus = db.hunter().allSubs().map { feed ->
+            SearchSourceStatus(feed.name, offers.count { it.source == "feed:${feed.name}" && query.matches(it) && geography.matches(it) },
+                feed.lastStatus.ifBlank { "Ещё не обновлялся" })
+        }
+        ListingReply(if (selected.isEmpty() && links.isNotEmpty()) "Найдены ссылки в поисковом индексе. Условия и наличие проверьте на площадках." else report,
+            selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}", ListingOrigin.original(it)?.url) } + links.map { "index:${it.url}" },
+            selected.minOfOrNull { it.price }, links, feedStatus + index?.sources.orEmpty())
+        }
     }
 }

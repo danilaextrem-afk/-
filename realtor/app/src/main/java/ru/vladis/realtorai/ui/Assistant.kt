@@ -36,6 +36,7 @@ import ru.vladis.realtorai.data.Property
 
 @Composable
 fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, openListing: (Long) -> Unit, openAgent: (String) -> Unit) {
+    val browser = LocalUriHandler.current
     val props by vm.properties.collectAsState()
     val sourceOffers by vm.sourceOffers.collectAsState()
     val clients by vm.clients.collectAsState()
@@ -137,6 +138,24 @@ fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, open
                         }
                         display.substringAfter("\n\nЧасть источников не ответила:", "").takeIf(String::isNotBlank)?.let {
                             Text("Часть источников не ответила:$it", color = Muted)
+                        }
+                    }
+                    listingReply?.indexed.orEmpty().forEach { hit ->
+                        AppCard {
+                            Text(hit.source + " · веб-индекс", color = Muted)
+                            Text(hit.title, style = MaterialTheme.typography.titleMedium)
+                            Text("Актуальность, фотографии и контакты не подтверждены", color = Muted)
+                            TextButton({
+                                runCatching { browser.openUri(hit.url) }
+                                    .onFailure { vm.error = "Не удалось открыть объявление" }
+                            }) { Text("Открыть объявление") }
+                        }
+                    }
+                    if (listingReply?.sources.orEmpty().isNotEmpty()) {
+                        var expanded by remember { mutableStateOf(false) }
+                        TextButton({ expanded = !expanded }) { Text(if (expanded) "Скрыть статус источников" else "Статус источников") }
+                        if (expanded) listingReply?.sources.orEmpty().forEach {
+                            Text("${it.source} · ${it.count} · ${it.status}", color = Muted, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     Row {

@@ -338,6 +338,15 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
             }, enabled = !exists && !saveRequested && o.deal == "sale", modifier = Modifier.fillMaxWidth()) {
                 Text(if (exists) "Уже в CRM" else if (saveRequested) "Сохраняем…" else "Добавить в CRM")
             }
+            OutlinedButton({
+                saveRequested = true
+                scope.launch {
+                    try { main.saveOfferProperty(o, takeInWork = true); message = "В CRM есть задача проверить объявление" }
+                    catch (e: CancellationException) { throw e }
+                    catch (e: Exception) { message = e.message ?: "Не удалось создать задачу" }
+                    finally { saveRequested = false }
+                }
+            }, enabled = !saveRequested && o.deal == "sale", modifier = Modifier.fillMaxWidth()) { Text("Взять в работу") }
             message?.let { Text(it, color = Muted) }
         } }
         o.sourceDescription?.takeIf(String::isNotBlank)?.let { description ->
