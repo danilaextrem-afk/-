@@ -30,12 +30,12 @@ object SaleIntake {
                 ?.replace(" ", "")?.toLongOrNull()?.takeIf { it in 100_000L..10_000_000_000L } ?: 0L
         val area = unique(Regex("""(?i)(?<![\d.,])(\d{1,4}(?:[.,]\d{1,2})?)\s*(?:м²|м2|кв\.\s*м)(?![\p{L}\d])"""))
             ?.replace(',', '.')?.toDoubleOrNull()?.takeIf { it in 5.0..5000.0 } ?: 0.0
-        val rooms = unique(Regex("""(?i)(?<!\d)([1-9])\s*[-–]?\s*(?:к\.\s*квартир|комнатн\w*\s+квартир)"""))
+        val rooms = unique(Regex("""(?i)(?<!\d)([1-9])\s*[-–]?\s*(?:к\.\s*квартир|комнатн\p{L}*\s+квартир)"""))
             ?.toIntOrNull() ?: 0
         val floorPattern = Regex("""(?i)(?<!\d)(\d{1,3})\s*/\s*(\d{1,3})\s*(?:эт\.?|этаж)""")
         val floor = unique(floorPattern)?.toIntOrNull() ?: 0
         val total = unique(floorPattern, 2)?.toIntOrNull() ?: 0
-        return SharedFacts(price, area, rooms, floor.takeIf { it in 1..total } ?: 0,
+        return SharedFacts(price, area, rooms, floor.takeIf { it in 1..total && total <= 200 } ?: 0,
             total.takeIf { floor in 1..it && it <= 200 } ?: 0)
     }
 
