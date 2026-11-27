@@ -39,7 +39,14 @@ class HunterVm(app: Application) : AndroidViewModel(app) {
     fun importFile(uri: Uri) = work {
         runCatching {
             val t = withContext(Dispatchers.IO) { ctx.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() } }.trimStart('\uFEFF')
-            val rows = if (t.trimStart().let { it.startsWith("[") || it.startsWith("{") }) HunterImport.fromJson(t, "file") else HunterImport.fromCsv(t, "file")
+            val head = t.trimStart().take(400).lowercase()
+            val rows = when {
+                head.startsWith("[") || head.startsWith("{") -> HunterImport.fromJson(t, "file")
+                "<realty-feed" in head -> RealtyFeed.parse(t, "file:YRL")
+                "<ads" in head -> PartnerFeed.parse(t, "file:Авито", "avito")
+                "<feed" in head -> PartnerFeed.parse(t, "file:Циан", "cian")
+                else -> HunterImport.fromCsv(t, "file")
+            }
             HunterImport.ingest(dao, rows).also { ru.vladis.realtorai.autopilot.AutopilotEngine.syncIfEnabled(ctx) }
         }.onSuccess { log = it.describe() }.onFailure { log = "Импорт: ${err(it)}" }
     }

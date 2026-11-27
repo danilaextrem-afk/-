@@ -9,6 +9,7 @@ import ru.vladis.realtorai.hunter.HuntRun
 import ru.vladis.realtorai.ui.rub
 import ru.vladis.realtorai.hunter.GeoScope
 import ru.vladis.realtorai.hunter.Offer
+import ru.vladis.realtorai.hunter.ListingOrigin
 
 internal data class ListingQuery(
     val place: String = "", val budget: Long = Long.MAX_VALUE,
@@ -77,31 +78,53 @@ internal data class ListingQuery(
 internal object ListingSearch {
     fun accepts(goal: String): Boolean {
         val text = GeoScope.normalize(goal)
-        return listOf("найди", "найти", "поищи", "покажи").any(text::contains) &&
-            listOf("квартир", "двуш", "однуш", "треш", "четыреш", "новострой").any(text::contains)
+        return listOf("найди", "найти", "поищи", "покажи", "подбери", "ищу", "хочу купить").any(text::contains) &&
+            listOf("квартир", "жиль", "двуш", "однуш", "треш", "четыреш", "новострой", "вариант").any(text::contains)
     }
 
     suspend fun run(ctx: Context, db: AppDb, goal: String, args: JsonObject = JsonObject(), refresh: Boolean = false): String {
-        val update = if (refresh) HuntRun.refreshAll(ctx) else null
-        val query = ListingQuery.read(goal, args)
+        return results(ctx, db, ListingQuery.read(goal, args), refresh).text
+    }
+
+    suspend fun results(
+        ctx: Context, db: AppDb, query: ListingQuery, refresh: Boolean, seen: Set<String> = emptySet()
+    ): ListingReply {
+        // Ordinary apartments arrive from configured feeds. The auctions connector is not a substitute.
+        val update = if (refresh) HuntRun.refreshAll(ctx, includeCatalog = false) else null
         val geography = GeoPreferences.read(ctx)
         val offers = db.hunter().allOffers()
-        val candidates = offers.asSequence().filter { query.matches(it) && geography.matches(it) }.sortedBy { it.price }
+        fun identity(offer: Offer): String? = ListingOrigin.original(offer)?.url?.let {
+            ru.vladis.realtorai.autopilot.AutoRules.urlKey(it)
+        }
+        val previouslyShown = offers.filter { identity(it) in seen || "record:${it.id}" in seen }
+        val candidates = offers.asSequence().filter {
+            query.matches(it) && geography.matches(it) && identity(it) != null &&
+                !it.source.startsWith("Торги.Открыто") &&
+                GeoScope.normalize(it.housingKind.orEmpty()) in setOf("", "квартира", "квартиры", "flat", "apartment")
+        }.sortedWith(compareByDescending<Offer> { ListingOrigin.ownerApartment(it) }
+            .thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }
+            .thenBy { it.price })
         val selected = mutableListOf<Offer>()
         for (offer in candidates) {
-            if (selected.none { it.url.isNotBlank() && it.url == offer.url || Dedup.same(it, offer) }) selected += offer
+            val key = identity(offer)
+            if (key in seen || "record:${offer.id}" in seen) continue
+            if (previouslyShown.any { Dedup.same(it, offer) }) continue
+            if (selected.none { identity(it) == key || Dedup.same(it, offer) }) selected += offer
             if (selected.size >= 8) break
         }
-        val answer = if (selected.isNotEmpty()) selected.joinToString("\n\n") {
-            "${it.title} · ${it.price.rub()} · ${it.address} · ${it.source}\n${it.url}"
-        } else if (query.seller != null) {
-            "В подключённых источниках нет совпадений с подтверждённым типом продавца. Для обычных объявлений подключите фид с полем продавца."
-        } else GeoScope.searchableProperties(db.dao().allProperties(), offers, geography).asSequence().filter { property ->
-            property.status == "active" && query.matches(Offer(source = "CRM", address = property.address,
-                region = property.region, price = property.price, area = property.area, rooms = property.rooms, market = property.type))
-        }.sortedBy { it.price }.take(8).joinToString("\n") { "#${it.id} ${it.title} · ${it.price.rub()} · ${it.address}" }
-            .ifBlank { "По этим параметрам нет подтверждённых объектов в Москве и МО." }
-        return if (update != null && update.errors.isNotEmpty()) answer + "\n\nЧасть источников не ответила: " + update.errors.take(3).joinToString(" · ")
-        else answer
+        val answer = when {
+            selected.isNotEmpty() -> selected.joinToString("\n\n") {
+                val original = requireNotNull(ListingOrigin.original(it))
+                "${it.title} · ${it.price.rub()} · ${it.address} · ${it.source} · ID ${original.id}\n${original.url}"
+            }
+            seen.isNotEmpty() -> "В подключённых источниках больше нет новых квартир по этим условиям."
+            db.hunter().allSubs().isEmpty() && offers.none { ListingOrigin.original(it) != null && !it.source.startsWith("Торги.Открыто") } ->
+                "Подключите разрешённый фид квартир Москвы и области в разделе «Поиск → Данные» или импортируйте файл объявлений."
+            else -> "В подключённых источниках нет квартир с прямой ссылкой по этим условиям."
+        }
+        val report = if (update != null && update.errors.isNotEmpty()) {
+            answer + "\n\nЧасть источников не ответила: " + update.errors.take(3).joinToString(" · ")
+        } else answer
+        return ListingReply(report, selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}") })
     }
 }

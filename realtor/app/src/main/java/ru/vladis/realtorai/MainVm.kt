@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.vladis.realtorai.ai.*
+import ru.vladis.realtorai.agent.ListingSearch
+import ru.vladis.realtorai.agent.SearchConversation
+import ru.vladis.realtorai.agent.SearchLanguage
+import ru.vladis.realtorai.agent.ListingReply
 import ru.vladis.realtorai.data.*
 
 data class Backup(val properties: List<Property>, val clients: List<Client>,
@@ -75,6 +79,20 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     /** Доход агента = цена × комиссия агентства % × доля агента % */
     fun earning(p: Property): Double = p.price * agencyPct / 100 * sharePct / 100
 
+    val sourceOffers = db.hunter().offers().state(emptyList())
+    suspend fun saveOfferProperty(offer: ru.vladis.realtorai.hunter.Offer) {
+        val rules = ru.vladis.realtorai.autopilot.AutoRules
+        db.withTransaction {
+            val stored = db.hunter().offer(offer.id) ?: error("Объявление удалено")
+            check(ru.vladis.realtorai.hunter.GeoScope.eligible(stored) && rules.valid(stored)) {
+                "Объявление больше недоступно"
+            }
+            val existing = dao.allProperties().firstOrNull { rules.isDuplicate(stored, it) }
+            if (existing == null) dao.saveProperty(rules.propertyFromOffer(stored))
+            else if (existing.sourceOfferId == null) dao.saveProperty(existing.copy(sourceOfferId = stored.id))
+        }
+    }
+
     fun saveProperty(p: Property) = viewModelScope.launch { dao.saveProperty(p) }
     fun deleteProperty(p: Property) = viewModelScope.launch {
         val tasks = db.withTransaction {
@@ -124,6 +142,12 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- ИИ-ассистент ----
+    private var searchConversation = runCatching { Gson().fromJson(store.searchConversation, SearchConversation::class.java) }
+        .getOrNull() ?: SearchConversation()
+    private fun saveSearchConversation(next: SearchConversation) {
+        searchConversation = next
+        store.searchConversation = Gson().toJson(next)
+    }
     private data class ChatRecord(val role: String, val text: String)
     val chat = mutableStateListOf<Pair<String, String>>().apply {
         runCatching { Gson().fromJson(store.transcript, Array<ChatRecord>::class.java) }
@@ -248,6 +272,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun clearChat() {
         if (busy) return
         chat.clear()
+        saveSearchConversation(searchConversation.copy(current = null, seen = emptyList()))
         saveTranscript()
         cloudHistory.clear()
         previousRequest = null
@@ -255,7 +280,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         error = null
     }
 
-    fun canSearch(text: String) = ru.vladis.realtorai.agent.ListingSearch.accepts(text)
+    fun canSearch(text: String) = SearchLanguage.offline(text, searchConversation) != null
 
     fun ask(mode: String, text: String, p: Property?, c: Client?, retry: Boolean = false) {
         if (busy || text.isBlank()) return
@@ -270,24 +295,9 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         }
         previousRequest = request
         canRetry = true
-        if (canSearch(text)) {
-            chat.add("user" to text)
-            saveTranscript()
-            error = null
-            busy = true
-            generationJob = viewModelScope.launch {
-                try {
-                    val results = withContext(Dispatchers.IO) { ru.vladis.realtorai.agent.ListingSearch.run(ctx, db, text, refresh = true) }
-                    chat.add("assistant" to results)
-                    saveTranscript()
-                } catch (e: kotlinx.coroutines.CancellationException) { throw e }
-                catch (e: Exception) { error = e.localizedMessage }
-                finally { busy = false }
-            }
-            return
-        }
+        val offlineSearch = SearchLanguage.offline(text, searchConversation)
         val useCloud = cloudReady && p == null && c == null && mode != "Подбор" && !identifiesClient
-        if (!useCloud && !deviceReady) {
+        if (!useCloud && !deviceReady && offlineSearch == null) {
             error = if (cloudReady) "Работа с данными CRM требует локальной модели" else "Подключите облачный ИИ или скачайте локальную модель"
             return
         }
@@ -303,11 +313,38 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             }
             append(text)
         }
-        val hist = chat.toList() + ("user" to content)
+        val hist = chat.map { (role, message) ->
+            if (role == "listings") "assistant" to (runCatching { Gson().fromJson(message, ListingReply::class.java)?.text }.getOrNull().orEmpty())
+            else role to message
+        } + ("user" to content)
         chat.add("user" to text); error = null; busy = true
         saveTranscript()
         generationJob = viewModelScope.launch {
             try {
+                val routed = if (useCloud) {
+                    val (rules, brief) = SearchLanguage.prompt(text, searchConversation)
+                    try { SearchLanguage.resolve(CloudAi.answer(ctx, rules, brief), searchConversation) }
+                    catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (e: Exception) { null }
+                } else null
+                val search = routed ?: offlineSearch
+                if (search?.kind == "remember") {
+                    saveSearchConversation(searchConversation.copy(preferences = search.query))
+                    chat.add("assistant" to "Сохранил предпочтения для следующих поисков.")
+                    saveTranscript()
+                    return@launch
+                }
+                if (search != null && search.kind in setOf("search", "refine")) {
+                    val previous = searchConversation.seen.takeIf { search.kind == "refine" && !retry }.orEmpty()
+                    streamingAnswer = "Проверяю квартиры в подключённых источниках…"
+                    val reply = withContext(Dispatchers.IO) {
+                        ListingSearch.results(ctx, db, search.query, refresh = true, seen = previous.toSet())
+                    }
+                    saveSearchConversation(searchConversation.copy(current = search.query, seen = (previous + reply.keys).distinct().takeLast(600)))
+                    chat.add("listings" to Gson().toJson(reply.copy(keys = emptyList())))
+                    saveTranscript()
+                    return@launch
+                }
                 val job = coroutineContext[kotlinx.coroutines.Job]
                 val onPartial: (String) -> Unit = { partial ->
                     viewModelScope.launch { if (job?.isActive == true) streamingAnswer = partial }

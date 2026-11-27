@@ -15,7 +15,8 @@ import kotlinx.coroutines.flow.Flow
     val url: String = "", val description: String = "",
     val housingKind: String? = null, val ownerId: Long? = null, val favorite: Boolean = false,
     val status: String = "active", // active | deal | archived
-    val createdAt: Long = System.currentTimeMillis(), val region: String? = null)
+    val createdAt: Long = System.currentTimeMillis(), val region: String? = null,
+    val sourceOfferId: Long? = null)
 
 fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
 
@@ -68,7 +69,7 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     @Query("SELECT * FROM TaskItem") suspend fun allTasks(): List<TaskItem>
 }
 
-@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class, OwnerCase::class, OwnerEvent::class, AgentJob::class], version = 8, exportSchema = false)
+@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class, OwnerCase::class, OwnerEvent::class, AgentJob::class], version = 9, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): AppDao
     abstract fun agent(): AgentDao

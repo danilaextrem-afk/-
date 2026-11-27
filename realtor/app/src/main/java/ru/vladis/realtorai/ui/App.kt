@@ -112,7 +112,9 @@ import ru.vladis.realtorai.MainVm
                         s == "settings" -> SettingsScreen(vm, theme, setTheme) { sub = null }
                         s == "models" -> ModelScreen(vm) { sub = null }
                         s == "tasks" -> Tasks(vm)
-                        s == "properties" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" })
+                        s == "properties" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" }, { sub = "offer/$it" })
+                        s?.startsWith("offer/") == true -> ru.vladis.realtorai.hunter.HunterScreen(vm,
+                            selectedOffer = s.substringAfter('/').toLong()) { sub = null }
                         s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm) { sub = null }
                         s == "sales" -> SalesWorkspace(vm) { sub = null }
                         s == "leads" -> LeadWorkspace(vm, { sub = null }, { clientId = it })
@@ -123,7 +125,7 @@ import ru.vladis.realtorai.MainVm
                             "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, topLevel = true) { tab = "home" }
                             "crm" -> Crm(vm) { clientId = it }
                             "profile" -> Profile(vm) { sub = it }
-                            else -> Assistant(vm, { sub = "models" }, { sub = "settings" }) { request ->
+                            else -> Assistant(vm, { sub = "models" }, { sub = "settings" }, { sub = "offer/$it" }) { request ->
                                 command = request
                                 sub = "agent"
                             }

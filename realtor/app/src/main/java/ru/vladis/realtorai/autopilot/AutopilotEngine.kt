@@ -35,11 +35,18 @@ object AutoRules {
             (c.desiredRooms == 0 || it.rooms == c.desiredRooms) &&
             (c.desiredKind == null || c.desiredKind.equals(it.housingKind, true)) &&
             (c.preferredMarket == null || c.preferredMarket == it.type) && it.area >= c.minArea && (c.searchArea.isNullOrBlank() || (it.address + " " + it.description.lineSequence().firstOrNull { line -> line.startsWith("Район:") }.orEmpty()).contains(c.searchArea.trim(), ignoreCase = true)) }.sortedWith(compareByDescending<Property> { preferenceScore(c, it.title + " " + it.description + " " + it.address) }.thenByDescending { it.favorite }.thenBy { it.price }).take(5)
+    fun propertyFromOffer(o: Offer, ownerId: Long? = null) = Property(
+        region = GeoScope.region(o), housingKind = o.housingKind, ownerId = ownerId, sourceOfferId = o.id,
+        title = o.title.ifBlank { o.address.ifBlank { "Объект из импорта" } }, address = o.address, type = o.market,
+        price = o.price, area = o.area, rooms = o.rooms, floor = o.floor,
+        url = ListingOrigin.original(o)?.url.orEmpty(),
+        description = listOfNotNull("Источник: " + o.source, o.district.takeIf(String::isNotBlank)?.let { "Район: $it" },
+            sourceKey(o), o.sourceDescription).joinToString("\n"))
     fun isDuplicate(o: Offer, p: Property): Boolean {
         val u = urlKey(o.url)
         val a = addressKey(o.address,o.area,o.rooms,o.floor)
         val s = sourceKey(o)
-        return (u != null && u == urlKey(p.url)) || (a != null && a == addressKey(p.address,p.area,p.rooms,p.floor)) || (s != null && p.description.lineSequence().any { it == s })
+        return (o.id > 0 && p.sourceOfferId == o.id) || (u != null && u == urlKey(p.url)) || (a != null && a == addressKey(p.address,p.area,p.rooms,p.floor)) || (s != null && p.description.lineSequence().any { it == s })
     }
 }
 
@@ -71,8 +78,8 @@ object AutopilotEngine {
             }.toMutableMap()
             val actions = mutableListOf<String>()
             var added = 0; var duplicates = 0; var skipped = 0; var prices = 0
-            for (o in offers.sortedByDescending { it.lastSeen }) {
-                val link = AutoRules.urlKey(o.url)
+            for (o in offers.sortedWith(compareByDescending<Offer> { ListingOrigin.ownerApartment(it) }.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen })) {
+                val link = ListingOrigin.original(o)?.url
                 val addr = AutoRules.addressKey(o.address,o.area,o.rooms,o.floor)
                 val marker = AutoRules.sourceKey(o)
                 if (!AutoRules.valid(o) || (link == null && addr == null && marker == null)) { skipped++; continue }
@@ -88,8 +95,9 @@ object AutopilotEngine {
                     duplicates++
                     if (same.price != o.price) prices++
                     val tracksSource = marker != null && same.description.lineSequence().any { it == marker }
-                    if ((same.ownerId == null && owner != null) || (tracksSource && same.price != o.price)) {
-                        val linked = same.copy(ownerId = same.ownerId ?: owner?.id, price = if (tracksSource) o.price else same.price)
+                    if ((same.ownerId == null && owner != null) || (tracksSource && (same.price != o.price || same.sourceOfferId == null))) {
+                        val linked = same.copy(ownerId = same.ownerId ?: owner?.id, price = if (tracksSource) o.price else same.price,
+                            sourceOfferId = same.sourceOfferId ?: o.id.takeIf { tracksSource })
                         dao.saveProperty(linked)
                         if (same.price != linked.price && actions.size < 6)
                             actions += "${same.title.take(45)}: ${same.price} → ${linked.price} ₽"
@@ -97,10 +105,7 @@ object AutopilotEngine {
                     }
                     continue
                 }
-                val p = Property(region = GeoScope.region(o), housingKind = o.housingKind, ownerId = owner?.id, title = o.title.ifBlank { o.address.ifBlank { "Объект из импорта" } }, address = o.address, type = o.market,
-                    price = o.price, area = o.area, rooms = o.rooms, floor = o.floor,
-                    url = o.url.takeIf { link != null }.orEmpty(),
-                    description = listOfNotNull("Источник: " + o.source, o.district.takeIf { it.isNotBlank() }?.let { "Район: $it" }, marker).joinToString("\n"))
+                val p = AutoRules.propertyFromOffer(o, owner?.id)
                 val id = dao.saveProperty(p)
                 if (enabled(ctx)) {
                     val listing = ru.vladis.realtorai.publish.Listing(propertyId = id, address = p.address,

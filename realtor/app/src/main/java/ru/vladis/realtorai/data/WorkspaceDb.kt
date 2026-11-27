@@ -64,11 +64,21 @@ object WorkspaceDb {
         }
     }
 
+    internal val listingDetails = object : androidx.room.migration.Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            for (column in listOf("photoUrls", "sourceDescription", "contactName", "contactPhone")) {
+                db.execSQL("ALTER TABLE Offer ADD COLUMN $column TEXT")
+            }
+            db.execSQL("ALTER TABLE Offer ADD COLUMN sourceUpdatedAt INTEGER")
+            db.execSQL("ALTER TABLE Property ADD COLUMN sourceOfferId INTEGER")
+        }
+    }
+
     fun get(context: Context): AppDb = instance ?: synchronized(this) {
         val app = context.applicationContext
         ru.vladis.realtorai.hunter.GeoScope.initialize(app)
         instance ?: Room.databaseBuilder(app, AppDb::class.java, "workspace.db")
-            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow, agentQueue, moscowGeography)
+            .addMigrations(criteriaMigration, ownerMigration, matchingMigration, housingMigration, ownerWorkflow, agentQueue, moscowGeography, listingDetails)
             .addCallback(LegacyImport(app)).build().also { instance = it }
     }
 }

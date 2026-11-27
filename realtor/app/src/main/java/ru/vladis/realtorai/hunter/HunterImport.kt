@@ -44,7 +44,10 @@ object HunterImport {
         "owner_name" to listOf("owner_name", "имя собственника"),
         "owner_phone" to listOf("owner_phone", "телефон собственника"),
         "crm_allowed" to listOf("crm_allowed", "разрешен импорт контакта"),
-        "id" to listOf("id", "external_id"), "title" to listOf("заголовок", "title"), "deal" to listOf("сделка", "deal"), "market" to listOf("рынок", "market"))
+        "photos" to listOf("photos", "photo_urls", "images", "image", "photo", "фото"),
+        "description" to listOf("description", "описание"),
+        "updated_at" to listOf("updated_at", "updatedat", "last_update_date", "дата обновления"),
+        "id" to listOf("id", "external_id", "listing_id"), "title" to listOf("заголовок", "title"), "deal" to listOf("сделка", "deal"), "market" to listOf("рынок", "market"))
 
     private fun num(s: String?): Double? = s?.filter { it.isDigit() || it == ',' || it == '.' || it == '-' }?.replace(',', '.')?.toDoubleOrNull()
 
@@ -66,7 +69,12 @@ object HunterImport {
         val deadline = g("expiry")?.let { it.toLongOrNull() ?: runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull() }
         val o = Offer(source = source, housingKind = g("housing_kind"), seller = seller,
             region = g("region"), locality = g("locality"), transit = g("transit"), expiresAt = deadline, active = !expired,
-            ownerName = g("owner_name")?.takeIf { allowed }, ownerPhone = g("owner_phone")?.takeIf { allowed }, externalId = g("id").orEmpty(), url = g("url").orEmpty(), title = g("title").orEmpty(),
+            ownerName = g("owner_name")?.takeIf { allowed }, ownerPhone = g("owner_phone")?.takeIf { allowed },
+            contactName = g("owner_name")?.takeIf { seller == "owner" }?.take(150),
+            contactPhone = ListingOrigin.dialable(g("owner_phone"))?.takeIf { seller == "owner" },
+            photoUrls = ListingOrigin.photos(g("photos")).joinToString("\n").takeIf(String::isNotEmpty),
+            sourceDescription = g("description")?.take(12_000), sourceUpdatedAt = ListingOrigin.updatedAt(g("updated_at")),
+            externalId = g("id").orEmpty().take(250), url = g("url").orEmpty().take(4096), title = g("title").orEmpty(),
             address = g("address").orEmpty(), district = g("district").orEmpty(), lat = num(g("lat")), lon = num(g("lon")),
             deal = deal, market = market, price = num(g("price"))?.toLong() ?: 0, area = num(g("area")) ?: 0.0,
             rooms = num(g("rooms"))?.toInt() ?: 0, floor = floor, floorsTotal = total)
@@ -84,7 +92,16 @@ object HunterImport {
         val arr: JsonArray = if (root.isJsonArray) root.asJsonArray else root.asJsonObject.let { o ->
             listOf("offers", "items", "data", "ads").firstNotNullOfOrNull { k -> o.get(k)?.takeIf { it.isJsonArray }?.asJsonArray } ?: JsonArray() }
         return arr.mapNotNull { e ->
-            if (!e.isJsonObject) null else rowToOffer(e.asJsonObject.entrySet().associate { it.key.lowercase() to (if (it.value.isJsonPrimitive) it.value.asString else "") }, source)
+            if (!e.isJsonObject) null else rowToOffer(e.asJsonObject.entrySet().associate { it.key.lowercase() to (when {
+                it.value.isJsonPrimitive -> it.value.asString
+                it.value.isJsonArray && it.key.lowercase() in alias.getValue("photos") ->
+                    it.value.asJsonArray.mapNotNull { photo -> when {
+                        photo.isJsonPrimitive -> photo.asString
+                        photo.isJsonObject -> photo.asJsonObject.get("url")?.takeIf { link -> link.isJsonPrimitive }?.asString
+                        else -> null
+                    } }.joinToString("\n")
+                else -> ""
+            }) }, source)
         }
     }
 
@@ -92,7 +109,7 @@ object HunterImport {
     fun fromText(text: String, url: String): Offer {
         val p = Importer.parse(text, url)
         val addr = Regex("Адрес[:\\s]+(.+)").find(text)?.groupValues?.get(1)?.trim().orEmpty()
-        val o = Offer(source = "paste", url = url, title = p.title, address = addr, price = p.price, area = p.area, rooms = p.rooms, floor = p.floor)
+        val o = Offer(source = "paste", url = url, title = p.title, address = addr, sourceDescription = text.take(12_000), price = p.price, area = p.area, rooms = p.rooms, floor = p.floor)
         return o.copy(fingerprint = Dedup.fp(o))
     }
 
@@ -100,7 +117,7 @@ object HunterImport {
     fun plan(existing: List<Offer>, rows: List<Offer>, now: Long): Plan {
         val known = HashMap<String, Offer>()
         fun keys(o: Offer) = listOfNotNull(o.externalId.takeIf { it.isNotBlank() }?.let { "${o.source}|e|$it" },
-            o.url.takeIf { it.isNotBlank() }?.let { "${o.source}|u|$it" }, o.fingerprint.takeIf { it.length > 6 }?.let { "${o.source}|f|$it" })
+            ListingOrigin.original(o)?.url?.let { "${o.source}|u|$it" }, o.fingerprint.takeIf { it.length > 6 }?.let { "${o.source}|f|$it" })
         existing.forEach { o -> keys(o).forEach { known[it] = o } }
         val ins = mutableListOf<Offer>(); val upd = mutableListOf<Pair<Offer, Boolean>>(); var skipped = 0
         val updatedIds = mutableSetOf<Long>()
@@ -112,7 +129,10 @@ object HunterImport {
             val old = keys(r).firstNotNullOfOrNull { known[it] }
             if (old == null) { val n = r.copy(firstSeen = now, lastSeen = now); ins += n; keys(n).forEach { known[it] = n } }
             else if (old.id == 0L || !updatedIds.add(old.id)) skipped++ // повтор внутри того же файла
-            else upd += old.copy(region = r.region, locality = r.locality ?: old.locality, transit = r.transit ?: old.transit, seller = r.seller, expiresAt = r.expiresAt, housingKind = r.housingKind ?: old.housingKind, ownerName = r.ownerName, ownerPhone = r.ownerPhone, price = r.price, area = r.area, market = r.market, rooms = r.rooms.takeIf { it > 0 } ?: old.rooms, floor = r.floor.takeIf { it > 0 } ?: old.floor, lastSeen = now, active = true, title = r.title.ifBlank { old.title },
+            else upd += old.copy(externalId = r.externalId.ifBlank { old.externalId },
+                photoUrls = r.photoUrls, sourceDescription = r.sourceDescription ?: old.sourceDescription,
+                sourceUpdatedAt = r.sourceUpdatedAt ?: old.sourceUpdatedAt, contactName = r.contactName, contactPhone = r.contactPhone,
+                region = r.region, locality = r.locality ?: old.locality, transit = r.transit ?: old.transit, seller = r.seller, expiresAt = r.expiresAt, housingKind = r.housingKind ?: old.housingKind, ownerName = r.ownerName, ownerPhone = r.ownerPhone, price = r.price, area = r.area, market = r.market, rooms = r.rooms.takeIf { it > 0 } ?: old.rooms, floor = r.floor.takeIf { it > 0 } ?: old.floor, lastSeen = now, active = true, title = r.title.ifBlank { old.title },
                 address = r.address.ifBlank { old.address }, district = r.district.ifBlank { old.district }, url = r.url.ifBlank { old.url },
                 lat = r.lat ?: old.lat, lon = r.lon ?: old.lon, floorsTotal = if (r.floorsTotal > 0) r.floorsTotal else old.floorsTotal) to (old.price != r.price)
         }
@@ -127,9 +147,9 @@ object HunterImport {
         for (row in rows) {
             if (row.active && row.expiresAt?.let { it <= now } != true && GeoScope.region(row) != null) continue
             val sourceId = row.externalId.takeIf { it.isNotBlank() }
-            val url = row.url.takeIf { it.isNotBlank() }
+            val url = ListingOrigin.original(row)?.url
             val existing = old.values.firstOrNull { it.source == row.source &&
-                (sourceId != null && it.externalId == sourceId || url != null && it.url == url) }
+                (sourceId != null && it.externalId == sourceId || url != null && ListingOrigin.original(it)?.url == url) }
             if (existing?.active == true) dao.saveOffer(existing.copy(active = false))
         }
         val p = plan(old.values.toList(), rows, now)

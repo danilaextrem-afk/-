@@ -19,6 +19,8 @@ data class Offer(
     val fingerprint: String = "", val favorite: Boolean = false, val active: Boolean = true,
     val region: String? = null, val locality: String? = null, val transit: String? = null,
     val seller: String? = null, val expiresAt: Long? = null,
+    val photoUrls: String? = null, val sourceDescription: String? = null,
+    val sourceUpdatedAt: Long? = null, val contactName: String? = null, val contactPhone: String? = null,
     val firstSeen: Long = System.currentTimeMillis(), val lastSeen: Long = System.currentTimeMillis())
 
 @Entity data class PricePoint(@PrimaryKey(autoGenerate = true) val id: Long = 0, val offerId: Long, val price: Long, val at: Long = System.currentTimeMillis())
@@ -42,6 +44,7 @@ data class Offer(
     suspend fun deactivateOlder(source: String, before: Long): Int
 
     @Query("SELECT * FROM Offer") fun offers(): Flow<List<Offer>>
+    @Query("SELECT * FROM Offer WHERE id=:id") suspend fun offer(id: Long): Offer?
     @Query("SELECT * FROM Offer") suspend fun allOffers(): List<Offer>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun saveOffer(o: Offer): Long
     @Query("DELETE FROM Offer WHERE id=:id") suspend fun deleteOffer(id: Long)

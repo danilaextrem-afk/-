@@ -11,6 +11,8 @@ internal object RealtyFeed {
         p.setInput(StringReader(input))
         val result = mutableListOf<Offer>()
         val path = mutableListOf<String>()
+        val images = mutableListOf<String>()
+        val phones = mutableListOf<String>()
         val stations = mutableListOf<String>()
         var fields = mutableMapOf<String, String>()
         while (p.eventType != XmlPullParser.END_DOCUMENT) {
@@ -20,6 +22,8 @@ internal object RealtyFeed {
                     if (path.size == 1) require(p.name == "realty-feed") { "Ожидается XML-фид YRL" }
                     if (path.size == 2 && p.name == "offer") {
                         stations.clear()
+                        images.clear()
+                        phones.clear()
                         fields = mutableMapOf("id" to p.getAttributeValue(null, "internal-id").orEmpty())
                     }
                 }
@@ -32,6 +36,8 @@ internal object RealtyFeed {
                     if (field in setOf("location/metro/name","location/railway-station/name","location/mck/name","location/mcd/name")) {
                         fields.remove(field)?.takeIf { it.isNotBlank() }?.let(stations::add)
                     }
+                    if (field == "image") fields.remove(field)?.takeIf(String::isNotBlank)?.let(images::add)
+                    if (field == "sales-agent/phone") fields.remove(field)?.let(phones::add)
                     if (path.size == 2 && p.name == "offer") {
                         fun value(key: String) = fields[key].orEmpty()
                         if (value("price/currency") in setOf("RUB","RUR","") && value("type") == "продажа" &&
@@ -45,6 +51,9 @@ internal object RealtyFeed {
                                 "region" to value("location/region"), "locality" to value("location/locality-name"),
                                 "lat" to value("location/latitude"), "lon" to value("location/longitude"),
                                 "transit" to stations.distinct().joinToString(";"), "seller" to value("sales-agent/category"),
+                                "photos" to images.joinToString("\n"), "description" to value("description"),
+                                "updated_at" to value("last-update-date"), "owner_name" to value("sales-agent/name"),
+                                "owner_phone" to phones.firstNotNullOfOrNull(ListingOrigin::dialable).orEmpty(),
                                 "expires_at" to value("expire-date"), "price" to value("price/value"),
                                 "area" to value("area/value"), "rooms" to value("rooms"), "floor" to value("floor"),
                                 "floors_total" to value("floors-total"), "housing_kind" to value("category"),

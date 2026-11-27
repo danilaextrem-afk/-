@@ -26,13 +26,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import ru.vladis.realtorai.MainVm
+import ru.vladis.realtorai.agent.ListingReply
+import ru.vladis.realtorai.hunter.ListingOrigin
+import ru.vladis.realtorai.hunter.ListingPhoto
+import com.google.gson.Gson
 import ru.vladis.realtorai.ai.Prompts
 import ru.vladis.realtorai.data.Client
 import ru.vladis.realtorai.data.Property
 
 @Composable
-fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, openAgent: (String) -> Unit) {
+fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, openListing: (Long) -> Unit, openAgent: (String) -> Unit) {
     val props by vm.properties.collectAsState()
+    val sourceOffers by vm.sourceOffers.collectAsState()
     val clients by vm.clients.collectAsState()
     var mode by rememberSaveable { mutableStateOf("") }
     var text by rememberSaveable { mutableStateOf("") }
@@ -111,11 +116,33 @@ fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, open
                     }
                 } else {
                     Text("Realtor AI", style = MaterialTheme.typography.labelMedium, color = Lime)
-                    SelectionContainer { ResponseBody(message) }
+                    val listingReply = if (role == "listings") remember(message) {
+                        runCatching { Gson().fromJson(message, ListingReply::class.java) }.getOrNull()
+                    } else null
+                    val display = listingReply?.text ?: message
+                    val cards = listingReply?.ids.orEmpty().mapNotNull { id -> sourceOffers.firstOrNull { it.id == id } }
+                    if (cards.isEmpty()) SelectionContainer { ResponseBody(display) }
+                    else {
+                        cards.forEach { offer ->
+                            AppCard(onClick = { openListing(offer.id) }) {
+                                remember(offer.photoUrls) { ListingOrigin.photos(offer.photoUrls) }.firstOrNull()?.let { url ->
+                                    ListingPhoto(url, Modifier.fillMaxWidth().height(150.dp), "Фото квартиры")
+                                } ?: Text("Фото не предоставлено", color = Muted, style = MaterialTheme.typography.labelSmall)
+                                Text(offer.title.ifBlank { offer.address }, style = MaterialTheme.typography.titleMedium)
+                                Text("${offer.price.rub()} · ${offer.area} м²", color = Lime)
+                                Text(offer.address, color = Muted)
+                                TextButton({ openListing(offer.id) }) { Text("Открыть карточку") }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        display.substringAfter("\n\nЧасть источников не ответила:", "").takeIf(String::isNotBlank)?.let {
+                            Text("Часть источников не ответила:$it", color = Muted)
+                        }
+                    }
                     Row {
-                        TextButton({ clipboard.setText(AnnotatedString(message)) }) { Text("Копировать") }
+                        TextButton({ clipboard.setText(AnnotatedString(display)) }) { Text("Копировать") }
                         if (speech != null) TextButton({
-                            speech.speak(message.take(3500), android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "reply-$index")
+                            speech.speak(display.take(3500), android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "reply-$index")
                         }) { Text("Озвучить") }
                         if (index == vm.chat.lastIndex && vm.canRetry && !vm.busy) {
                             TextButton(vm::retryChat) { Text("Повторить") }

@@ -23,7 +23,7 @@ import ru.vladis.realtorai.MainVm
 import ru.vladis.realtorai.data.Property
 import ru.vladis.realtorai.data.pricePerSqm
 
-@Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit, openOwner: (Long) -> Unit, openMap: () -> Unit) {
+@Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit, openOwner: (Long) -> Unit, openMap: () -> Unit, openListing: (Long) -> Unit) {
     val props by vm.properties.collectAsState()
     val listings by vm.listings.collectAsState()
     val covers = remember(listings) { listings.filter { it.propertyId != null && it.cover.isNotBlank() }.associate { it.propertyId to it.cover } }
@@ -89,6 +89,7 @@ import ru.vladis.realtorai.data.pricePerSqm
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Ваш доход: ${vm.earning(p).rub()}", Modifier.weight(1f), color = Lime, style = MaterialTheme.typography.labelMedium)
                             TextButton({ openOwner(p.id) }) { Text("Сопровождение") }
+                            p.sourceOfferId?.let { id -> TextButton({ openListing(id) }) { Text("Объявление") } }
                         }
                     }
                 }

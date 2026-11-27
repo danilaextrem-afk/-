@@ -13,6 +13,8 @@ internal object PartnerFeed {
         parser.setInput(StringReader(xml))
         val path = mutableListOf<String>()
         val fields = mutableMapOf<String, String>()
+        val images = mutableListOf<String>()
+        val phones = mutableListOf<String>()
         val result = mutableListOf<Offer>()
         val root = if (avito) "ads" else "feed"
         val row = if (avito) "ad" else "object"
@@ -25,14 +27,30 @@ internal object PartnerFeed {
                         require(path.first() == root) { "Неверный формат фида $format" }
                         validRoot = true
                     }
-                    if (path.size == 2 && path.last() == row) fields.clear()
+                    if (path.size == 2 && path.last() == row) {
+                        fields.clear()
+                        images.clear()
+                        phones.clear()
+                    }
+                    if (path.drop(2).joinToString("/") == "images/image") {
+                        parser.getAttributeValue(null, "url")?.takeIf(String::isNotBlank)?.let(images::add)
+                    }
                 }
                 XmlPullParser.TEXT -> if (path.getOrNull(1) == row && path.size > 2) {
                     val key = path.drop(2).joinToString("/")
                     fields[key] = fields[key].orEmpty() + parser.text
                 }
                 XmlPullParser.END_TAG -> {
-                    if (path.size == 2 && path.last() == row) map(fields, source, avito)?.let(result::add)
+                    val field = path.drop(2).joinToString("/")
+                    if (field in listOf("photos/photo/fullurl", "photos/photo/url", "images/image", "images/image/url"))
+                        fields.remove(field)?.trim()?.takeIf(String::isNotBlank)?.let(images::add)
+                    if (field == "phones/phone") {
+                        val number = fields.remove("phones/phone/number").orEmpty().trim()
+                        val code = fields.remove("phones/phone/countrycode").orEmpty().trim()
+                        val combined = if (code.isNotEmpty() && !number.startsWith("+")) "+${code.trimStart('+')}$number" else number
+                        ListingOrigin.dialable(combined)?.let(phones::add)
+                    }
+                    if (path.size == 2 && path.last() == row) map(fields, images, phones, source, avito)?.let(result::add)
                     path.removeAt(path.lastIndex)
                 }
             }
@@ -42,7 +60,7 @@ internal object PartnerFeed {
         return result
     }
 
-    private fun map(fields: Map<String,String>, source: String, avito: Boolean): Offer? {
+    private fun map(fields: Map<String,String>, images: List<String>, phones: List<String>, source: String, avito: Boolean): Offer? {
         fun value(key: String) = fields[key].orEmpty().trim()
         val category = GeoScope.normalize(value("category"))
         if (avito && (category != "квартиры" || GeoScope.normalize(value("operationtype")) !in setOf("продам","продажа"))) return null
@@ -60,6 +78,10 @@ internal object PartnerFeed {
             "floor" to value(if (avito) "floor" else "floornumber"), "floors_total" to value(if (avito) "floors" else "building/floorscount"),
             "market" to if (category == "newbuildingflatsale") "primary" else value("markettype"),
             "seller" to value("sellertype").ifBlank { value("contactmethod/sellertype") },
+            "photos" to images.joinToString("\n"), "description" to value("description"),
+            "updated_at" to value("updatedat").ifBlank { value("lastupdatedate") },
+            "owner_name" to value("ownername").ifBlank { value("managername") },
+            "owner_phone" to value("contactphone").ifBlank { phones.firstOrNull().orEmpty() },
             "expires_at" to value("dateend"), "status" to value("status")
         ), source)
     }

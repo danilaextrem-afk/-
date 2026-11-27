@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -48,7 +50,7 @@ import kotlin.math.max
 
 private fun pct(d: Double) = "${(d * 100).toInt()}%"
 
-@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, topLevel: Boolean = false, back: () -> Unit) {
+@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, topLevel: Boolean = false, selectedOffer: Long? = null, back: () -> Unit) {
     val vm: HunterVm = viewModel()
     val allDeals by vm.deals.collectAsState()
     val geoContext = LocalContext.current
@@ -56,14 +58,23 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     var showGeography by remember { mutableStateOf(false) }
     val deals = remember(allDeals, geography) { allDeals.filter { geography.matches(it.o) } }
     var tab by remember(initialMap) { mutableStateOf(if (initialMap) "Карта" else "Лента") }
-    var openId by remember { mutableStateOf<Long?>(null) }
+    var openId by remember(selectedOffer) { mutableStateOf(selectedOffer) }
     var flt by remember { mutableStateOf(SavedFilter()) }
     var hideDups by remember { mutableStateOf(true) }
     var favOnly by remember { mutableStateOf(false) }
     var sellerFilter by remember { mutableStateOf("Все продавцы") }
-    BackHandler(openId != null) { openId = null }
-    val open = deals.find { it.o.id == openId }
-    if (open != null) { DealDetail(vm, main, open, deals) { openId = null }; return }
+    fun closeOffer() { if (selectedOffer != null) back() else openId = null }
+    BackHandler(openId != null) { closeOffer() }
+    val open = allDeals.find { it.o.id == openId }
+    if (open != null) { DealDetail(vm, main, open, deals) { closeOffer() }; return }
+    if (selectedOffer != null) {
+        Column(Modifier.padding(20.dp)) {
+            TextButton(back) { Text("Назад") }
+            Title("Объявление недоступно")
+            Text("Оно могло быть снято с публикации или удалено из локальной базы.", color = Muted)
+        }
+        return
+    }
     var showQuickFilters by remember { mutableStateOf(false) }
     val sale = deals.filter { it.o.deal == "sale" }
     val shown = sale.filter { d ->
@@ -75,7 +86,9 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
             else -> true
         }
         seller && Filters.matches(d.o, flt) && (!flt.onlyBelowMarket || d.below) && (!hideDups || d.repr) && (!favOnly || d.o.favorite) }
-        .sortedWith(compareBy<Deal> { it.o.source.startsWith("Торги.Открыто") }.thenByDescending { it.discount ?: -1.0 })
+                .sortedWith(compareBy<Deal> { it.o.source.startsWith("Торги.Открыто") }
+            .thenByDescending { ListingOrigin.ownerApartment(it.o) }
+            .thenByDescending { it.o.sourceUpdatedAt ?: it.o.lastSeen })
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!topLevel) IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }
@@ -119,6 +132,9 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
 
 @Composable fun DealCard(d: Deal, vm: HunterVm, onOpen: () -> Unit) = AppCard(onClick = onOpen) {
     val o = d.o
+    val photos = remember(o.photoUrls) { ListingOrigin.photos(o.photoUrls) }
+    photos.firstOrNull()?.let { ListingPhoto(it, Modifier.fillMaxWidth().height(165.dp), "Фото объекта") }
+    if (ListingOrigin.original(o) == null) Text("Непроверенное объявление", color = MaterialTheme.colorScheme.error)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(o.title.ifBlank { o.address.ifBlank { "Объект #${o.id}" } }, fontWeight = FontWeight.SemiBold, maxLines = 2)
@@ -207,8 +223,8 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
         item { Text("В базе: ${deals.size} (продажа ${deals.count { it.o.deal == "sale" }}, аренда ${deals.count { it.o.deal == "rent" }}, с координатами ${deals.count { it.o.lat != null }}). Только ваши данные.", color = Muted) }
         item { AppCard {
-            Text("Импорт файла CSV/JSON", fontWeight = FontWeight.SemiBold)
-            Text("Колонки: цена, площадь, комнат, этаж (или 5/9), этажность, адрес, район, lat, lon, ссылка, id, заголовок, сделка (продажа/аренда), рынок.", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("Импорт файла CSV, JSON или XML", fontWeight = FontWeight.SemiBold)
+            Text("Для CSV/JSON передайте ссылку, ID, адрес, цену, площадь, тип продавца, фото и дату обновления. Поддерживаются XML-фиды YRL, Авито и Циан.", color = Muted, style = MaterialTheme.typography.bodySmall)
             OutlinedButton({ pick.launch(arrayOf("text/*", "application/json", "*/*")) }) { Text("Выбрать файл") }
         } }
         item { AppCard {
@@ -277,7 +293,12 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     var vac by remember { mutableStateOf("0") }; var costs by remember { mutableStateOf("0") }; var tax by remember { mutableStateOf("0") }
     val inv = Invest.calc(Invest.In(o.price, rentS.toLongOrNull() ?: 0, vac.replace(',', '.').toDoubleOrNull() ?: 0.0, costs.toLongOrNull() ?: 0, tax.replace(',', '.').toDoubleOrNull() ?: 0.0))
     val crmProps by main.properties.collectAsState()
-    val exists = crmProps.any { o.url.isNotBlank() && it.url == o.url || o.address.isNotBlank() && it.address.equals(o.address, true) && it.price == o.price && it.area == o.area && it.rooms == o.rooms }
+    val exists = crmProps.any { ru.vladis.realtorai.autopilot.AutoRules.isDuplicate(o, it) }
+    val scope = rememberCoroutineScope()
+    val original = remember(o.url, o.externalId) { ListingOrigin.original(o) }
+    val photos = remember(o.photoUrls) { ListingOrigin.photos(o.photoUrls) }
+    val contact = if (o.seller == "owner") ListingOrigin.dialable(o.contactPhone ?: o.ownerPhone) else null
+    var message by remember(o.id) { mutableStateOf<String?>(null) }
     var saveRequested by remember(o.id) { mutableStateOf(false) }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { Row(verticalAlignment = Alignment.CenterVertically) { IconButton(close) { Icon(Icons.Default.ArrowBack, "Назад") }
@@ -288,9 +309,40 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
             Text("${o.address} ${o.district}".trim(), color = Muted)
             Text("${o.area} м² · ${o.rooms} комн. · эт. ${o.floor}/${o.floorsTotal} · ${Market.ppsm(o).toLong().rub()}/м² · ${if (o.market == "primary") "первичка" else "вторичка"}")
             Text("Источник: ${o.source}", color = Muted, style = MaterialTheme.typography.bodySmall)
-            if (o.url.isNotBlank()) TextButton({ runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(o.url))) } }) { Text("Открыть объявление") }
-            Button({ saveRequested = true; main.saveProperty(ru.vladis.realtorai.data.Property(title = o.title.ifBlank { "Квартира" }, address = o.address, type = o.market, price = o.price, area = o.area, rooms = o.rooms, floor = o.floor, url = o.url)) }, enabled = !exists && !saveRequested && o.deal == "sale", modifier = Modifier.fillMaxWidth()) { Text(if (exists) "Уже в CRM" else if (saveRequested) "Сохранение запрошено" else "Добавить в объекты CRM") }
+            Text(original?.let { "ID объявления: ${it.id}" }
+                ?: o.externalId.takeIf(String::isNotBlank)?.let { "ID в фиде: $it" } ?: "Источник не передал ID", color = Muted)
+            if (original == null) Text("Непроверенное объявление: нет прямой ссылки с ID", color = MaterialTheme.colorScheme.error)
+            Text("Обновлено у источника: " + (o.sourceUpdatedAt?.let(::fmtDate) ?: "дата не передана"), color = Muted)
+            Text("Последнее получение: " + fmtDate(o.lastSeen), color = Muted)
+            ListingGallery(photos)
+            if (original != null) FilledTonalButton({
+                runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(original.url))) }
+                    .onFailure { message = "Не удалось открыть браузер" }
+            }, Modifier.fillMaxWidth()) { Text("Открыть оригинал объявления") }
+            if (contact == null) Text("Источник не предоставил номер собственника", color = Muted)
+            else {
+                (o.contactName ?: o.ownerName)?.let { Text(it) }
+                OutlinedButton({
+                    runCatching { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", contact, null))) }
+                        .onFailure { message = "Не удалось открыть приложение для звонков" }
+                }, Modifier.fillMaxWidth()) { Text("Позвонить собственнику") }
+            }
+            Button({
+                saveRequested = true
+                scope.launch {
+                    try { main.saveOfferProperty(o); message = "Объект сохранён в CRM" }
+                    catch (e: CancellationException) { throw e }
+                    catch (e: Exception) { message = e.message ?: "Не удалось сохранить объект" }
+                    finally { saveRequested = false }
+                }
+            }, enabled = !exists && !saveRequested && o.deal == "sale", modifier = Modifier.fillMaxWidth()) {
+                Text(if (exists) "Уже в CRM" else if (saveRequested) "Сохраняем…" else "Добавить в CRM")
+            }
+            message?.let { Text(it, color = Muted) }
         } }
+        o.sourceDescription?.takeIf(String::isNotBlank)?.let { description ->
+            item { AppCard { Text("Описание источника", style = MaterialTheme.typography.titleMedium); Text(description) } }
+        }
         item { AppCard {
             Text("Рыночная стоимость", fontWeight = FontWeight.SemiBold)
             val e = d.est
