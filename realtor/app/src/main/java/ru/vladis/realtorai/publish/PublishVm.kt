@@ -24,11 +24,6 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
     var log by mutableStateOf<String?>(null)
 
     private fun cfg() = Feeds.Cfg(secrets.get("photo_base"), secrets.get("phone"))
-    private fun publisher(p: Platform): Publisher? = when (p) {
-        Platform.TELEGRAM -> secrets.get("tg_token").takeIf { it.isNotBlank() }?.let { t -> secrets.get("tg_chat").takeIf { it.isNotBlank() }?.let { TelegramPublisher(t, it) } }
-        Platform.VK -> secrets.get("vk_token").takeIf { it.isNotBlank() }?.let { t -> secrets.get("vk_owner").takeIf { it.isNotBlank() }?.let { VkPublisher(t, it) } }
-        else -> null
-    }
     private suspend fun record(l: Listing, pl: Platform, r: PubResult) {
         dao.savePub(Publication(listingId = l.id, platform = pl.name, status = r.status, externalId = r.externalId,
             meta = r.meta, url = r.url, message = r.message, price = l.price))
@@ -107,8 +102,15 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
         val images = if (current.photos.isBlank() && offer != null) copyApprovedPhotos(current.id, offer.photoUrls) else current.photoList()
         val approved = draft.copy(approvedAt = System.currentTimeMillis(), photos = images.joinToString("\n"),
             cover = current.cover.ifBlank { images.firstOrNull().orEmpty() }, updatedAt = System.currentTimeMillis())
-        dao.saveListing(approved)
-        val connected = Platform.entries.filter { it.isApi && publisher(it) != null }
+        db.withTransaction {
+            dao.saveListing(approved)
+            approved.propertyId?.let { db.dao().property(it) }?.takeIf { it.status != "deal" }?.let { property ->
+                db.dao().saveProperty(property.copy(address = approved.address, price = approved.price,
+                    area = approved.area, rooms = approved.rooms, floor = approved.floor, type = approved.market,
+                    status = if (property.status == "review") "active" else property.status))
+            }
+        }
+        val connected = Platform.entries.filter { it.isApi && secrets.publisher(it) != null }
         if (connected.isEmpty()) {
             log = "Карточка согласована. Реклама не запущена: Telegram и ВКонтакте не подключены. Доступен экспорт фидов."
         } else {
@@ -148,7 +150,7 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
                 val r = if (pl == Platform.TELEGRAM && l.postText().length > (if (l.photoList().isEmpty()) 4096 else 1024)) PubResult("failed", message = "Сократите текст объявления для Telegram")
                 else if (missing.isNotEmpty()) PubResult("failed", message = "Не заполнено: ${missing.joinToString()}")
                 else {
-                    val p = publisher(pl)
+                    val p = secrets.publisher(pl)
                     if (p == null) PubResult("failed", message = "Площадка не настроена (Площадки → токены)")
                     else {
                         // Сбой после отправки может означать, что запись создана. Не повторяем автоматически.
@@ -181,38 +183,25 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
 
     fun updatePrice(id: Long, newPrice: Long) = operation {
         require(newPrice > 0) { "Цена должна быть положительной" }
-        val l = (dao.listing(id) ?: return@operation).copy(price = newPrice, updatedAt = System.currentTimeMillis())
-        require(l.status != "sold") { "Объект уже продан" }
         db.withTransaction {
-            dao.saveListing(l)
+            val l = requireNotNull(dao.listing(id))
+            require(l.status != "sold") { "Объект уже продан" }
+            dao.saveListing(l.copy(price = newPrice, updatedAt = System.currentTimeMillis()))
             l.propertyId?.let { db.dao().property(it) }?.let { db.dao().saveProperty(it.copy(price = newPrice)) }
+            PublicationSync.stage(dao, id, sold = false)
         }
-        for (p in dao.pubsOf(id)) {
-            val pl = Platform.valueOf(p.platform)
-            if (p.status in setOf("published", "outdated") && pl.isApi && p.externalId.isNotBlank()) {
-                runCatching { (publisher(pl) ?: error("Площадка не настроена")).updatePrice(l, p) }
-                    .onSuccess { record(l, pl, it) }
-                    .onFailure { dao.savePub(p.copy(status = "outdated", message = "Не удалось обновить цену: ${err(it)}")) }
-            } else if (p.status == "exported") record(l, pl, PubResult("outdated", message = "Цена изменена — перевыгрузите фид"))
-        }
-        log = "Цена сохранена; результат по площадкам — в карточке."
+        PublicationSync.enqueue(ctx, id)
+        log = "Цена сохранена. Проверяйте статусы обновления по площадкам."
     }
 
     fun markSold(id: Long) = operation {
-        val l = (dao.listing(id) ?: return@operation).copy(status = "sold", updatedAt = System.currentTimeMillis())
         db.withTransaction {
-            dao.saveListing(l)
+            val l = requireNotNull(dao.listing(id))
+            dao.saveListing(l.copy(status = "sold", updatedAt = System.currentTimeMillis()))
             l.propertyId?.let { db.dao().property(it) }?.let { db.dao().saveProperty(it.copy(status = "deal")) }
+            PublicationSync.stage(dao, id, sold = true)
         }
-        for (p in dao.pubsOf(id)) {
-            val pl = Platform.valueOf(p.platform)
-            if (p.status in setOf("published", "outdated", "removal_pending") && pl.isApi && p.externalId.isNotBlank()) {
-                runCatching { (publisher(pl) ?: error("Площадка не настроена")).unpublish(l, p) }
-                    .onSuccess { record(l, pl, it) }
-                    .onFailure { dao.savePub(p.copy(status = "removal_pending", message = "Не удалось снять: ${err(it)}")) }
-            } else if (!pl.isApi && (p.status == "exported" || p.status == "outdated"))
-                record(l, pl, PubResult("removal_pending", message = "Исключён из фидов — перевыгрузите фид, снятие произойдёт после его обработки площадкой"))
-        }
-        log = "Объект помечен проданным."
+        PublicationSync.enqueue(ctx, id)
+        log = "Объект помечен проданным. Запрошено снятие через подключённые API."
     }
 }

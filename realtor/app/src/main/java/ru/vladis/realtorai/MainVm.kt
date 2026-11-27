@@ -113,6 +113,20 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     suspend fun takeForSale(offerId: Long): ru.vladis.realtorai.publish.SaleIntake.Result {
         val result = ru.vladis.realtorai.publish.SaleIntake.fromOffer(db, offerId)
         ru.vladis.realtorai.owner.OwnerService(ctx).start(result.propertyId)
+        if (cloudReady) viewModelScope.launch {
+            val publications = db.publications()
+            val current = publications.listing(result.listingId) ?: return@launch
+            if (current.approvedAt != null || current.description != ru.vladis.realtorai.publish.SmartAi.factsText(current).trim()) return@launch
+            try {
+                val draft = ru.vladis.realtorai.publish.SmartAi.run(ctx, current,
+                    ru.vladis.realtorai.publish.SmartAi.DEFAULT_VISION)
+                db.withTransaction {
+                    if (publications.listing(current.id) == current)
+                        publications.saveListing(current.copy(title = draft.title, description = draft.description))
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { /* Keep the draft made from verified facts. */ }
+        }
         return result
     }
 

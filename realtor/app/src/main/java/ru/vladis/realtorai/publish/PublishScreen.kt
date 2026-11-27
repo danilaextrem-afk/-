@@ -198,6 +198,7 @@ private val statusText = mapOf("published" to "опубликовано (под�
     var soldDlg by remember { mutableStateOf(false) }; var delDlg by remember { mutableStateOf(false) }
     var approve by remember(id) { mutableStateOf(false) }
     var rights by remember(id) { mutableStateOf(false) }
+    var editDetails by remember(id) { mutableStateOf(Checks.blocking(cur).isNotEmpty()) }
     fun draft() = cur.copy(address = address.trim(), price = price.toLongOrNull() ?: 0, area = area.replace(',', '.').toDoubleOrNull() ?: 0.0,
         rooms = rooms.toIntOrNull() ?: 0, floor = floor.toIntOrNull() ?: 0, floorsTotal = floors.toIntOrNull() ?: 0,
         kitchenArea = kitchen.replace(',', '.').toDoubleOrNull() ?: 0.0, renovation = reno.trim(), extra = extra.trim(), phone = phone.trim(),
@@ -236,6 +237,11 @@ private val statusText = mapOf("published" to "опубликовано (под�
             Text("Нажмите на фото — сделать обложкой (изумрудная рамка)", color = Muted, style = MaterialTheme.typography.bodySmall)
         }
         item { OutlinedButton({ pick.launch("image/*") }) { Text("Добавить фото (${cur.photoList().size})") } }
+        item {
+            OutlinedButton({ editDetails = !editDetails }) { Text(if (editDetails) "Скрыть параметры" else "Проверить и изменить параметры") }
+            if (!editDetails) Text("${cur.address} · ${cur.area} м² · ${cur.price.rub()}", color = Muted)
+        }
+        if (editDetails) {
         item { Chips(listOf("Вторичка", "Первичка"), market) { market = it } }
         item { Field(address, { address = it }, "Адрес") }
         item { Field(price, { price = it.filter(Char::isDigit) }, "Цена, ₽", keyboard = KeyboardType.Number) }
@@ -261,6 +267,7 @@ private val statusText = mapOf("published" to "опубликовано (под�
         item { Field(title, { title = it }, "Заголовок (${title.length}/50)") }
         item { Field(desc, { desc = it }, "Описание (${desc.length})", single = false) }
         item { val w = SmartAi.check(draft()) + Checks.warnings(draft()); w.forEach { Text("⚠ $it", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) } }
+        }
         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button({ pvm.save(draft()) }, enabled = !pvm.busy) { Text("Сохранить") }
             FilledTonalButton({ preview = true }) { Text("Предпросмотр") } } }

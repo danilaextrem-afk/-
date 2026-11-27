@@ -90,21 +90,23 @@ class OwnerService(private val context: Context) {
         syncTasks()
     }
 
-    suspend fun changePrice(id: Long, expected: Long, price: Long) = db.withTransaction {
-        require(price in 1..1_000_000_000_000L)
-        val p = requireNotNull(db.dao().property(id))
-        check(p.price == expected) { "Цена изменилась. Откройте подтверждение заново." }
-        if (price != expected) {
+    suspend fun changePrice(id: Long, expected: Long, price: Long) {
+        val listingId = db.withTransaction {
+            require(price in 1..1_000_000_000_000L)
+            val p = requireNotNull(db.dao().property(id))
+            check(p.price == expected) { "Цена изменилась. Откройте подтверждение заново." }
+            if (price == expected) return@withTransaction null
             db.dao().saveProperty(p.copy(price = price))
             val publish = db.publications()
-            publish.listingForProperty(id)?.takeUnless { it.status == "sold" }?.let { listing ->
+            val listing = publish.listingForProperty(id)?.takeUnless { it.status == "sold" }
+            if (listing != null) {
                 publish.saveListing(listing.copy(price = price, updatedAt = System.currentTimeMillis()))
-                publish.pubsOf(listing.id).filter { it.status in setOf("published", "exported") }.forEach {
-                    publish.savePub(it.copy(status = "outdated", message = "В CRM согласована новая цена. Обновите площадку или фид."))
-                }
+                ru.vladis.realtorai.publish.PublicationSync.stage(publish, listing.id, sold = false)
             }
             dao.event(OwnerEvent(propertyId = id, at = System.currentTimeMillis(), kind = "price", text = "${p.price} ₽ → $price ₽. Изменено в CRM."))
+            listing?.id
         }
+        if (listingId != null) ru.vladis.realtorai.publish.PublicationSync.enqueue(context, listingId)
     }
 
     suspend fun prepareDueReports(now: Long = System.currentTimeMillis()) {

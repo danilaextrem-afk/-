@@ -237,7 +237,7 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
     }
     approval?.let { (previous, proposed) ->
         AlertDialog(onDismissRequest = { approval = null }, title = { Text("Изменить цену в CRM?") },
-            text = { Text("${previous.rub()} → ${proposed.rub()}. Цена в карточке Smart Publish обновится. Площадки проверяются отдельно.") },
+            text = { Text("${previous.rub()} → ${proposed.rub()}. Цена обновится в Smart Publish. Для подключённых API будет отправлен запрос на изменение.") },
             confirmButton = { Button({
                 approval = null
                 action { service.changePrice(id, previous, proposed); price = "" }

@@ -56,3 +56,13 @@ class PublishSecrets(ctx: Context) {
     fun get(k: String, def: String = "") = sp.getString(k, def) ?: def
     fun set(k: String, v: String) { sp.edit().putString(k, v.trim()).apply() }
 }
+
+internal fun PublishSecrets.publisher(platform: Platform): Publisher? = when (platform) {
+    Platform.TELEGRAM -> get("tg_token").takeIf(String::isNotBlank)?.let { token ->
+        get("tg_chat").takeIf(String::isNotBlank)?.let { TelegramPublisher(token, it) }
+    }
+    Platform.VK -> get("vk_token").takeIf(String::isNotBlank)?.let { token ->
+        get("vk_owner").takeIf(String::isNotBlank)?.let { VkPublisher(token, it) }
+    }
+    else -> null
+}

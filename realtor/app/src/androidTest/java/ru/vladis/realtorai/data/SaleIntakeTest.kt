@@ -34,4 +34,21 @@ class SaleIntakeTest {
             assertEquals(1, db.dao().allProperties().size)
         }
     }
+    @Test fun changedPriceAndSaleStayPendingUntilEachPlatformConfirms(): Unit = runBlocking {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        Room.inMemoryDatabaseBuilder(ctx, AppDb::class.java).build().use { db ->
+            val dao = db.publications()
+            val id = dao.saveListing(ru.vladis.realtorai.publish.Listing())
+            dao.savePub(ru.vladis.realtorai.publish.Publication(listingId = id, platform = "TELEGRAM",
+                status = "published", externalId = "19"))
+            dao.savePub(ru.vladis.realtorai.publish.Publication(listingId = id, platform = "CIAN", status = "exported"))
+            ru.vladis.realtorai.publish.PublicationSync.stage(dao, id, sold = false)
+            assertTrue(dao.pubsOf(id).all { it.status == "outdated" })
+            ru.vladis.realtorai.publish.PublicationSync.stage(dao, id, sold = true)
+            val pending = dao.pubsOf(id)
+            assertTrue(pending.all { it.status == "removal_pending" })
+            assertEquals("19", pending.single { it.platform == "TELEGRAM" }.externalId)
+            assertTrue(pending.single { it.platform == "CIAN" }.message.contains("фид"))
+        }
+    }
 }

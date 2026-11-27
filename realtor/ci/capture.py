@@ -136,6 +136,14 @@ def settings():
     tap("Настройки")
     tap("Тёмная")
 
+def shared_sale():
+    adb("shell", "am", "start", "-W", "-a", "android.intent.action.SEND", "-t", "text/plain",
+        "--es", "android.intent.extra.TEXT", "https://www.cian.ru/sale/flat/336656970/",
+        "-n", "ru.vladis.realtorai/.MainActivity")
+    capture("shared-sale", "Карточка объекта")
+    find("Ожидается согласие собственника")
+    tap("Назад")
+
 Path("captures").mkdir(exist_ok=True)
 if sys.argv[1:] == ["--preview"]:
     capture("release-candidate", "Мой рабочий день")
@@ -152,6 +160,7 @@ check("leads", lambda: (open_home_tool("Лиды"), capture("leads", "Входя
 check("publications", lambda: (open_home_tool("Публикации"), capture("publications", "Публикации")))
 check("analytics", lambda: (open_properties(), tap("Аналитика"), capture("analytics", "Аналитика")))
 check("find", lambda: (tap("Поиск"), capture("search", "География · Москва и МО")))
+check("share_intake", shared_sale)
 check("settings", settings)
 Path("captures", "ui-checks.txt").write_text("\n".join(f"{k}: {v}" for k, v in failures.items()) or "All required captures completed.", encoding="utf-8")
 if failures:

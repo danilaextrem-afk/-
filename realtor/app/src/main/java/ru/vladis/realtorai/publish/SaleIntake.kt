@@ -31,7 +31,11 @@ object SaleIntake {
         val offer = requireNotNull(db.hunter().offer(id)) { "Объявление отсутствует в базе" }
         check(GeoScope.eligible(offer) && AutoRules.valid(offer)) { "Объявление больше недоступно" }
         val dao = db.dao()
-        val previous = dao.allProperties().firstOrNull { AutoRules.isDuplicate(offer, it) }
+        val identity = ListingOrigin.original(offer)?.identity
+        val previous = dao.allProperties().firstOrNull {
+            AutoRules.isDuplicate(offer, it) ||
+                (identity != null && ListingOrigin.original(Offer(source = "", url = it.url))?.identity == identity)
+        }
         // ownerPhone/ownerName are the feed's explicit CRM-permission fields.
         val phone = ListingOrigin.dialable(offer.ownerPhone)
         val owner = if (offer.seller == "owner" && phone != null && !offer.ownerName.isNullOrBlank()) {
@@ -57,7 +61,11 @@ object SaleIntake {
             rooms = saved.rooms, floor = saved.floor, floorsTotal = offer?.floorsTotal ?: 0, market = saved.type,
             title = saved.title.take(50))
         val listing = if (existing == null || (existing.approvedAt == null && existing.address.isBlank() && saved.address.isNotBlank())) {
-            val draft = base.copy(id = existing?.id ?: 0, description = SmartAi.factsText(base).trim())
+            val draft = if (existing == null) base.copy(description = SmartAi.factsText(base).trim())
+            else existing.copy(address = base.address, price = existing.price.takeIf { it > 0 } ?: base.price,
+                area = existing.area.takeIf { it > 0 } ?: base.area, rooms = existing.rooms.takeIf { it > 0 } ?: base.rooms,
+                floor = existing.floor.takeIf { it > 0 } ?: base.floor, floorsTotal = existing.floorsTotal.takeIf { it > 0 } ?: base.floorsTotal,
+                title = base.title, description = SmartAi.factsText(base).trim(), market = base.market)
             pubs.saveListing(draft)
         } else existing.id
         val buyers = db.dao().allClients().count { AutoRules.matches(it, listOf(saved)).isNotEmpty() }
