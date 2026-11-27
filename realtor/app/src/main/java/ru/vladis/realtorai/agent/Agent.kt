@@ -255,7 +255,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             require(ru.vladis.realtorai.publish.SaleIntake.requested(job.goal)) {
                 "Для приёма объекта укажите прямую ссылку и попросите взять его в продажу"
             }
-            val intake = ru.vladis.realtorai.publish.SaleIntake.fromShare(db, job.goal)
+            val intake = ru.vladis.realtorai.publish.SaleIntake.fromAuthorizedSources(ctx, db, job.goal)
             if (!intake.pending) {
                 OwnerService.schedule(ctx)
                 OwnerService(ctx).syncTasks()

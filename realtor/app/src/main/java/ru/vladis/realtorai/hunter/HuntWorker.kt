@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit
 
 object HuntRun {
     private val http = OkHttpClient.Builder().callTimeout(60, TimeUnit.SECONDS).build()
+    private val shareHttp = http.newBuilder().followRedirects(false).followSslRedirects(false)
+        .callTimeout(4, TimeUnit.SECONDS).build()
     data class Summary(val newIds: List<Long>, val dropIds: List<Long>, val errors: List<String>)
 
     suspend fun searchCatalog(ctx: Context, dao: HunterDao, query: String): Summary {
@@ -42,15 +44,41 @@ object HuntRun {
         return Summary(added, drops, errors)
     }
 
+    suspend fun refreshForListing(ctx: Context, original: ListingOrigin.Original) {
+        val host = ListingOrigin.webUrl(original.url)?.host.orEmpty()
+        val preferred = when {
+            host == "avito.ru" || host.endsWith(".avito.ru") -> "avito"
+            host == "cian.ru" || host.endsWith(".cian.ru") -> "cian"
+            host == "realty.yandex.ru" -> "yrl"
+            else -> null
+        }
+        val now = System.currentTimeMillis()
+        val subscriptions = HunterDb.get(ctx).allSubs()
+            .filter { ListingOrigin.webUrl(it.url) != null && now - it.lastFetch >= 30_000L }
+            .sortedWith(compareByDescending<Subscription> { it.format == preferred }.thenBy { it.lastFetch })
+            .take(2)
+        if (subscriptions.isNotEmpty()) refreshFeeds(ctx, subscriptions, shareHttp)
+    }
+
     suspend fun refreshAll(ctx: Context, includeCatalog: Boolean = true): Summary {
+        val dao = HunterDb.get(ctx)
+        val feeds = refreshFeeds(ctx, dao.allSubs(), http)
+        if (!includeCatalog) return feeds
+        val query = ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty()
+        val catalog = searchCatalog(ctx, dao, query)
+        return Summary((feeds.newIds + catalog.newIds).distinct(),
+            (feeds.dropIds + catalog.dropIds).distinct(), feeds.errors + catalog.errors)
+    }
+
+    private suspend fun refreshFeeds(ctx: Context, subscriptions: List<Subscription>, client: OkHttpClient): Summary {
         val dao = HunterDb.get(ctx)
         val newIds = mutableListOf<Long>()
         val drops = mutableListOf<Long>()
         val errs = mutableListOf<String>()
-        for (s in dao.allSubs()) {
+        for (s in subscriptions) {
             runCatching {
                 val text = withContext(Dispatchers.IO) {
-                    http.newCall(Request.Builder().url(s.url).header("User-Agent", "RealtorAI/1.0").build()).execute().use { r ->
+                    client.newCall(Request.Builder().url(s.url).header("User-Agent", "RealtorAI/1.0").build()).execute().use { r ->
                         if (!r.isSuccessful) error("HTTP ${r.code}")
                         val source = checkNotNull(r.body).source()
                         require(!source.request(5_000_001L)) { "Фид превышает 5 МБ" }
@@ -71,13 +99,6 @@ object HuntRun {
                 } else HunterImport.ingest(dao, rows)
             }.onSuccess { r -> newIds += r.newIds; drops += r.dropIds; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "OK: " + r.describe())) }
              .onFailure { e -> if (e is kotlinx.coroutines.CancellationException) throw e; errs += "${s.name}: ${e.message}"; dao.saveSub(s.copy(lastFetch = System.currentTimeMillis(), lastStatus = "Ошибка: ${e.message}")) }
-        }
-        if (includeCatalog) {
-            val query = ctx.getSharedPreferences("autopilot", 0).getString("catalogQuery", "").orEmpty()
-            val catalog = searchCatalog(ctx, dao, query)
-            newIds += catalog.newIds
-            drops += catalog.dropIds
-            errs += catalog.errors
         }
         return Summary(newIds.distinct(), drops.distinct(), errs)
     }

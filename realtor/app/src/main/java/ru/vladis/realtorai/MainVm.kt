@@ -107,7 +107,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun dismissSharedListing() { sharedListing = null; shareError = null }
     fun acceptSharedListing(text: String) = viewModelScope.launch {
         try {
-            val result = ru.vladis.realtorai.publish.SaleIntake.fromShare(db, text)
+            val result = ru.vladis.realtorai.publish.SaleIntake.fromAuthorizedSources(ctx, db, text)
             if (!result.pending) afterSaleIntake(result)
             sharedListing = result.listingId
         }
@@ -389,7 +389,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                 busy = true
                 error = null
                 try {
-                    val sale = ru.vladis.realtorai.publish.SaleIntake.fromShare(db, text)
+                    val sale = ru.vladis.realtorai.publish.SaleIntake.fromAuthorizedSources(ctx, db, text)
                     if (!sale.pending) afterSaleIntake(sale)
                     chat.add("assistant" to if (sale.pending) "Черновик сохранён. Проверьте характеристики объекта."
                         else "Объект в работе. Сопровождение начато. Покупателей по критериям CRM: ${sale.buyers}.")

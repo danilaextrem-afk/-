@@ -1,5 +1,6 @@
 package ru.vladis.realtorai.publish
 
+import android.content.Context
 import androidx.room.withTransaction
 import ru.vladis.realtorai.autopilot.AutoRules
 import ru.vladis.realtorai.data.*
@@ -48,19 +49,32 @@ object SaleIntake {
             total.takeIf { floor in 1..it && it <= 200 } ?: 0)
     }
 
-    suspend fun fromShare(db: AppDb, input: String): Result = db.withTransaction {
+    internal suspend fun fromAuthorizedSources(context: Context, db: AppDb, input: String): Result =
+        fromShare(db, input) { original -> HuntRun.refreshForListing(context, original) }
+
+    internal suspend fun fromShare(
+        db: AppDb, input: String, refresh: (suspend (ListingOrigin.Original) -> Unit)? = null
+    ): Result {
         val original = requireNotNull(sharedLink(input)) { "Поделитесь прямой HTTPS-ссылкой на карточку объекта" }
-        val known = db.hunter().allOffers().firstOrNull {
-            ListingOrigin.original(it)?.identity == original.identity && GeoScope.eligible(it) && AutoRules.valid(it)
-        }
-        if (known != null) return@withTransaction fromOffer(db, known.id)
+        if (refresh != null && matchingOffer(db, original) == null) refresh(original)
+        return db.withTransaction { saveShared(db, input, original) }
+    }
+
+    private suspend fun matchingOffer(db: AppDb, original: ListingOrigin.Original): Offer? =
+        db.hunter().allOffers().filter {
+            GeoScope.eligible(it) && AutoRules.valid(it) && ListingOrigin.original(it)?.identity == original.identity
+        }.maxByOrNull { it.sourceUpdatedAt ?: it.lastSeen }
+
+    private suspend fun saveShared(db: AppDb, input: String, original: ListingOrigin.Original): Result {
+        val known = matchingOffer(db, original)
+        if (known != null) return fromOffer(db, known.id)
         val existing = db.dao().allProperties().firstOrNull {
             ListingOrigin.original(Offer(source = "", url = it.url))?.identity == original.identity
         }
         val facts = sharedFacts(input)
         val property = existing ?: Property(title = "Объявление №${original.id}", url = original.url, status = "review",
             price = facts.price, area = facts.area, rooms = facts.rooms, floor = facts.floor)
-        save(db, property, null, if (existing == null) facts.floorsTotal else 0)
+        return save(db, property, null, if (existing == null) facts.floorsTotal else 0)
     }
 
     suspend fun fromOffer(db: AppDb, id: Long): Result = db.withTransaction {

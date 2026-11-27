@@ -20,10 +20,12 @@ class SaleIntakeTest {
             val shared = SaleIntake.fromShare(db, "Объявление $url?utm_test=123")
             assertTrue(shared.pending)
             assertEquals(0L, db.publications().listing(shared.listingId)!!.price)
-            val id = db.hunter().saveOffer(Offer(source = "fixture", externalId = "336656970", url = url,
-                title = "Двухкомнатная квартира", address = "Москва, улица Лесная, 5", price = 10_000_000L,
-                area = 50.0, rooms = 2, floor = 4, floorsTotal = 9))
-            val taken = SaleIntake.fromOffer(db, id)
+            val taken = SaleIntake.fromShare(db, url) { original ->
+                assertEquals("336656970", original.id)
+                db.hunter().saveOffer(Offer(source = "fixture", externalId = "336656970", url = url,
+                    title = "Двухкомнатная квартира", address = "Москва, улица Лесная, 5", price = 10_000_000L,
+                    area = 50.0, rooms = 2, floor = 4, floorsTotal = 9))
+            }
             assertEquals(shared.propertyId, taken.propertyId)
             assertEquals(shared.listingId, taken.listingId)
             val listing = db.publications().listing(taken.listingId)!!
@@ -33,7 +35,7 @@ class SaleIntakeTest {
             assertEquals("CALL", db.owners().get(taken.propertyId)?.step)
             assertNull(db.owners().get(taken.propertyId)?.activatedAt)
             assertTrue(db.publications().pubsOf(listing.id).isEmpty())
-            assertEquals(taken, SaleIntake.fromShare(db, url))
+            assertEquals(taken, SaleIntake.fromShare(db, url) { error("Fresh offer must reuse the cache") })
             assertEquals(1, db.dao().allProperties().size)
         } finally { db.close() }
     }
