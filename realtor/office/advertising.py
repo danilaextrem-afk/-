@@ -1,4 +1,5 @@
-"""Corporate placement through the Yandex Realty XML pull protocol."""
+"""Corporate placement through separate Yandex Realty and Cian XML feeds."""
+import hashlib
 import hmac
 import json
 import re
@@ -39,8 +40,11 @@ def clean_media_url(value):
     return value
 
 
-def approval(payload):
-    if set(payload) != {"consent_reference", "media_rights", "phone", "description", "images", "floor"}:
+def approval(payload, channel):
+    fields = {"consent_reference", "media_rights", "phone", "description", "images", "floor"}
+    if channel == "cian":
+        fields.add("floors_total")
+    if set(payload) != fields:
         raise ValueError()
     result = {}
     for key, limit in (("consent_reference", 180), ("description", 3000), ("phone", 12)):
@@ -61,31 +65,49 @@ def approval(payload):
     if type(floor) is not int or not 1 <= floor <= 150:
         raise ValueError()
     result["floor"] = floor
+    if channel == "cian":
+        total = payload["floors_total"]
+        if (type(total) is not int or not floor <= total <= 150 or
+                len(result["description"]) < 15 or "&" in result["description"]):
+            raise ValueError()
+        result["floors_total"] = total
     return result
 
 
 class Advertising:
-    def __init__(self, feed_key, problem):
+    def __init__(self, feed_key, problem, channel="yandex"):
+        if channel not in {"yandex", "cian"}:
+            raise ValueError("unknown advertising channel")
         if feed_key and not FEED_KEY.fullmatch(feed_key):
-            raise ValueError("invalid REALTOR_YANDEX_FEED_KEY")
+            raise ValueError(f"invalid REALTOR_{channel.upper()}_FEED_KEY")
+        self.channel = channel
+        self.policy_table = "advertising_policy" if channel == "yandex" else "cian_policy"
+        self.offer_table = "realty_offer" if channel == "yandex" else "cian_offer"
         self.feed_key = feed_key
         self.problem = problem
 
+    def setup(self, db):
+        db.executescript(SCHEMA.replace("advertising_policy", self.policy_table)
+                         .replace("realty_offer", self.offer_table))
+
     def feed_path(self, path):
-        prefix = "/feeds/yandex/"
+        prefix = f"/feeds/{self.channel}/"
         key = path.removeprefix(prefix)
         return bool(self.feed_key and key != path and FEED_KEY.fullmatch(key) and
                     hmac.compare_digest(key, self.feed_key))
 
     def policy(self, db):
-        current = dict(db.execute("SELECT enabled, active_limit FROM advertising_policy").fetchone())
+        current = dict(db.execute(f"SELECT enabled, active_limit FROM {self.policy_table}").fetchone())
         current["enabled"] = bool(current["enabled"])
         current["feed_configured"] = bool(self.feed_key)
-        current["active_count"] = db.execute("SELECT count(*) FROM realty_offer WHERE active=1").fetchone()[0]
+        current["active_count"] = db.execute(f"SELECT count(*) FROM {self.offer_table} WHERE active=1").fetchone()[0]
         return current
 
     def route(self, office, db, actor, method, parts, payload, match):
-        if parts == ["v1", "advertising", "policy"]:
+        policy_path = ["v1", "advertising", "policy"]
+        if self.channel != "yandex":
+            policy_path.append(self.channel)
+        if parts == policy_path:
             if actor["role"] not in ("admin", "manager"):
                 raise self.problem(403, "role_required")
             if method == "PUT":
@@ -99,27 +121,27 @@ class Advertising:
                     raise self.problem(409, "feed_not_configured")
                 if payload["enabled"] and payload["active_limit"] < self.policy(db)["active_count"]:
                     raise self.problem(409, "limit_below_active_count")
-                db.execute("UPDATE advertising_policy SET enabled=?, active_limit=? WHERE id=1",
+                db.execute(f"UPDATE {self.policy_table} SET enabled=?, active_limit=? WHERE id=1",
                            (payload["enabled"], payload["active_limit"]))
-                office.audit(db, actor["id"], "policy", "advertising", "yandex")
+                office.audit(db, actor["id"], "policy", "advertising", self.channel)
             elif method != "GET":
                 raise self.problem(405, "method_not_allowed")
             return self.policy(db)
 
-        if len(parts) != 4 or parts[2] != "yandex":
+        if len(parts) != 4 or parts[2] != self.channel:
             raise self.problem(404, "not_found")
         identifier = parts[3]
         row = office.record(db, "properties", identifier)
         if row is None or row["deleted"] or actor["role"] == "agent" and row["assigned_to"] != actor["id"]:
             raise self.problem(404, "not_found")
-        current = db.execute("SELECT * FROM realty_offer WHERE property_id=?", (identifier,)).fetchone()
+        current = self.offer(db, identifier)
         if method == "GET":
             return self.status(db, current)
         if match != f'"{current["revision"] if current else 0}"':
             raise self.problem(412, "revision_mismatch")
         if method == "DELETE":
             self.withdraw(office, db, identifier, actor["id"], "withdraw")
-            return self.status(db, db.execute("SELECT * FROM realty_offer WHERE property_id=?", (identifier,)).fetchone())
+            return self.status(db, self.offer(db, identifier))
         if method != "PUT":
             raise self.problem(405, "method_not_allowed")
         if not self.feed_key:
@@ -141,18 +163,18 @@ class Advertising:
             property_revision = payload.pop("property_revision", None)
             if type(property_revision) is not int or property_revision != row["revision"]:
                 raise self.problem(412, "revision_mismatch")
-            approved = json.dumps(approval(payload), ensure_ascii=False)
+            approved = json.dumps(approval(payload, self.channel), ensure_ascii=False)
         except (ValueError, UnicodeError):
             raise self.problem(400, "invalid_advertising_materials") from None
         if current and current["active"] and current["data"] == approved:
             return self.status(db, current)
         approved_at = current["approved_at"] if current and current["active"] else int(time.time())
         revision = (current["revision"] if current else 0) + 1
-        db.execute("""INSERT INTO realty_offer VALUES (?,?,?,?,?,1,?)
+        db.execute(f"""INSERT INTO {self.offer_table} VALUES (?,?,?,?,?,1,?)
             ON CONFLICT(property_id) DO UPDATE SET data=excluded.data, facts=excluded.facts,
             approved_by=excluded.approved_by, approved_at=excluded.approved_at, active=1, revision=excluded.revision""",
                    (identifier, approved, json.dumps(facts(data)), actor["id"], approved_at, revision))
-        office.audit(db, actor["id"], "approve_feed", "advertising", identifier)
+        office.audit(db, actor["id"], f"approve_{self.channel}_feed", "advertising", identifier)
         return self.status(db, {"active": True, "approved_at": approved_at, "revision": revision})
 
     def status(self, db, offer):
@@ -167,29 +189,37 @@ class Advertising:
         return {"state": state, "created_at": offer["approved_at"] if offer else None,
                 "revision": offer["revision"] if offer else 0}
 
-    @staticmethod
-    def withdraw(office, db, identifier, actor, reason):
-        if db.execute("UPDATE realty_offer SET active=0, revision=revision+1 WHERE property_id=? AND active=1", (identifier,)).rowcount:
-            office.audit(db, actor, reason, "advertising", identifier)
+    def offer(self, db, identifier):
+        return db.execute(f"SELECT * FROM {self.offer_table} WHERE property_id=?", (identifier,)).fetchone()
+
+    def withdraw(self, office, db, identifier, actor, reason):
+        if db.execute(f"UPDATE {self.offer_table} SET active=0, revision=revision+1 WHERE property_id=? AND active=1", (identifier,)).rowcount:
+            office.audit(db, actor, f"{self.channel}_{reason}", "advertising", identifier)
 
     def on_property_change(self, office, db, identifier, actor, data):
-        approved = db.execute("SELECT facts FROM realty_offer WHERE property_id=? AND active=1", (identifier,)).fetchone()
-        if approved and (facts(data) != json.loads(approved["facts"]) or not data["price"]):
+        approved = self.offer(db, identifier)
+        if approved and approved["active"] and (facts(data) != json.loads(approved["facts"]) or not data["price"]):
             self.withdraw(office, db, identifier, actor, "reapproval_required")
 
     def xml(self, db):
-        root = Element("realty-feed", xmlns=NAMESPACE)
-        SubElement(root, "generation-date").text = utc(int(time.time()))
+        if self.channel == "cian":
+            root = Element("feed")
+            SubElement(root, "feed_version").text = "2"
+            writer = write_cian_offer
+        else:
+            root = Element("realty-feed", xmlns=NAMESPACE)
+            SubElement(root, "generation-date").text = utc(int(time.time()))
+            writer = write_yandex_offer
         if self.policy(db)["enabled"]:
-            rows = db.execute("""SELECT a.*, r.body FROM realty_offer a
+            rows = db.execute(f"""SELECT a.*, r.body FROM {self.offer_table} a
                 JOIN record r ON r.kind='properties' AND r.id=a.property_id
                 WHERE a.active=1 AND r.deleted=0 ORDER BY a.property_id""").fetchall()
             for row in rows:
-                write_offer(root, row)
+                writer(root, row)
         return tostring(root, encoding="utf-8", xml_declaration=True)
 
 
-def write_offer(root, row):
+def write_yandex_offer(root, row):
     data, approved = json.loads(row["body"]), json.loads(row["data"])
     offer = SubElement(root, "offer", {"internal-id": row["property_id"]})
     for key, value in (("type", "продажа"), ("property-type", "жилая"), ("category", "квартира"),
@@ -212,3 +242,28 @@ def write_offer(root, row):
     SubElement(area, "unit").text = "кв. м"
     SubElement(offer, "rooms").text = str(data["rooms"])
     SubElement(offer, "floor").text = str(approved["floor"])
+
+
+def write_cian_offer(root, row):
+    data, approved = json.loads(row["body"]), json.loads(row["data"])
+    offer = SubElement(root, "object")
+    external = "ra-" + hashlib.sha256(row["property_id"].encode("ascii")).hexdigest()[:32]
+    for key, value in (("Category", "flatSale"), ("ExternalId", external),
+                       ("Description", approved["description"]), ("Address", data["address"]),
+                       ("FlatRoomsCount", min(6, data["rooms"])), ("TotalArea", data["area"]),
+                       ("FloorNumber", approved["floor"])):
+        SubElement(offer, key).text = str(value)
+    phone = SubElement(SubElement(offer, "Phones"), "PhoneSchema")
+    SubElement(phone, "CountryCode").text = "+7"
+    SubElement(phone, "Number").text = approved["phone"][2:]
+    SubElement(SubElement(offer, "Building"), "FloorsCount").text = str(approved["floors_total"])
+    terms = SubElement(offer, "BargainTerms")
+    SubElement(terms, "Price").text = str(data["price"])
+    SubElement(terms, "Currency").text = "rur"
+    photos = SubElement(offer, "Photos")
+    for position, url in enumerate(approved["images"]):
+        photo = SubElement(photos, "PhotoSchema")
+        SubElement(photo, "FullUrl").text = url
+        SubElement(photo, "IsDefault").text = "true" if position == 0 else "false"
+    publish = SubElement(SubElement(SubElement(offer, "PublishTerms"), "Terms"), "PublishTermSchema")
+    SubElement(publish, "PromotionType").text = "noPromotion"

@@ -24,7 +24,8 @@ class OfficeTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.path = Path(directory.name) / "office.sqlite3"
         self.feed_key = "k" * 43
-        self.office = Office(self.path, self.feed_key)
+        self.cian_key = "c" * 43
+        self.office = Office(self.path, self.feed_key, self.cian_key)
         self.one = self.office.issue("one", "Первый", "agent")
         self.two = self.office.issue("two", "Второй", "agent")
         self.admin = self.office.issue("admin", "Администратор", "admin")
@@ -228,6 +229,58 @@ class OfficeTest(unittest.TestCase):
             dict(PROPERTY, address="Другой адрес"), **{"If-Match": '"1"'})[0])
         self.assertEqual([], self.yandex())
         self.assertEqual(412, self.request("PUT", offer, self.one, self.materials(), **{"If-Match": '"1"'})[0])
+
+    def cian_xml(self, key, status=200):
+        with closing(http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)) as connection:
+            connection.request("GET", "/feeds/cian/" + key)
+            response = connection.getresponse()
+            self.assertEqual(status, response.status)
+            self.assertEqual("no-store", response.getheader("Cache-Control"))
+            body = response.read()
+        return ElementTree.fromstring(body) if status == 200 else None
+
+    def test_cian_independent_policy_consent_and_lifecycle(self):
+        policy = "/v1/advertising/policy/cian"
+        offer = "/v1/advertising/cian/entry"
+        zero = {"If-Match": '"0"'}
+        one = {"If-Match": '"1"'}
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        self.assertEqual(200, self.create("buyers", BUYER)[0])
+        self.assertEqual(403, self.request("PUT", policy, self.manager, dict(enabled=True, active_limit=1))[0])
+        self.assertEqual(200, self.request("PUT", policy, self.admin, dict(enabled=True, active_limit=1))[0])
+        self.assertFalse(self.request("GET", "/v1/advertising/policy", self.manager)[1]["enabled"])
+        self.cian_xml(self.feed_key, 404)
+        self.assertEqual([], self.cian_xml(self.cian_key).findall("object"))
+        self.assertEqual(400, self.request("PUT", offer, self.one, self.materials(), **zero)[0])
+        approved = dict(self.materials(), description="Прямая продажа, квартира готова к показам.", floors_total=10)
+        self.assertEqual(400, self.request("PUT", offer, self.one, dict(approved, floors_total=2), **zero)[0])
+        self.assertEqual(400, self.request("PUT", offer, self.one, dict(approved, description="Кратко"), **zero)[0])
+        self.assertEqual(404, self.request("PUT", offer, self.two, approved, **zero)[0])
+        self.assertEqual("in_feed", self.request("PUT", offer, self.one, approved, **zero)[1]["state"])
+        self.assertEqual(412, self.request("PUT", offer, self.one, approved, **zero)[0])
+        self.assertEqual([], self.yandex())
+        root = self.cian_xml(self.cian_key)
+        self.assertEqual("2", root.findtext("feed_version"))
+        apartment, = root.findall("object")
+        self.assertEqual("flatSale", apartment.findtext("Category"))
+        self.assertEqual("10", apartment.findtext("Building/FloorsCount"))
+        self.assertEqual("14800000", apartment.findtext("BargainTerms/Price"))
+        self.assertEqual("noPromotion", apartment.findtext("PublishTerms/Terms/PublishTermSchema/PromotionType"))
+        self.assertEqual(approved["images"][0], apartment.findtext("Photos/PhotoSchema/FullUrl"))
+        fmt = '"{}"'.format
+        deal = dict(property_id="entry", buyer_id="entry", stage="qualification", amount=0, commission=0)
+        route = "/v1/deals/cian"
+        self.assertEqual(200, self.request("PUT", route, self.one, deal, **{"If-None-Match": "*"})[0])
+        self.assertEqual(200, self.request("PUT", "/v1/properties/entry", self.one,
+            dict(PROPERTY, price=14_500_000), **one)[0])
+        updated, = self.cian_xml(self.cian_key).findall("object")
+        self.assertEqual("14500000", updated.findtext("BargainTerms/Price"))
+        self.assertEqual(apartment.findtext("ExternalId"), updated.findtext("ExternalId"))
+        for revision, stage in enumerate(("showing", "deposit", "closed"), start=1):
+            entry = dict(deal, stage=stage, amount=14_500_000 if stage == "closed" else 0)
+            self.assertEqual(200, self.request("PUT", route, self.one, entry, **{"If-Match": fmt(revision)})[0])
+        self.assertEqual([], self.cian_xml(self.cian_key).findall("object"))
+        self.assertEqual("withdrawn_from_feed", self.request("GET", offer, self.one)[1]["state"])
 
     def test_owner_portal_only_exposes_the_shared_property(self):
         self.assertEqual(200, self.create("properties", PROPERTY)[0])

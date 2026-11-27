@@ -24,6 +24,13 @@ internal data class Employee(val id: String, val name: String, val role: String)
 internal enum class OfficeSection(val route: String, val label: String) {
     PROPERTIES("properties", "Объекты"), BUYERS("buyers", "Покупатели"), DEALS("deals", "Сделки")
 }
+internal enum class OfficeFeed(val route: String, val label: String) {
+    YANDEX("yandex", "Яндекс Недвижимость"), CIAN("cian", "Циан");
+
+    fun policyRoute() = listOf("advertising", "policy") + if (this == CIAN) listOf(route) else emptyList()
+    fun offerRoute(id: String) = listOf("advertising", route, id)
+}
+
 internal data class OfficeRow(
     val id: String, val assignedTo: String, val revision: Int, val data: JSONObject,
     val propertyTitle: String, val buyerName: String
@@ -124,22 +131,21 @@ internal class OfficeClient(private val session: OfficeSession) {
     suspend fun revokeOwnerLink(id: String) =
         request(listOf("owner-portal", id, "access"), method = "DELETE")
 
-    suspend fun advertisingPolicy() = request(listOf("advertising", "policy"))
+    suspend fun advertisingPolicy(feed: OfficeFeed) = request(feed.policyRoute())
 
-    suspend fun saveAdvertisingPolicy(enabled: Boolean, limit: Int) = request(
-        listOf("advertising", "policy"), method = "PUT",
-        data = JSONObject().put("enabled", enabled).put("active_limit", limit)
+    suspend fun saveAdvertisingPolicy(feed: OfficeFeed, enabled: Boolean, limit: Int) = request(
+        feed.policyRoute(), method = "PUT", data = JSONObject().put("enabled", enabled).put("active_limit", limit)
     )
 
-    suspend fun feedOffer(id: String) = request(listOf("advertising", "yandex", id))
+    suspend fun feedOffer(feed: OfficeFeed, id: String) = request(feed.offerRoute(id))
 
-    suspend fun approveFeedOffer(row: OfficeRow, offerRevision: Int, materials: JSONObject) = request(
-        listOf("advertising", "yandex", row.id), method = "PUT", revision = offerRevision,
+    suspend fun approveFeedOffer(feed: OfficeFeed, row: OfficeRow, offerRevision: Int, materials: JSONObject) = request(
+        feed.offerRoute(row.id), method = "PUT", revision = offerRevision,
         data = materials.put("property_revision", row.revision)
     )
 
-    suspend fun withdrawFeedOffer(id: String, offerRevision: Int) = request(
-        listOf("advertising", "yandex", id), method = "DELETE", revision = offerRevision
+    suspend fun withdrawFeedOffer(feed: OfficeFeed, id: String, offerRevision: Int) = request(
+        feed.offerRoute(id), method = "DELETE", revision = offerRevision
     )
 
     suspend fun me(): Employee = employee(request(listOf("me")))

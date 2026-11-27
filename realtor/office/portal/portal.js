@@ -44,6 +44,17 @@ async function loadReport() {
         ].filter(Boolean);
         field("facts", details.join(" · "));
         field("advertising", advertising[data.yandex_feed] || "Статус передачи неизвестен.");
+        if (data.cian_feed !== "not_requested") {
+            const text = {
+                in_feed: "Объект в фиде Циана. Статус на площадке неизвестен.",
+                withdrawn_from_feed: "Объект исключён из фида Циана.",
+                feed_disabled: "Передача в фид Циана приостановлена офисом.",
+            }[data.cian_feed];
+            if (text) {
+                field("cian-advertising", text);
+                document.getElementById("cian-advertising").hidden = false;
+            }
+        }
         field("views", count(report.views));
         field("inquiries", count(report.inquiries));
         field("measured", report.measured_at ? "Данные от риелтора · " + date.format(report.measured_at * 1000) : "");

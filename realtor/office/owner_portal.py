@@ -114,7 +114,8 @@ class OwnerPortal:
         facts = json.loads(property_row["body"])
         report = db.execute("""SELECT views,inquiries,measured_at,updated_at,recommendation,revision
             FROM owner_report WHERE property_id=?""", (identifier,)).fetchone()
-        advertising = db.execute("SELECT * FROM realty_offer WHERE property_id=?", (identifier,)).fetchone()
+        advertising = office.advertising.offer(db, identifier)
+        cian = office.cian.offer(db, identifier)
         sold = db.execute("""SELECT 1 FROM record WHERE kind='deals' AND deleted=0
             AND json_extract(body, '$.property_id')=? AND json_extract(body, '$.stage')='closed'""",
                           (identifier,)).fetchone()
@@ -123,6 +124,7 @@ class OwnerPortal:
             "property_updated_at": property_row["updated_at"],
             "sold": sold is not None,
             "yandex_feed": office.advertising.status(db, advertising)["state"],
+            "cian_feed": office.cian.status(db, cian)["state"],
             "report": dict(report) if report else {
                 "views": None, "inquiries": None, "measured_at": None, "updated_at": None, "recommendation": "", "revision": 0,
             },

@@ -24,6 +24,7 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
     val settings = remember(context) { OfficeSettings(context) }
     val scope = rememberCoroutineScope()
     val properties by vm.properties.collectAsState()
+    val listings by vm.listings.collectAsState()
     val clients by vm.clients.collectAsState()
     var session by remember { mutableStateOf(settings.session()) }
     var url by remember { mutableStateOf(session?.origin.orEmpty()) }
@@ -38,10 +39,10 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
     var dealTransition by remember { mutableStateOf<Pair<OfficeRow, DealStage>?>(null) }
     var chooseShare by remember { mutableStateOf(false) }
     var shareTarget by remember { mutableStateOf<ShareChoice?>(null) }
-    var advertisingPolicy by remember { mutableStateOf<JSONObject?>(null) }
+    var advertisingPolicy by remember { mutableStateOf<Pair<OfficeFeed, JSONObject>?>(null) }
     var ownerPortal by remember { mutableStateOf<Pair<OfficeRow, JSONObject>?>(null) }
     var ownerLink by remember { mutableStateOf<String?>(null) }
-    var advertisingOffer by remember { mutableStateOf<Pair<OfficeRow, JSONObject>?>(null) }
+    var advertisingOffer by remember { mutableStateOf<Triple<OfficeFeed, OfficeRow, JSONObject>?>(null) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
     var problem by remember { mutableStateOf<String?>(null) }
@@ -103,9 +104,17 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
                 Text(profile.name, style = MaterialTheme.typography.titleLarge)
                 Text(when (profile.role) { "admin" -> "Администратор"; "manager" -> "Руководитель"; else -> "Риелтор" }, color = Muted)
                 if (profile.canAssign) {
-                    TextButton({
-                        operation { advertisingPolicy = OfficeClient(requireNotNull(session)).advertisingPolicy() }
-                    }, enabled = !busy) { Text("Корпоративное размещение") }
+                    Text("Корпоративное размещение", style = MaterialTheme.typography.titleSmall)
+                    Row {
+                        OfficeFeed.entries.forEach { feed ->
+                            TextButton({
+                                operation {
+                                    val client = OfficeClient(requireNotNull(session))
+                                    advertisingPolicy = feed to client.advertisingPolicy(feed)
+                                }
+                            }, enabled = !busy) { Text(feed.label) }
+                        }
+                    }
                 }
                 Chips(OfficeSection.entries.map { it.label }, section.label) { label ->
                     if (!busy && label != section.label) {
@@ -141,12 +150,16 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
                     Text("Ответственный: ${row.assignedTo}", color = Muted)
                     if (section == OfficeSection.PROPERTIES &&
                         (current?.canAssign == true || current?.id == row.assignedTo)) {
-                        TextButton({
-                            operation {
-                                val offer = OfficeClient(requireNotNull(session)).feedOffer(row.id)
-                                advertisingOffer = row to offer
+                        Row {
+                            OfficeFeed.entries.forEach { feed ->
+                                TextButton({
+                                    operation {
+                                        val client = OfficeClient(requireNotNull(session))
+                                        advertisingOffer = Triple(feed, row, client.feedOffer(feed, row.id))
+                                    }
+                                }, enabled = !busy) { Text(feed.label) }
                             }
-                        }, enabled = !busy) { Text("Фид Яндекс Недвижимости") }
+                        }
                         TextButton({
                             operation { ownerPortal = row to OfficeClient(requireNotNull(session)).ownerReport(row.id) }
                         }, enabled = !busy) { Text("Отчёт собственнику") }
@@ -208,27 +221,28 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
             }, problem = problem)
     }
     ownerLink?.let { link -> OfficeOwnerLink(link) { ownerLink = null } }
-    advertisingPolicy?.let { policy ->
-        OfficeAdvertisingPolicy(policy, current?.role == "admin", { advertisingPolicy = null }) { enabled, limit ->
+    advertisingPolicy?.let { (feed, policy) ->
+        OfficeAdvertisingPolicy(feed, policy, current?.role == "admin", { advertisingPolicy = null }) { enabled, limit ->
             advertisingPolicy = null
             operation {
-                OfficeClient(requireNotNull(session)).saveAdvertisingPolicy(enabled, limit)
+                OfficeClient(requireNotNull(session)).saveAdvertisingPolicy(feed, enabled, limit)
                 status = "Правила корпоративного размещения сохранены"
             }
         }
     }
-    advertisingOffer?.let { (row, offer) ->
+    advertisingOffer?.let { (feed, row, offer) ->
         val local = properties.firstOrNull { settings.recordId(it.id) == row.id }
-        OfficeAdvertisingOffer(row, offer, local, { advertisingOffer = null }, { materials ->
+        val draft = local?.let { property -> listings.firstOrNull { it.propertyId == property.id } }
+        OfficeAdvertisingOffer(feed, row, offer, local, draft, { advertisingOffer = null }, { materials ->
             advertisingOffer = null
             operation {
-                OfficeClient(requireNotNull(session)).approveFeedOffer(row, offer.getInt("revision"), materials)
+                OfficeClient(requireNotNull(session)).approveFeedOffer(feed, row, offer.getInt("revision"), materials)
                 status = "Объект доступен в фиде. Ожидается получение площадкой."
             }
         }, {
             advertisingOffer = null
             operation {
-                OfficeClient(requireNotNull(session)).withdrawFeedOffer(row.id, offer.getInt("revision"))
+                OfficeClient(requireNotNull(session)).withdrawFeedOffer(feed, row.id, offer.getInt("revision"))
                 status = "Объект исключён из фида"
             }
         })

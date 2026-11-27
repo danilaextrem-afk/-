@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from advertising import Advertising, SCHEMA as ADVERTISING_SCHEMA
+from advertising import Advertising
 from owner_portal import OwnerPortal, SCHEMA as OWNER_SCHEMA
 
 ROLES = {"admin", "manager", "agent"}
@@ -84,9 +84,13 @@ def normalize(kind, value):
 
 
 class Office:
-    def __init__(self, path, feed_key=None):
+    def __init__(self, path, feed_key=None, cian_feed_key=None):
         self.path = path
+        if feed_key and feed_key == cian_feed_key:
+            raise ValueError("Yandex and Cian must have different feed keys")
         self.advertising = Advertising(feed_key, Problem)
+        self.cian = Advertising(cian_feed_key, Problem, "cian")
+        self.feeds = (self.advertising, self.cian)
         self.owner_portal = OwnerPortal(Problem, SLUG, TOKEN)
         with closing(self.connect()) as db:
             db.executescript("""
@@ -106,7 +110,8 @@ class Office:
                     seq INTEGER PRIMARY KEY, at INTEGER NOT NULL, actor TEXT NOT NULL,
                     action TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL);
             """)
-            db.executescript(ADVERTISING_SCHEMA)
+            for feed in self.feeds:
+                feed.setup(db)
             db.executescript(OWNER_SCHEMA)
             with db:
                 if "deleted" not in {row["name"] for row in db.execute("PRAGMA table_info(record)")}:
@@ -259,7 +264,8 @@ class Office:
             db.execute("UPDATE record SET deleted=1, body='{}', revision=revision+1, updated_at=? WHERE kind=? AND id=?",
                        (int(time.time()), kind, identifier))
             if kind == "properties":
-                self.advertising.withdraw(self, db, identifier, actor["id"], "property_deleted")
+                for feed in self.feeds:
+                    feed.withdraw(self, db, identifier, actor["id"], "property_deleted")
                 self.owner_portal.revoke(self, db, identifier, actor["id"], "property_deleted")
                 db.execute("DELETE FROM owner_report WHERE property_id=?", (identifier,))
             self.audit(db, actor["id"], "delete", kind, identifier)
@@ -295,9 +301,11 @@ class Office:
                    revision=excluded.revision, updated_at=excluded.updated_at""",
                    (kind, identifier, assignee, body, revision, now))
         if method == "PUT" and kind == "properties":
-            self.advertising.on_property_change(self, db, identifier, actor["id"], json.loads(body))
+            for feed in self.feeds:
+                feed.on_property_change(self, db, identifier, actor["id"], json.loads(body))
         if method == "PUT" and kind == "deals" and payload["stage"] == "closed":
-            self.advertising.withdraw(self, db, payload["property_id"], actor["id"], "property_sold")
+            for feed in self.feeds:
+                feed.withdraw(self, db, payload["property_id"], actor["id"], "property_sold")
         self.audit(db, actor["id"], "assign" if method == "PATCH" else "save", kind, identifier)
         return self.serialize(db, self.record(db, kind, identifier))
 
@@ -353,7 +361,9 @@ def handler(office):
                     return {"items": [dict(row) for row in db.execute(
                         "SELECT id,name,role FROM employee WHERE token_hash IS NOT NULL ORDER BY id")]}
                 if parts[:2] == ["v1", "advertising"]:
-                    return office.advertising.route(office, db, actor, method, parts, payload, self.headers.get("If-Match", ""))
+                    cian = parts[2:3] == ["cian"] or parts[2:] == ["policy", "cian"]
+                    feed = office.cian if cian else office.advertising
+                    return feed.route(office, db, actor, method, parts, payload, self.headers.get("If-Match", ""))
                 if len(parts) < 2 or parts[0] != "v1" or parts[1] not in KINDS:
                     raise Problem(404, "not_found")
                 kind = parts[1]
@@ -389,10 +399,13 @@ def handler(office):
                 path = urlsplit(self.path).path
                 if self.command == "GET" and path in {"/owner", "/owner/portal.js", "/owner/portal.css"}:
                     self.owner_page(path)
-                elif self.command == "GET" and office.advertising.feed_path(path):
+                elif self.command == "GET" and path.startswith("/feeds/"):
+                    feed = next((candidate for candidate in office.feeds if candidate.feed_path(path)), None)
+                    if not feed:
+                        raise Problem(404, "not_found")
                     with closing(office.connect()) as db, db:
                         db.execute("BEGIN")
-                        body = office.advertising.xml(db)
+                        body = feed.xml(db)
                     self.send_bytes(200, body, "application/xml; charset=utf-8")
                 elif path.startswith("/feeds/"):
                     raise Problem(404, "not_found")
@@ -429,7 +442,10 @@ def main():
     serve.add_argument("--cert")
     serve.add_argument("--key")
     args = parser.parse_args()
-    office = Office(args.db, os.environ.get("REALTOR_YANDEX_FEED_KEY") if args.command == "serve" else None)
+    if args.command == "serve":
+        office = Office(args.db, os.environ.get("REALTOR_YANDEX_FEED_KEY"), os.environ.get("REALTOR_CIAN_FEED_KEY"))
+    else:
+        office = Office(args.db)
     if args.command == "issue":
         print(office.issue(args.id, args.name, args.role))
     elif args.command == "revoke":
