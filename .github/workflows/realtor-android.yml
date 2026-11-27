@@ -1,6 +1,11 @@
 name: Realtor AI APK
 on:
   workflow_dispatch:
+    inputs:
+      production:
+        description: Require a verified production APK
+        type: boolean
+        default: false
   push:
     branches: [realtorai-build-04]
     paths:
@@ -54,13 +59,7 @@ jobs:
           gradle --no-daemon :app:assemblePreview
           mkdir -p ../candidate
           cp app/build/outputs/apk/preview/app-preview.apk ../candidate/RealtorAI-1.0-rc12.apk
-          apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$apksigner" verify --verbose --print-certs ../candidate/RealtorAI-1.0-rc12.apk
-          aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$aapt" dump badging ../candidate/RealtorAI-1.0-rc12.apk > ../candidate/manifest.txt
-          grep -F "package: name='ru.vladis.realtorai.preview12'" ../candidate/manifest.txt
-          grep -E "^native-code: 'arm64-v8a'[[:space:]]*$" ../candidate/manifest.txt
-          if grep -Fx 'application-debuggable' ../candidate/manifest.txt; then exit 1; fi
+          bash ci/verify-apk.sh ../candidate/RealtorAI-1.0-rc12.apk ru.vladis.realtorai.preview12 1.0-rc12
           unzip -p ../candidate/RealtorAI-1.0-rc12.apk assets/moscow-boundaries.json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert all(d[name] for name in ("moscow","oblast","new-moscow"))'
           unzip -p ../candidate/RealtorAI-1.0-rc12.apk assets/mkad.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)) > 100'
           (cd ../candidate && sha256sum RealtorAI-1.0-rc12.apk > SHA256SUMS.txt)
@@ -95,16 +94,27 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Check for production keystore
+      - name: Check production signing configuration
         id: signing
         env:
+          REQUIRE_PRODUCTION: ${{ inputs.production }}
           KEYSTORE_DATA: ${{ secrets.REALTOR_SIGNING_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.REALTOR_SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.REALTOR_SIGNING_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.REALTOR_SIGNING_KEY_PASSWORD }}
+          SIGNING_CERT_SHA256: ${{ vars.REALTOR_SIGNING_CERT_SHA256 }}
         run: |
-          if [[ -n "$KEYSTORE_DATA" ]]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Production signing is not configured; use the verified release candidate."
+          if [[ -z "$KEYSTORE_DATA$KEYSTORE_PASSWORD$KEY_ALIAS$KEY_PASSWORD$SIGNING_CERT_SHA256" &&
+                "$REQUIRE_PRODUCTION" != true ]]; then
+            echo 'No production signing settings. Only the separate test APK was built.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
+          if [[ -z "$KEYSTORE_DATA" || -z "$KEYSTORE_PASSWORD" || -z "$KEY_ALIAS" ||
+                -z "$KEY_PASSWORD" || ! "$SIGNING_CERT_SHA256" =~ ^[0-9A-Fa-f]{64}$ ]]; then
+            echo "::error::Production signing requires the four keystore secrets and REALTOR_SIGNING_CERT_SHA256."
+            exit 1
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         if: steps.signing.outputs.configured == 'true'
       - uses: actions/setup-java@v4
@@ -125,23 +135,23 @@ jobs:
           REALTOR_SIGNING_STORE_PASSWORD: ${{ secrets.REALTOR_SIGNING_STORE_PASSWORD }}
           REALTOR_SIGNING_ALIAS: ${{ secrets.REALTOR_SIGNING_ALIAS }}
           REALTOR_SIGNING_KEY_PASSWORD: ${{ secrets.REALTOR_SIGNING_KEY_PASSWORD }}
+          SIGNING_CERT_SHA256: ${{ vars.REALTOR_SIGNING_CERT_SHA256 }}
         run: |
           umask 077
           export REALTOR_SIGNING_STORE="$(mktemp "$RUNNER_TEMP/realtor.XXXXXXXX")"
           trap 'rm -f "$REALTOR_SIGNING_STORE"' EXIT
           printf '%s' "$KEYSTORE_DATA" | base64 --decode > "$REALTOR_SIGNING_STORE"
           unset KEYSTORE_DATA
-          test -n "$REALTOR_SIGNING_STORE_PASSWORD" && test -n "$REALTOR_SIGNING_ALIAS" && test -n "$REALTOR_SIGNING_KEY_PASSWORD"
           sdkmanager=$(find "$ANDROID_HOME/cmdline-tools" -path '*/bin/sdkmanager' | sort -V | tail -1)
           "$sdkmanager" 'platforms;android-35' 'build-tools;35.0.0' 'cmake;3.22.1' 'ndk;27.2.12479018'
           gradle --no-daemon :app:assembleRelease
           mkdir -p ../release
-          cp app/build/outputs/apk/release/app-release.apk ../release/RealtorAI-1.0-rc12-signed.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs ../release/RealtorAI-1.0-rc12-signed.apk
-          (cd ../release && sha256sum RealtorAI-1.0-rc12-signed.apk > SHA256SUMS.txt)
+          cp app/build/outputs/apk/release/app-release.apk ../release/RealtorAI-1.0.apk
+          bash ci/verify-apk.sh ../release/RealtorAI-1.0.apk ru.vladis.realtorai 1.0 "$SIGNING_CERT_SHA256"
+          (cd ../release && sha256sum RealtorAI-1.0.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         if: steps.signing.outputs.configured == 'true'
         with:
-          name: RealtorAI-1.0-rc12-signed
+          name: RealtorAI-1.0-production
           path: release/
           if-no-files-found: error
