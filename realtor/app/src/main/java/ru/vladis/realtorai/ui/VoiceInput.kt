@@ -11,12 +11,17 @@ import android.speech.SpeechRecognizer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun VoiceInput(onText: (String) -> Unit, onError: (String) -> Unit) {
+fun VoiceInput(onText: (String) -> Unit, onError: (String) -> Unit, compact: Boolean = false) {
     val ctx = LocalContext.current
     if (Build.VERSION.SDK_INT < 31 || !SpeechRecognizer.isOnDeviceRecognitionAvailable(ctx)) return
     var listening by remember { mutableStateOf(false) }
@@ -53,9 +58,12 @@ fun VoiceInput(onText: (String) -> Unit, onError: (String) -> Unit) {
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         if (it) start() else fail("Для диктовки нужен доступ к микрофону")
     }
-    TextButton(onClick = {
+    val toggle = {
         if (listening) recognizer.stopListening()
         else if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) start()
         else permission.launch(Manifest.permission.RECORD_AUDIO)
-    }) { Text(if (listening) "Завершить диктовку" else "Диктовать") }
+    }
+    if (compact) IconButton(toggle) {
+        Icon(if (listening) Icons.Default.Close else Icons.Default.Call, if (listening) "Завершить диктовку" else "Диктовать")
+    } else TextButton(toggle) { Text(if (listening) "Завершить диктовку" else "Диктовать") }
 }

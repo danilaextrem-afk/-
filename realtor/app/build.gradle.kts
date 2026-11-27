@@ -18,7 +18,7 @@ android {
     defaultConfig {
         applicationId = if (providers.gradleProperty("sideBySide").isPresent) "ru.vladis.realtorai.workspace" else "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
-        versionCode = 22; versionName = "1.0-rc4"
+        versionCode = 23; versionName = "1.0-rc5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += "arm64-v8a"
@@ -40,7 +40,7 @@ android {
         release.signingConfig = signingConfigs.findByName("production")
         create("preview") {
             initWith(release)
-            applicationIdSuffix = ".preview4"
+            applicationIdSuffix = ".preview5"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += "release"
         }

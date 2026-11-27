@@ -1,49 +1,160 @@
 package ru.vladis.realtorai.ai
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import android.content.Context
+import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
+import ru.vladis.realtorai.data.Store
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+data class CloudQuota(
+    val usedTokens: Int?,
+    val remainingTokens: Long?,
+    val remainingRequests: Long?,
+    val retryAfter: String?
+)
+
+data class CloudReply(val text: String, val quota: CloudQuota)
 
 object Groq {
     const val PRIMARY = "openai/gpt-oss-120b"
-    private val http = OkHttpClient.Builder().callTimeout(60, TimeUnit.SECONDS).build()
+    private val http = OkHttpClient.Builder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .callTimeout(120, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .build()
+
+    private fun quota(headers: Headers, used: Int? = null) = CloudQuota(
+        used,
+        headers["x-ratelimit-remaining-tokens"]?.toLongOrNull(),
+        headers["x-ratelimit-remaining-requests"]?.toLongOrNull(),
+        headers["retry-after"]?.takeIf { it.all(Char::isDigit) }
+    )
 
     suspend fun chat(key: String, model: String, system: String, history: List<Pair<String, String>>): String =
-        withContext(Dispatchers.IO) {
-            val msgs = JSONArray().put(JSONObject().put("role", "system").put("content", system))
-            history.forEach { msgs.put(JSONObject().put("role", it.first).put("content", it.second)) }
-            val body = JSONObject().put("model", model).put("messages", msgs).put("temperature", 0.4)
-                .toString().toRequestBody("application/json".toMediaType())
-            val req = Request.Builder().url("https://api.groq.com/openai/v1/chat/completions")
-                .header("Authorization", "Bearer $key").post(body).build()
-            http.newCall(req).execute().use { r ->
-                val s = r.body?.string().orEmpty()
-                if (!r.isSuccessful) error(when (r.code) {
-                    401, 403 -> "Groq: проверьте API-ключ и доступ к модели"
-                    429 -> "Groq: исчерпана квота. Повторите позже или переключитесь на локальную модель"
-                    else -> "Groq: ошибка HTTP " + r.code
-                })
-                JSONObject(s).getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
+        complete(key, system, history, model = model).text
+
+    suspend fun complete(
+        key: String,
+        system: String,
+        history: List<Pair<String, String>>,
+        stream: Boolean = false,
+        model: String = PRIMARY,
+        onPartial: (String) -> Unit = {}
+    ): CloudReply = suspendCancellableCoroutine { continuation ->
+        val messages = JSONArray().put(JSONObject().put("role", "system").put("content", system))
+        history.forEach { (role, text) ->
+            messages.put(JSONObject().put("role", role).put("content", text))
+        }
+        val body = JSONObject()
+            .put("model", model)
+            .put("messages", messages)
+            .put("stream", stream)
+            .put("temperature", 0.4)
+            .apply { if (model == PRIMARY) put("reasoning_effort", "low").put("include_reasoning", false) }
+            .put("max_completion_tokens", 4096)
+            .toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder().url("https://api.groq.com/openai/v1/chat/completions")
+            .header("Authorization", "Bearer $key").post(body).build()
+        val call = http.newCall(request)
+        continuation.invokeOnCancellation { call.cancel() }
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                continuation.resumeWithException(IOException("Не удалось связаться с Groq. Проверьте подключение."))
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val result = runCatching { response.use { read(it, stream, onPartial) } }
+                continuation.resumeWith(result)
+            }
+        })
+    }
+
+    private fun read(response: Response, stream: Boolean, onPartial: (String) -> Unit): CloudReply {
+        if (!response.isSuccessful) error(when (response.code) {
+            401, 403 -> "Groq отклонил ключ или доступ к модели"
+            429 -> quota(response.headers).retryAfter?.let { "Квота Groq исчерпана. Повторите через $it сек." }
+                ?: "Квота Groq исчерпана. Повторите позже или выберите локальный режим."
+            413 -> "Запрос слишком велик для Groq. Начните новый диалог или сократите вложенный текст."
+            in 500..599 -> "Groq временно недоступен. Повторите позже."
+            else -> "Groq отклонил запрос (HTTP ${response.code})"
+        })
+        val body = checkNotNull(response.body) { "Groq вернул пустой ответ" }
+        if (!stream) {
+            val packet = JSONObject(body.string())
+            return CloudReply(
+                packet.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content"),
+                quota(response.headers, usedTokens(packet))
+            )
+        }
+        val output = StringBuilder()
+        var tokens: Int? = null
+        var finished = false
+        val source = body.source()
+        while (true) {
+            val line = source.readUtf8Line() ?: break
+            if (!line.startsWith("data:")) continue
+            val data = line.substringAfter(':').trim()
+            if (data == "[DONE]") {
+                finished = true
+                break
+            }
+            val packet = JSONObject(data)
+            check(!packet.has("error")) { "Groq прервал генерацию" }
+            tokens = usedTokens(packet) ?: tokens
+            val delta = packet.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("delta")
+            if (delta == null || delta.isNull("content")) continue
+            val text = delta.optString("content")
+            if (text.isNotEmpty()) {
+                output.append(text)
+                onPartial(output.toString())
             }
         }
+        check(finished) { "Связь с Groq прервалась до конца ответа" }
+        return CloudReply(output.toString(), quota(response.headers, tokens))
+    }
+
+    private fun usedTokens(packet: JSONObject): Int? =
+        (packet.optJSONObject("usage") ?: packet.optJSONObject("x_groq")?.optJSONObject("usage"))
+            ?.optInt("total_tokens", -1)?.takeIf { it >= 0 }
 }
 
-/** Cloud use is explicit; no automatic uploads of CRM cards, notes or history. */
+/** Cloud requests exclude CRM attachments and local conversation history. */
 object CloudAi {
-    fun enabled(ctx: android.content.Context): Boolean = ru.vladis.realtorai.data.Store(ctx).let {
-        it.cloudEnabled && it.cloudKey.isNotBlank()
-    }
-    suspend fun answer(ctx: android.content.Context, system: String, prompt: String): String {
-        val store = ru.vladis.realtorai.data.Store(ctx)
-        check(store.cloudEnabled && store.cloudKey.isNotBlank()) { "Облачный ИИ не подключён" }
-        return Groq.chat(store.cloudKey, Groq.PRIMARY, system, listOf("user" to prompt))
-            .also { check(it.isNotBlank()) { "Groq вернул пустой ответ" } }
+    private val contactPattern = Regex("""[\p{L}\d._%+-]+@[\p{L}\d.-]+\.[\p{L}]{2,}|(?<!\d)(?:\+7|8)[\s().-]*(?:\d[\s().-]*){10}(?!\d)""")
+    fun containsContact(text: String) = contactPattern.containsMatchIn(text)
+
+    fun enabled(ctx: Context): Boolean = Store(ctx).let { it.cloudEnabled && it.cloudKey.isNotBlank() }
+
+    suspend fun answer(ctx: Context, system: String, prompt: String): String =
+        complete(ctx, system, listOf("user" to prompt), stream = false).text
+
+    suspend fun complete(
+        ctx: Context,
+        system: String,
+        history: List<Pair<String, String>>,
+        stream: Boolean = true,
+        onPartial: (String) -> Unit = {}
+    ): CloudReply {
+        val store = Store(ctx)
+        val key = store.cloudKey
+        check(store.cloudEnabled && key.isNotBlank()) { "Облачный ИИ не подключён" }
+        check(history.none { containsContact(it.second) }) { "Уберите телефон или почту из запроса либо выберите локальный режим" }
+        return Groq.complete(key, system, history, stream, onPartial).also {
+            check(it.text.isNotBlank()) { "Groq вернул пустой ответ" }
+        }
     }
 }
 

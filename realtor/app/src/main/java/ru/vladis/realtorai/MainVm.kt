@@ -41,9 +41,26 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         if (key != null) store.cloudKey = key.trim()
         store.cloudEnabled = enabled && store.cloudKey.isNotBlank()
         cloudReady = CloudAi.enabled(ctx)
+        cloudConfigured = store.cloudKey.isNotBlank()
     }
-    fun removeCloud() = configureCloud("", false)
-    suspend fun testCloud(): String = CloudAi.answer(ctx, "Ответь одним словом по-русски.", "Скажи: готово")
+    var cloudConfigured by mutableStateOf(store.cloudKey.isNotBlank()); private set
+    var cloudQuota by mutableStateOf<CloudQuota?>(null); private set
+    suspend fun connectCloud(key: String) {
+        require(key.matches(Regex("gsk_[A-Za-z0-9_]{20,}"))) { "Введите действительный ключ Groq" }
+        cloudQuota = verifyCloud(key).quota
+        configureCloud(key, true)
+    }
+    fun removeCloud() {
+        configureCloud("", false)
+        cloudQuota = null
+        cloudHistory.clear()
+    }
+    suspend fun testCloud() {
+        cloudQuota = verifyCloud(store.cloudKey).quota
+    }
+    private suspend fun verifyCloud(key: String): CloudReply =
+        Groq.complete(key, "Ответь одним словом по-русски.", listOf("user" to "Скажи: готово"))
+            .also { check(it.text.isNotBlank()) { "Groq вернул пустой ответ" } }
     var agencyPct by mutableStateOf(store.agencyPct); private set
     var sharePct by mutableStateOf(store.sharePct); private set
 
@@ -108,6 +125,13 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     // ---- ИИ-ассистент ----
     val chat = mutableStateListOf<Pair<String, String>>()
+    private val cloudHistory = mutableListOf<Pair<String, String>>()
+    private data class Request(val mode: String, val text: String, val property: Property?, val client: Client?)
+    private var previousRequest: Request? = null
+    var canRetry by mutableStateOf(false); private set
+    fun retryChat() {
+        if (!busy) previousRequest?.let { ask(it.mode, it.text, it.property, it.client, retry = true) }
+    }
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null)
 
@@ -212,14 +236,31 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     private var generationJob: kotlinx.coroutines.Job? = null
     var streamingAnswer by mutableStateOf(""); private set
-    val cancellableGeneration get() = busy && activeModel.file.endsWith(".gguf")
+    val cancellableGeneration get() = busy
     fun stopGeneration() { generationJob?.cancel() }
-    fun clearChat() { if (!busy) { chat.clear(); error = null } }
+    fun clearChat() {
+        if (busy) return
+        chat.clear()
+        cloudHistory.clear()
+        previousRequest = null
+        canRetry = false
+        error = null
+    }
 
     fun canSearch(text: String) = ru.vladis.realtorai.agent.ListingSearch.accepts(text)
 
-    fun ask(mode: String, text: String, p: Property?, c: Client?) {
-        if (busy) return
+    fun ask(mode: String, text: String, p: Property?, c: Client?, retry: Boolean = false) {
+        if (busy || text.isBlank()) return
+        val request = Request(mode, text, p, c)
+        if (retry) {
+            val lastPrompt = chat.indexOfLast { it.first == "user" }
+            while (chat.size > lastPrompt && lastPrompt >= 0) chat.removeAt(chat.lastIndex)
+            if (cloudHistory.getOrNull(cloudHistory.lastIndex - 1) == ("user" to text)) {
+                repeat(2) { cloudHistory.removeAt(cloudHistory.lastIndex) }
+            }
+        }
+        previousRequest = request
+        canRetry = true
         if (canSearch(text)) {
             chat.add("user" to text)
             error = null
@@ -234,7 +275,11 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             }
             return
         }
-        if (!deviceReady && !cloudReady) { error = "Подключите облачный ИИ или скачайте локальную модель"; return }
+        val useCloud = cloudReady && p == null && c == null && mode != "Подбор"
+        if (!useCloud && !deviceReady) {
+            error = if (cloudReady) "Работа с данными CRM требует локальной модели" else "Подключите облачный ИИ или скачайте локальную модель"
+            return
+        }
         val system = Prompts.BASE + " " + (Prompts.modes.firstOrNull { it.first == mode }?.second ?: "")
         val content = buildString {
             c?.let { appendLine("Клиент: ${it.name.take(50)}; бюджет ${it.budget} ₽; ${listOfNotNull(it.searchArea, it.desiredKind, it.wishes).joinToString().take(100)}. ${it.notes.take(80)}") }
@@ -245,16 +290,25 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                 candidates.take(3).forEach { appendLine("${it.title.take(35)} · ${it.address.take(50)} · ${it.price} ₽ · ${it.area} м²") }
                 if (candidates.isEmpty()) appendLine("Подходящих объектов в базе нет.")
             }
-            append(text.take(400))
+            append(text)
         }
         val hist = chat.toList() + ("user" to content)
-        if (busy) return
         chat.add("user" to text); error = null; busy = true
         generationJob = viewModelScope.launch {
             try {
-                val answer = if (cloudReady) CloudAi.answer(ctx, system, text) else DeviceModel.answer(ctx, system, hist) { partial ->
-                    viewModelScope.launch { if (generationJob?.isActive == true) streamingAnswer = partial }
+                val job = coroutineContext[kotlinx.coroutines.Job]
+                val onPartial: (String) -> Unit = { partial ->
+                    viewModelScope.launch { if (job?.isActive == true) streamingAnswer = partial }
                 }
+                val answer = if (useCloud) {
+                    val prior = cloudHistory.takeLast(12).dropWhile { it.first != "user" }
+                    val reply = CloudAi.complete(ctx, system, prior + ("user" to text), onPartial = onPartial)
+                    cloudQuota = reply.quota
+                    cloudHistory.add("user" to text)
+                    cloudHistory.add("assistant" to reply.text)
+                    while (cloudHistory.size > 12) cloudHistory.removeAt(0)
+                    reply.text
+                } else DeviceModel.answer(ctx, system, hist, onPartial = onPartial)
                 chat.add("assistant" to answer)
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) { error = e.localizedMessage }

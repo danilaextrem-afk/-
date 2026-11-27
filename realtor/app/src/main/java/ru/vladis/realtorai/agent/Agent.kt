@@ -217,8 +217,9 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             require(it.action == null || it.action !in progress.used.orEmpty()) { "Модель повторила выполненный вызов" }
         }
         suspend fun plan(prompt: String, retry: Boolean = false): String {
-            if (ru.vladis.realtorai.ai.CloudAi.enabled(applicationContext)) {
-                val safeBrief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Клиент ID: ${job.clientId ?: "нет"}. Выполненные инструменты: " +
+            if (ru.vladis.realtorai.ai.CloudAi.enabled(applicationContext) && job.clientId == null &&
+                !ru.vladis.realtorai.ai.CloudAi.containsContact(job.goal)) {
+                val safeBrief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Выполненные инструменты: " +
                     progress.used.orEmpty().joinToString(",") { it.tool.name } +
                     ". Результаты CRM не передаются. Не выдумывай их. Если нужен конкретный ID, уточни."
                 return ru.vladis.realtorai.ai.CloudAi.answer(applicationContext, system,
@@ -252,8 +253,17 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                 "Черновик #$listingId сохранён в Smart Publish"
             }
         }
-        AgentTool.DOCUMENT -> DeviceModel.answer(ctx, "Подготовь черновик документа по-русски. Используй только переданные факты.", listOf("user" to
-            "${arg("title").take(80)}\n${job.goal.take(380)}\n${db.agent().get(job.id)?.result.orEmpty().takeLast(600)}"))
+        AgentTool.DOCUMENT -> {
+            val system = "Подготовь черновик документа по-русски. Используй только переданные факты."
+            val brief = "${arg("title").take(80)}\n${job.goal.take(380)}"
+            if (job.clientId == null && ru.vladis.realtorai.ai.CloudAi.enabled(ctx) &&
+                !ru.vladis.realtorai.ai.CloudAi.containsContact(brief)) {
+                ru.vladis.realtorai.ai.CloudAi.answer(ctx, system, brief)
+            } else {
+                val localContext = db.agent().get(job.id)?.result.orEmpty().takeLast(600)
+                DeviceModel.answer(ctx, system, listOf("user" to "$brief\n$localContext"))
+            }
+        }
         AgentTool.TASK -> {
             val title = arg("title").trim().take(120)
             require(title.isNotEmpty())

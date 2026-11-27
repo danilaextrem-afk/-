@@ -74,18 +74,23 @@ def open_home_tool(label):
 def models():
     tap("ИИ")
     capture("assistant", "ИИ-ассистент")
+    tap("Подключить ИИ")
     tap("Выбрать локальную модель")
     capture("models", "Модели на устройстве")
 
+def open_properties():
+    tap("Профиль")
+    tap("Недвижимость")
+
 def properties():
-    tap("Объекты")
+    open_properties()
     capture("properties", "Недвижимость")
     tap("Карта")
     capture("map", "Карта объектов")
     tap("География · Москва и МО")
     capture("moscow-filters", "География поиска")
     tap("Сбросить")
-    tap("Объекты")
+    open_properties()
     tap("Объект")
     tap("Название")
     type_text("Owner workflow QA")
@@ -127,7 +132,7 @@ if sys.argv[1:] == ["--preview"]:
     sys.exit(0)
 check("onboarding", lambda: capture("onboarding", "Подключите первый источник"))
 check("home", lambda: capture("home", "Мой рабочий день"))
-check("calendar", lambda: (tap("Задачи"), capture("calendar", "Задачи и встречи")))
+check("calendar", lambda: (tap("Профиль"), capture("profile", "Профиль"), tap("Календарь"), capture("calendar", "Задачи и встречи")))
 check("chat_and_models", models)
 check("deals_and_owner", properties)
 check("crm_and_client", crm)
@@ -135,7 +140,8 @@ check("autopilot", lambda: (open_home_tool("Открыть автопилот"),
 check("agent", agent)
 check("leads", lambda: (open_home_tool("Лиды"), capture("leads", "Входящие заявки")))
 check("publications", lambda: (open_home_tool("Публикации"), capture("publications", "Публикации")))
-check("analytics", lambda: (tap("Объекты"), tap("Аналитика"), capture("analytics", "Аналитика")))
+check("analytics", lambda: (open_properties(), tap("Аналитика"), capture("analytics", "Аналитика")))
+check("find", lambda: (tap("Поиск"), capture("search", "География · Москва и МО")))
 check("settings", settings)
 Path("captures", "ui-checks.txt").write_text("\n".join(f"{k}: {v}" for k, v in failures.items()) or "All required captures completed.", encoding="utf-8")
 if failures:

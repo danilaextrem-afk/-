@@ -84,37 +84,31 @@ fun Home(
             Text("Мой рабочий день", style = MaterialTheme.typography.displaySmall)
         }
         item {
-            val shape = RoundedCornerShape(28.dp)
-            Column(
-                Modifier.fillMaxWidth().clip(shape)
-                    .background(Brush.linearGradient(listOf(Color(0xFF10382B), Color(0xFF1E302F), Color(0xFF121E1C))))
-                    .padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                HorizontalDivider()
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Star, null, tint = Color(0xFF87EFBB), modifier = Modifier.size(16.dp))
-                    Text("Поручение агенту", style = MaterialTheme.typography.titleMedium, color = Color(0xFFF0F8F3))
+                    Icon(Icons.Default.Star, null, tint = Lime, modifier = Modifier.size(18.dp))
+                    Text("Поручение агенту", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Text(if (vm.cloudReady) "GPT-OSS 120B" else "На устройстве", color = Lime, style = MaterialTheme.typography.labelMedium)
                 }
-                Text(activeJob?.goal ?: "Найдите объекты, подготовьте подборку или соберите план недели.",
-                    color = Color(0xFFC0D9CA))
-                Surface(color = Color(0xFF24493D), shape = RoundedCornerShape(18.dp)) {
-                    Row(Modifier.padding(start = 12.dp, end = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                activeJob?.let { Text(it.goal, color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                Surface(color = Surface1, shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                    Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         TextField(command, { command = it.take(500) }, modifier = Modifier.weight(1f), singleLine = true,
                             placeholder = { Text("Что нужно сделать?") }, colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
-                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedPlaceholderColor = Color(0xFFBAD6C6), unfocusedPlaceholderColor = Color(0xFFBAD6C6)
+                                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
                             ))
+                        VoiceInput({ command = "$command $it".trim().take(500) }, { vm.error = it }, compact = true)
                         IconButton({ openAgent(command.trim()) }) {
-                            Icon(Icons.Default.ArrowForward, "Поручить агенту", tint = Color(0xFFA3F6C8))
+                            Icon(Icons.Default.ArrowForward, "Поручить агенту", tint = Lime)
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("План недели", Modifier.clip(RoundedCornerShape(8.dp)).clickable { openAgent("Составь план на неделю") }.padding(6.dp),
-                        color = Color(0xFFACE9C8), style = MaterialTheme.typography.labelMedium)
-                    Text("Найти квартиры", Modifier.clip(RoundedCornerShape(8.dp)).clickable { openAgent("Найди выгодные квартиры") }.padding(6.dp),
-                        color = Color(0xFFACE9C8), style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TextButton({ openAgent("Составь план на неделю") }) { Text("План недели") }
+                    TextButton({ openAgent("Найди выгодные квартиры") }) { Text("Найти квартиры") }
                 }
             }
         }
@@ -133,7 +127,7 @@ fun Home(
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OverviewMetric(Modifier.weight(1f), Icons.Default.Place, offers.count { it.active }.toString(), "Найдено", openHunter)
                 OverviewMetric(Modifier.weight(1f), Icons.Default.Person, clients.count { it.stage == "new" }.toString(), "Новые лиды", openCrm)
                 OverviewMetric(Modifier.weight(1f), Icons.Default.Done, tasks.count { it.done }.toString(), "Выполнено", openTasks)
@@ -239,12 +233,11 @@ fun Home(
 
 @Composable
 private fun OverviewMetric(modifier: Modifier, icon: ImageVector, value: String, label: String, click: () -> Unit) {
-    Surface(click, modifier, shape = RoundedCornerShape(18.dp), color = Surface1) {
-        Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, null, tint = Lime, modifier = Modifier.size(18.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall)
-            Text(label, color = Muted, style = MaterialTheme.typography.bodySmall)
-        }
+    Column(modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = click).padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon, null, tint = Lime, modifier = Modifier.size(16.dp))
+        Text(value, style = MaterialTheme.typography.headlineSmall)
+        Text(label, color = Muted, style = MaterialTheme.typography.bodySmall)
     }
 }
 

@@ -2,6 +2,7 @@ package ru.vladis.realtorai.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,29 +52,38 @@ import ru.vladis.realtorai.MainVm
     var sub by rememberSaveable { mutableStateOf<String?>(null) }
     var clientId by rememberSaveable { mutableStateOf<Long?>(null) }
     BackHandler(sub != null || clientId != null) { if (clientId != null) clientId = null else sub = null }
-    val tabs = listOf(Triple("home", "Главная", Icons.Default.Home), Triple("props", "Объекты", Icons.Default.Place),
-        Triple("crm", "CRM", Icons.Default.Person), Triple("tasks", "Задачи", Icons.Default.DateRange),
-        Triple("ai", "ИИ", Icons.Default.Star))
+    val tabs = listOf(Triple("home", "Главная", Icons.Default.Home), Triple("search", "Поиск", Icons.Default.Search),
+        Triple("ai", "ИИ", Icons.Default.Star), Triple("crm", "CRM", Icons.Default.Person),
+        Triple("profile", "Профиль", Icons.Default.Settings))
     val wide = LocalConfiguration.current.screenWidthDp >= 700
     Scaffold(containerColor = Graphite, bottomBar = {
-        if (!wide) Surface(color = Graphite) {
-            Surface(shape = RoundedCornerShape(22.dp), color = Surface1,
-                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp)) {
-                Row(Modifier.fillMaxWidth().selectableGroup().padding(5.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        if (!wide) Surface(color = Surface1) {
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(Modifier.fillMaxWidth().selectableGroup().navigationBarsPadding().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     tabs.forEach { (id, label, icon) ->
                         val selected = tab == id && sub == null && clientId == null
                         Column(
-                            Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
-                                .selectable(selected, role = Role.Tab, onClick = {
-                                    if (!selected) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    tab = id; sub = null; clientId = null
-                                }).padding(vertical = 5.dp),
+                            Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).selectable(selected, role = Role.Tab) {
+                                if (!selected) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                tab = id
+                                sub = null
+                                clientId = null
+                            }.padding(top = 9.dp, bottom = 7.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Surface(shape = RoundedCornerShape(13.dp),
-                                color = if (selected) MaterialTheme.colorScheme.primaryContainer else Surface1) {
-                                Icon(icon, null, Modifier.padding(horizontal = 11.dp, vertical = 5.dp).size(19.dp),
-                                    tint = if (selected) Lime else Muted)
+                            val emphasized = id == "ai"
+                            Box(
+                                Modifier.size(width = 42.dp, height = 28.dp).clip(RoundedCornerShape(9.dp))
+                                    .then(if (emphasized) Modifier.background(Lime) else Modifier),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(icon, null, Modifier.size(20.dp), tint = when {
+                                    emphasized -> MaterialTheme.colorScheme.onPrimary
+                                    selected -> Lime
+                                    else -> Muted
+                                })
                             }
                             Text(label, style = MaterialTheme.typography.labelSmall, color = if (selected) Lime else Muted)
                         }
@@ -97,21 +107,26 @@ import ru.vladis.realtorai.MainVm
                         c != null -> ClientDetail(vm, c) { clientId = null }
                         s?.startsWith("owner/") == true -> ru.vladis.realtorai.owner.OwnerScreen(vm, s.substringAfter('/').toLong(), { sub = "publish" }, { sub = null })
                         s == "agent" -> ru.vladis.realtorai.agent.AgentScreen(vm, command) { sub = null }
-                        s == "autopilot" -> ru.vladis.realtorai.autopilot.AutopilotScreen(vm, { sub = "hunter" }, { tab = "crm"; sub = null }, { tab = "tasks"; sub = null }, { sub = null })
+                        s == "autopilot" -> ru.vladis.realtorai.autopilot.AutopilotScreen(vm, { sub = "hunter" }, { tab = "crm"; sub = null }, { sub = "tasks" }, { sub = null })
                         s == "analytics" -> Analytics(vm) { sub = null }
                         s == "settings" -> SettingsScreen(vm, theme, setTheme) { sub = null }
                         s == "models" -> ModelScreen(vm) { sub = null }
+                        s == "tasks" -> Tasks(vm)
+                        s == "properties" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" })
                         s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm) { sub = null }
                         s == "sales" -> SalesWorkspace(vm) { sub = null }
                         s == "leads" -> LeadWorkspace(vm, { sub = null }, { clientId = it })
                         s == "hunter" || s == "map" -> ru.vladis.realtorai.hunter.HunterScreen(vm, s == "map") { sub = null }
                         else -> when (t) {
                             "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" },
-                                { request -> command = request; sub = "agent" }, { tab = "props" }, { tab = "crm" }, { tab = "tasks" }, { sub = "owner/$it" })
-                            "props" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" })
+                                { request -> command = request; sub = "agent" }, { sub = "properties" }, { tab = "crm" }, { sub = "tasks" }, { sub = "owner/$it" })
+                            "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, false) { tab = "home" }
                             "crm" -> Crm(vm) { clientId = it }
-                            "tasks" -> Tasks(vm)
-                            else -> Assistant(vm) { sub = "models" }
+                            "profile" -> Profile(vm) { sub = it }
+                            else -> Assistant(vm, { sub = "models" }, { sub = "settings" }) { request ->
+                                command = request
+                                sub = "agent"
+                            }
                         }
                     }
                 }
