@@ -82,7 +82,7 @@ object Groq {
         })
     }
 
-    private fun read(response: Response, stream: Boolean, onPartial: (String) -> Unit): CloudReply {
+    internal fun read(response: Response, stream: Boolean, onPartial: (String) -> Unit): CloudReply {
         if (!response.isSuccessful) error(when (response.code) {
             401, 403 -> "Groq отклонил ключ или доступ к модели"
             429 -> quota(response.headers).retryAfter?.let { "Квота Groq исчерпана. Повторите через $it сек." }
@@ -135,6 +135,14 @@ object Groq {
 object CloudAi {
     private val contactPattern = Regex("""[\p{L}\d._%+-]+@[\p{L}\d.-]+\.[\p{L}]{2,}|(?<!\d)(?:\+7|8)[\s().-]*(?:\d[\s().-]*){10}(?!\d)""")
     fun containsContact(text: String) = contactPattern.containsMatchIn(text)
+    fun referencesClients(text: String, clients: List<ru.vladis.realtorai.data.Client>): Boolean {
+        fun normalize(value: String) = value.lowercase().replace('ё', 'е').replace(Regex("[^\\p{L}]+"), " ").trim()
+        val query = " ${normalize(text)} "
+        return clients.any { client ->
+            val name = normalize(client.name)
+            name.length >= 3 && " $name " in query
+        }
+    }
 
     fun enabled(ctx: Context): Boolean = Store(ctx).let { it.cloudEnabled && it.cloudKey.isNotBlank() }
 

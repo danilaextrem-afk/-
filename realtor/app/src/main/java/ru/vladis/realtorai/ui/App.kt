@@ -120,7 +120,7 @@ import ru.vladis.realtorai.MainVm
                         else -> when (t) {
                             "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" },
                                 { request -> command = request; sub = "agent" }, { sub = "properties" }, { tab = "crm" }, { sub = "tasks" }, { sub = "owner/$it" })
-                            "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, false) { tab = "home" }
+                            "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, topLevel = true) { tab = "home" }
                             "crm" -> Crm(vm) { clientId = it }
                             "profile" -> Profile(vm) { sub = it }
                             else -> Assistant(vm, { sub = "models" }, { sub = "settings" }) { request ->

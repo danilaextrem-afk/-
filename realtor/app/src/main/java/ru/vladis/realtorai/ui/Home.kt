@@ -89,7 +89,7 @@ fun Home(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.Star, null, tint = Lime, modifier = Modifier.size(18.dp))
                     Text("Поручение агенту", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    Text(if (vm.cloudReady) "GPT-OSS 120B" else "На устройстве", color = Lime, style = MaterialTheme.typography.labelMedium)
+                    Text(if (vm.cloudReady) "GPT-OSS 120B" else if (vm.deviceReady) "На устройстве" else "Подключить ИИ", color = Lime, style = MaterialTheme.typography.labelMedium)
                 }
                 activeJob?.let { Text(it.goal, color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 Surface(color = Surface1, shape = RoundedCornerShape(12.dp),
@@ -113,14 +113,14 @@ fun Home(
             }
         }
         if (welcome && active.isEmpty() && clients.isEmpty()) item {
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Surface2).padding(14.dp),
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(Icons.Default.Place, null, tint = Lime, modifier = Modifier.padding(top = 4.dp).size(22.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Подключите первый источник", style = MaterialTheme.typography.titleMedium)
                     Text("Публичные торги или ваш фид. Новые объекты появятся в рабочей базе.", color = Muted)
                     Row {
-                        TextButton({ finishWelcome(); openAutopilot() }) { Text("Настроить поиск") }
+                        TextButton({ finishWelcome(); openHunter() }) { Text("Настроить поиск") }
                         TextButton(::finishWelcome) { Text("Позже") }
                     }
                 }

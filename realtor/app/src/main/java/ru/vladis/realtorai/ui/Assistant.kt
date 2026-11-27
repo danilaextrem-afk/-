@@ -40,7 +40,6 @@ fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, open
     var client by remember { mutableStateOf<Client?>(null) }
     var modelMenu by remember { mutableStateOf(false) }
     var contextMenu by remember { mutableStateOf(false) }
-    var agentConsent by remember { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
     val speech = rememberLocalSpeech()
     val list = rememberLazyListState()
@@ -49,13 +48,6 @@ fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, open
         vm.deviceReady -> vm.activeModel.label
         else -> "Подключить ИИ"
     }
-    if (agentConsent) AlertDialog(
-        onDismissRequest = { agentConsent = false },
-        title = { Text("Передать поручение в Groq?") },
-        text = { Text("Groq получит текст поручения. Уберите персональные данные перед продолжением. Инструменты CRM выполняются на устройстве.") },
-        confirmButton = { TextButton({ agentConsent = false; openAgent(text.trim()) }) { Text("Продолжить") } },
-        dismissButton = { TextButton({ agentConsent = false }) { Text("Назад") } }
-    )
     LaunchedEffect(vm.chat.size, vm.busy, vm.error) {
         val item = vm.chat.size - 1 + (if (vm.busy) 1 else 0) + (if (vm.error != null) 1 else 0)
         if (vm.chat.isNotEmpty() && item >= 0) list.scrollToItem(item)
@@ -183,7 +175,7 @@ fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, open
                         VoiceInput({ text = listOf(text, it).filter(String::isNotBlank).joinToString(" ") }, { vm.error = it }, compact = true)
                         Spacer(Modifier.weight(1f))
                         TextButton({
-                            if (vm.cloudReady) agentConsent = true else openAgent(text.trim())
+                            openAgent(text.trim())
                         }, enabled = !vm.busy && text.isNotBlank()) { Text("Поручить") }
                         FilledIconButton(onClick = {
                             if (vm.busy) vm.stopGeneration()

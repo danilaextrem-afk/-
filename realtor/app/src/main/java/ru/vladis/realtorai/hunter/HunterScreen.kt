@@ -13,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,7 +48,7 @@ import kotlin.math.max
 
 private fun pct(d: Double) = "${(d * 100).toInt()}%"
 
-@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, back: () -> Unit) {
+@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, topLevel: Boolean = false, back: () -> Unit) {
     val vm: HunterVm = viewModel()
     val allDeals by vm.deals.collectAsState()
     val geoContext = LocalContext.current
@@ -62,6 +64,7 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     BackHandler(openId != null) { openId = null }
     val open = deals.find { it.o.id == openId }
     if (open != null) { DealDetail(vm, main, open, deals) { openId = null }; return }
+    var showQuickFilters by remember { mutableStateOf(false) }
     val sale = deals.filter { it.o.deal == "sale" }
     val shown = sale.filter { d ->
         val seller = when (sellerFilter) {
@@ -73,18 +76,27 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         }
         seller && Filters.matches(d.o, flt) && (!flt.onlyBelowMarket || d.below) && (!hideDups || d.repr) && (!favOnly || d.o.favorite) }
         .sortedWith(compareBy<Deal> { it.o.source.startsWith("Торги.Открыто") }.thenByDescending { it.discount ?: -1.0 })
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }; ScreenHeading("Поиск сделок", "${sale.size} предложений в источниках") }
-        Chips(listOf("Лента", "Карта", "Фильтры", "Данные", "Подбор"), tab) { tab = it }
-        TextButton({ showGeography = true }) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (!topLevel) IconButton(back) { Icon(Icons.Default.ArrowBack, "Назад") }
+            Column(Modifier.weight(1f)) {
+                Text("Поиск сделок", style = MaterialTheme.typography.headlineMedium)
+                Text("${sale.size} предложений в источниках", color = Muted, style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(vm::refreshNow, enabled = !vm.busy) { Icon(Icons.Default.Refresh, "Обновить источники", tint = Lime) }
+        }
+        TextButton({ showGeography = true }, contentPadding = PaddingValues(horizontal = 0.dp)) {
+            Icon(Icons.Default.Place, null, Modifier.padding(end = 6.dp).size(18.dp))
             Text("География · " + geography.locations.joinToString(", ").ifBlank { "Москва и МО" })
         }
+        Chips(listOf("Лента", "Карта", "Фильтры", "Данные", "Подбор"), tab) { tab = it }
         if (tab in listOf("Лента", "Карта")) Chips(listOf("Все продавцы", "Собственники", "Застройщики", "Вторичка", "Новостройки"), sellerFilter) { sellerFilter = it }
         if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         vm.log?.let { Text(it, color = Lime, style = MaterialTheme.typography.bodySmall) }
         Spacer(Modifier.height(8.dp))
         when (tab) {
-            "Лента" -> FeedTab(vm, shown, sale.size, flt, { flt = it }, hideDups, { hideDups = it }, favOnly, { favOnly = it }) { openId = it }
+            "Лента" -> FeedTab(vm, shown, sale.size, flt, { flt = it }, hideDups, { hideDups = it }, favOnly, { favOnly = it },
+                showQuickFilters, { showQuickFilters = it }, { tab = "Данные" }) { openId = it }
             "Карта" -> {
                 val located = shown.filter { it.o.lat != null && it.o.lon != null }
                 Text("Карта объектов", style = MaterialTheme.typography.titleLarge)
@@ -114,7 +126,8 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         }
         IconButton({ vm.toggleFav(o) }) { Icon(if (o.favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = Lime) }
     }
-    Text("${o.price.rub()} · ${Market.ppsm(o).toLong().rub()}/м²", color = Lime, fontWeight = FontWeight.Bold)
+    Text(o.price.rub(), style = MaterialTheme.typography.headlineSmall, color = Lime)
+    Text("${Market.ppsm(o).toLong().rub()}/м² · ${o.source}", color = Muted, style = MaterialTheme.typography.bodySmall)
     Text("${o.area} м² · ${o.rooms} комн. · эт. ${o.floor}", color = Muted)
     when {
         d.discount == null -> Text("Оценка рынка: недостаточно аналогов (нужно ≥${Market.MIN_COMPS})", color = Muted, style = MaterialTheme.typography.bodySmall)
@@ -126,14 +139,27 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
 }
 
 @Composable fun FeedTab(vm: HunterVm, shown: List<Deal>, total: Int, f: SavedFilter, onF: (SavedFilter) -> Unit,
-                        hide: Boolean, onHide: (Boolean) -> Unit, fav: Boolean, onFav: (Boolean) -> Unit, open: (Long) -> Unit) {
-    var price by remember { mutableStateOf("") }; var area by remember { mutableStateOf("") }; var dist by remember { mutableStateOf(f.district) }
+                        hide: Boolean, onHide: (Boolean) -> Unit, fav: Boolean, onFav: (Boolean) -> Unit,
+                        expanded: Boolean, onExpanded: (Boolean) -> Unit, openData: () -> Unit, open: (Long) -> Unit) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
-        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Field(price, { price = it.filter(Char::isDigit); onF(f.copy(maxPrice = price.toLongOrNull() ?: 0)) }, "Цена до, ₽", Modifier.weight(1f), KeyboardType.Number)
-            Field(area, { area = it; onF(f.copy(minArea = it.replace(',', '.').toDoubleOrNull() ?: 0.0)) }, "Площадь от", Modifier.weight(1f), KeyboardType.Decimal) } }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("${shown.size} из $total", Modifier.weight(1f), color = Muted)
+                TextButton({ onExpanded(!expanded) }) { Text(if (expanded) "Свернуть" else "Цена, площадь и комнаты") }
+            }
+            HorizontalDivider()
+        }
+        if (expanded) {
+        item {
+            var price by remember { mutableStateOf(f.maxPrice.takeIf { it > 0 }?.toString().orEmpty()) }
+            var area by remember { mutableStateOf(f.minArea.takeIf { it > 0.0 }?.toString().orEmpty()) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Field(price, { price = it.filter(Char::isDigit); onF(f.copy(maxPrice = price.toLongOrNull() ?: 0)) }, "Цена до, ₽", Modifier.weight(1f), KeyboardType.Number)
+                Field(area, { area = it; onF(f.copy(minArea = it.replace(',', '.').toDoubleOrNull() ?: 0.0)) }, "Площадь от", Modifier.weight(1f), KeyboardType.Decimal)
+            }
+        }
         item { Chips(listOf("Любые", "1", "2", "3", "4+"), when (f.rooms) { "" -> "Любые"; "4" -> "4+"; else -> f.rooms }) { onF(f.copy(rooms = when (it) { "Любые" -> ""; "4+" -> "4"; else -> it })) } }
-        item { Field(dist, { dist = it; onF(f.copy(district = it)) }, "Район / адрес содержит") }
+        item { Field(f.district, { onF(f.copy(district = it)) }, "Район или адрес") }
         item {
             Row(verticalAlignment = Alignment.CenterVertically) { Switch(f.onlyBelowMarket, { onF(f.copy(onlyBelowMarket = it)) }); Text("  Только дешевле рынка") }
             Row(verticalAlignment = Alignment.CenterVertically) { Switch(hide, onHide); Text("  Скрыть дубли") }
@@ -144,7 +170,15 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
             OutlinedButton({ vm.saveFilter(f.copy(id = 0, name = name)) }) { Text("Сохранить фильтр: $name") }
             Text("Показано ${shown.size} из $total (продажа)", color = Muted, style = MaterialTheme.typography.bodySmall)
         }
-        if (total == 0) item { Text("Данных нет. Вкладка «Данные»: импортируйте CSV/JSON, вставьте объявление или подключите фид. Объявления не генерируются.", color = Muted) }
+        }
+        if (shown.isEmpty()) item {
+            Column(Modifier.padding(vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (total == 0) "Подключите источник" else "Совпадений пока нет", style = MaterialTheme.typography.titleLarge)
+                Text(if (total == 0) "Добавьте разрешённый фид или импортируйте объявления Москвы и области."
+                    else "Измените параметры или обновите подключённые источники.", color = Muted)
+                if (total == 0) TextButton(openData, contentPadding = PaddingValues(0.dp)) { Text("Открыть источники") }
+            }
+        }
         items(shown, key = { it.o.id }) { DealCard(it, vm) { open(it.o.id) } }
     }
 }

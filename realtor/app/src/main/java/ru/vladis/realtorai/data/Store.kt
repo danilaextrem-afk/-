@@ -19,6 +19,9 @@ class Store(ctx: Context) {
     var cloudKey: String
         get() = secure.getString("groq_cloud_key", "").orEmpty()
         set(v) { secure.edit().putString("groq_cloud_key", v).apply() }
+    var transcript: String
+        get() = secure.getString("assistant_transcript", "").orEmpty()
+        set(value) { secure.edit().putString("assistant_transcript", value).apply() }
     var cloudEnabled: Boolean
         get() = plain.getBoolean("groq_cloud_enabled", false)
         set(v) { plain.edit().putBoolean("groq_cloud_enabled", v).apply() }

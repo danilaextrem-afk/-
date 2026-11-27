@@ -124,7 +124,14 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- ИИ-ассистент ----
-    val chat = mutableStateListOf<Pair<String, String>>()
+    private data class ChatRecord(val role: String, val text: String)
+    val chat = mutableStateListOf<Pair<String, String>>().apply {
+        runCatching { Gson().fromJson(store.transcript, Array<ChatRecord>::class.java) }
+            .getOrNull()?.forEach { add(it.role to it.text) }
+    }
+    private fun saveTranscript() {
+        store.transcript = Gson().toJson(chat.takeLast(80).map { (role, text) -> ChatRecord(role, text.take(32000)) })
+    }
     private val cloudHistory = mutableListOf<Pair<String, String>>()
     private data class Request(val mode: String, val text: String, val property: Property?, val client: Client?)
     private var previousRequest: Request? = null
@@ -241,6 +248,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun clearChat() {
         if (busy) return
         chat.clear()
+        saveTranscript()
         cloudHistory.clear()
         previousRequest = null
         canRetry = false
@@ -251,6 +259,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     fun ask(mode: String, text: String, p: Property?, c: Client?, retry: Boolean = false) {
         if (busy || text.isBlank()) return
+        val identifiesClient = CloudAi.containsContact(text) || CloudAi.referencesClients(text, clients.value)
         val request = Request(mode, text, p, c)
         if (retry) {
             val lastPrompt = chat.indexOfLast { it.first == "user" }
@@ -263,19 +272,21 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         canRetry = true
         if (canSearch(text)) {
             chat.add("user" to text)
+            saveTranscript()
             error = null
             busy = true
             generationJob = viewModelScope.launch {
                 try {
                     val results = withContext(Dispatchers.IO) { ru.vladis.realtorai.agent.ListingSearch.run(ctx, db, text, refresh = true) }
                     chat.add("assistant" to results)
+                    saveTranscript()
                 } catch (e: kotlinx.coroutines.CancellationException) { throw e }
                 catch (e: Exception) { error = e.localizedMessage }
                 finally { busy = false }
             }
             return
         }
-        val useCloud = cloudReady && p == null && c == null && mode != "Подбор"
+        val useCloud = cloudReady && p == null && c == null && mode != "Подбор" && !identifiesClient
         if (!useCloud && !deviceReady) {
             error = if (cloudReady) "Работа с данными CRM требует локальной модели" else "Подключите облачный ИИ или скачайте локальную модель"
             return
@@ -294,6 +305,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         }
         val hist = chat.toList() + ("user" to content)
         chat.add("user" to text); error = null; busy = true
+        saveTranscript()
         generationJob = viewModelScope.launch {
             try {
                 val job = coroutineContext[kotlinx.coroutines.Job]
@@ -310,6 +322,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                     reply.text
                 } else DeviceModel.answer(ctx, system, hist, onPartial = onPartial)
                 chat.add("assistant" to answer)
+                saveTranscript()
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) { error = e.localizedMessage }
             finally { busy = false; streamingAnswer = "" }

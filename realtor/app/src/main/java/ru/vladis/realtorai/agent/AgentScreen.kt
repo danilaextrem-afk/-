@@ -27,6 +27,7 @@ fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
     var client by remember { mutableStateOf<Long?>(null) }
     var menu by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var cloudConsent by remember(goal, client, vm.cloudReady) { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
     val plan = remember(goal) { AgentPlan.fromGoal(goal) }
     var answerTo by remember { mutableStateOf<AgentJob?>(null) }
@@ -39,12 +40,17 @@ fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
         item {
             AppCard {
                 Field(goal, { goal = it.take(500) }, "Что поручить агенту?", single = false)
-                if (vm.cloudReady) Text("GPT-OSS 120B: в Groq отправляется поручение и коды выполненных инструментов, без карточек CRM.", color = Muted)
+                if (vm.cloudReady && client == null) Row {
+                    Checkbox(cloudConsent, { cloudConsent = it })
+                    Text("Разрешаю отправить текст поручения в Groq. Данные CRM остаются на устройстве.",
+                        Modifier.padding(top = 6.dp), color = Muted)
+                }
                 VoiceInput({ goal = (goal + " " + it).trim().take(500) }, { error = it })
                 Chips(listOf("Составь план на неделю", "Найди выгодные квартиры", "Подбери под бюджет клиента"), "") { goal = it }
                 if (buyers.any { it.role == "buyer" }) Box {
                     OutlinedButton({ menu = true }) { Text(buyers.firstOrNull { it.id == client }?.name ?: "Выбрать покупателя") }
                     DropdownMenu(menu, { menu = false }) {
+                        DropdownMenuItem({ Text("Без клиента") }, { client = null; menu = false })
                         buyers.filter { it.role == "buyer" }.forEach { buyer ->
                             DropdownMenuItem(text = { Text(buyer.name) }, onClick = { client = buyer.id; menu = false })
                         }
@@ -66,7 +72,8 @@ fun AgentScreen(vm: MainVm, initialGoal: String, back: () -> Unit) {
                         catch (e: Exception) { error = e.localizedMessage }
                         finally { submitting = false }
                     }
-                }, enabled = !submitting && goal.isNotBlank() && (vm.deviceReady || vm.cloudReady || plan.isNotEmpty() && (AgentTool.MATCH !in plan || client != null))) { Text("Дать поручение") }
+                }, enabled = !submitting && goal.isNotBlank() && (!vm.cloudReady || client != null || cloudConsent) &&
+                    (vm.deviceReady || vm.cloudReady || plan.isNotEmpty() && (AgentTool.MATCH !in plan || client != null))) { Text("Дать поручение") }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         }

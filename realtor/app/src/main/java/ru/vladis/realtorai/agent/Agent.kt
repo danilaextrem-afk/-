@@ -3,6 +3,7 @@ package ru.vladis.realtorai.agent
 import android.content.Context
 import com.google.gson.*
 import ru.vladis.realtorai.ai.DeviceModel
+import ru.vladis.realtorai.ai.CloudAi
 import ru.vladis.realtorai.publish.Listing
 import ru.vladis.realtorai.publish.SmartAi
 import ru.vladis.realtorai.data.TaskItem
@@ -139,7 +140,10 @@ class AgentQueue(private val context: Context) {
     suspend fun adaptive(goal: String, client: Long?) {
         require(goal.isNotBlank() && goal.length <= 500)
         require(DeviceModel.installed(context) || ru.vladis.realtorai.ai.CloudAi.enabled(context)) { "Подключите облачный ИИ или скачайте локальную модель" }
-        enqueue(dao.insert(AgentJob(goal = goal, plan = "adaptive", clientId = client)), false)
+        val useCloud = CloudAi.enabled(context) && client == null && !CloudAi.containsContact(goal) &&
+            !CloudAi.referencesClients(goal, WorkspaceDb.get(context).dao().allClients())
+        require(useCloud || DeviceModel.installed(context)) { "Для поручения с данными CRM нужна локальная модель" }
+        enqueue(dao.insert(AgentJob(goal = goal, plan = "adaptive", clientId = client)), useCloud)
     }
     suspend fun answer(job: AgentJob, reply: String) {
         require(reply.isNotBlank())
@@ -189,7 +193,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                     if (dao.checkpoint(job.id, AgentProtocol.save(progress), progress.steps.joinToString("\n\n"), "running") == 0) return Result.success()
                 }
                 val action = progress.pending.first()
-                val report = execute(action, db, job, progress.steps.size)
+                val report = execute(action, db, job, progress)
                 progress = progress.copy(pending = progress.pending.drop(1),
                     steps = progress.steps + (action.tool.label + "\n" + report.take(2200)), used = progress.used.orEmpty() + action)
                 if (dao.checkpoint(job.id, AgentProtocol.save(progress), progress.steps.joinToString("\n\n"), "running") == 0) return Result.success()
@@ -217,9 +221,8 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             require(it.action == null || it.action !in progress.used.orEmpty()) { "Модель повторила выполненный вызов" }
         }
         suspend fun plan(prompt: String, retry: Boolean = false): String {
-            if (ru.vladis.realtorai.ai.CloudAi.enabled(applicationContext) && job.clientId == null &&
-                !ru.vladis.realtorai.ai.CloudAi.containsContact(job.goal)) {
-                val safeBrief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(440)}. Выполненные инструменты: " +
+            if (mayUseCloud(job, job.goal)) {
+                val safeBrief = "Сегодня: ${LocalDate.now()}. Цель: ${job.goal.takeLast(900)}. Выполненные инструменты: " +
                     progress.used.orEmpty().joinToString(",") { it.tool.name } +
                     ". Результаты CRM не передаются. Не выдумывай их. Если нужен конкретный ID, уточни."
                 return ru.vladis.realtorai.ai.CloudAi.answer(applicationContext, system,
@@ -234,12 +237,18 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         }
     }
 
-    private suspend fun execute(action: AgentAction, db: AppDb, job: AgentJob, index: Int): String {
+    private suspend fun mayUseCloud(job: AgentJob, text: String): Boolean =
+        job.clientId == null && CloudAi.enabled(applicationContext) && !CloudAi.containsContact(text) &&
+            !CloudAi.referencesClients(text, db.dao().allClients())
+
+    private suspend fun execute(action: AgentAction, db: AppDb, job: AgentJob, progress: AgentProgress): String {
+        val index = progress.steps.size
         fun arg(name: String) = action.args.get(name)?.asString.orEmpty()
         fun number(name: String) = arg(name).takeIf(String::isNotBlank)?.toLong()
         val ctx = applicationContext
         return when (action.tool) {
-        AgentTool.FIND -> ListingSearch.run(ctx, db, job.goal, action.args)
+        AgentTool.FIND -> ListingSearch.run(ctx, db, job.goal, action.args,
+            refresh = progress.used.orEmpty().none { it.tool == AgentTool.FEEDS || it.tool == AgentTool.FIND })
         AgentTool.OWNER_REPORT -> OwnerService(ctx).draftReport(requireNotNull(number("property")) { "Нужен ID объекта" })
         AgentTool.LISTING -> db.withTransaction {
             val id = requireNotNull(number("property")) { "Нужен ID объекта" }
@@ -256,9 +265,8 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         AgentTool.DOCUMENT -> {
             val system = "Подготовь черновик документа по-русски. Используй только переданные факты."
             val brief = "${arg("title").take(80)}\n${job.goal.take(380)}"
-            if (job.clientId == null && ru.vladis.realtorai.ai.CloudAi.enabled(ctx) &&
-                !ru.vladis.realtorai.ai.CloudAi.containsContact(brief)) {
-                ru.vladis.realtorai.ai.CloudAi.answer(ctx, system, brief)
+            if (mayUseCloud(job, brief)) {
+                CloudAi.answer(ctx, system, brief)
             } else {
                 val localContext = db.agent().get(job.id)?.result.orEmpty().takeLast(600)
                 DeviceModel.answer(ctx, system, listOf("user" to "$brief\n$localContext"))
