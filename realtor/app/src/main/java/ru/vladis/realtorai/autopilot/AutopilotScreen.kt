@@ -130,17 +130,18 @@ class AutoVm(app: Application): AndroidViewModel(app) {
             }
         }
         item {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(Color(0xFF194D43),Color(0xFF202A3A)))).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                HorizontalDivider()
                 Row(verticalAlignment=Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(if(vm.active) "Автопилот включён" else "Автопилот выключен",fontWeight=FontWeight.Bold,color=Color.White,style=MaterialTheme.typography.titleLarge)
-                        Text("Источники: ${sources.size + vm.enabledCatalogs.size} · без API-ключей",color=Color(0xFFBBDAD2))
+                        Text(if(vm.active) "Автопилот включён" else "Автопилот выключен",fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onSurface,style=MaterialTheme.typography.titleLarge)
+                        Text("Источники: ${sources.size + vm.enabledCatalogs.size} · без API-ключей",color=Muted)
                     }
                     Switch(checked=vm.active,onCheckedChange={vm.toggle(it)})
                 }
-                Text(if (vm.busy) "Идёт обработка источников" else if (vm.active) "Фоновое обновление примерно каждые 6 часов" else "Запустите поиск вручную или включите фоновое обновление", color=Color.White)
-                TextButton({ editGeo = true }) { Text("География · " + geo.locations.joinToString(", ").ifBlank { "Москва и МО" }, color = Color(0xFFA5F1C8)) }
-                TextButton({ showCatalog = !showCatalog }) { Text(if (showCatalog) "Свернуть источники" else "Источники и район", color = Color(0xFFA5F1C8)) }
+                Text(if (vm.busy) "Идёт обработка источников" else if (vm.active) "Фоновое обновление примерно каждые 6 часов" else "Запустите поиск вручную или включите фоновое обновление", color=MaterialTheme.colorScheme.onSurface)
+                TextButton({ editGeo = true }) { Text("География · " + geo.locations.joinToString(", ").ifBlank { "Москва и МО" }, color = Lime) }
+                TextButton({ showCatalog = !showCatalog }) { Text(if (showCatalog) "Свернуть источники" else "Источники", color = Lime) }
                 if (showCatalog) vm.catalogs.forEach { name ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(name in vm.enabledCatalogs, { vm.toggleCatalog(name, it) })
@@ -152,13 +153,12 @@ class AutoVm(app: Application): AndroidViewModel(app) {
             }
         }
         item {
-            AppCard {
-                Text("Результат последнего запуска",fontWeight=FontWeight.Bold)
-                if(vm.lastRun>0) Text(fmtDate(vm.lastRun),color=Muted)
-                Text(vm.report)
-                if(vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                TextButton(openHunter) { Text("Управлять источниками") }
-            }
+            HorizontalDivider()
+            Text("Результат последнего запуска", Modifier.padding(top = 14.dp), style = MaterialTheme.typography.titleLarge)
+            if (vm.lastRun > 0) Text(fmtDate(vm.lastRun), color = Muted)
+            Text(vm.report)
+            if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            TextButton(openHunter, contentPadding = PaddingValues(horizontal = 0.dp)) { Text("Управлять источниками") }
         }
         item {
             AppCard {

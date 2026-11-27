@@ -62,6 +62,7 @@ object Groq {
             .put("model", model)
             .put("messages", messages)
             .put("stream", stream)
+            .apply { if (stream) put("stream_options", JSONObject().put("include_usage", true)) }
             .put("temperature", 0.4)
             .apply { if (model == PRIMARY) put("reasoning_effort", "low").put("include_reasoning", false) }
             .put("max_completion_tokens", 4096)

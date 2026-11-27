@@ -48,7 +48,7 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
     var week by remember { mutableStateOf(today.minusDays(today.dayOfWeek.value.toLong() - 1)) }
     val staged = when (filter) { "Предстоящие" -> tasks.filter { !it.done }; "Встречи" -> tasks.filter { it.kind == "meeting" && !it.done }; else -> tasks.filter { it.done } }
     val shown = staged.filter { selected == null || Instant.ofEpochMilli(it.dueAt).atZone(zone).toLocalDate() == selected }
-    val groups = shown.groupBy { headFmt.format(Date(it.dueAt)) }
+    val groups = shown.sortedBy { it.dueAt }.groupBy { headFmt.format(Date(it.dueAt)) }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
             ScreenHeading("Задачи и встречи", "Календарь риелтора") {
@@ -86,17 +86,29 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
             TextButton({ permission.launch(android.Manifest.permission.POST_NOTIFICATIONS) }) { Text("Включить напоминания") }
         }
         item { Chips(listOf("Предстоящие", "Встречи", "Выполнено"), filter) { filter = it } }
-        if (shown.isEmpty()) item { AppCard { Text(when (filter) { "Встречи" -> "Встречи пока не назначены"; "Выполнено" -> "Завершённые задачи появятся здесь"; else -> "Все задачи выполнены или ещё не запланированы" }, color = Muted) } }
+        if (shown.isEmpty()) item {
+            HorizontalDivider()
+            Text(when (filter) {
+                "Встречи" -> "Встречи пока не назначены"
+                "Выполнено" -> "Завершённые задачи появятся здесь"
+                else -> "Нет запланированных задач"
+            }, Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleLarge)
+            if (filter != "Выполнено") TextButton({ adding = true }, contentPadding = PaddingValues(0.dp)) { Text("Добавить запись") }
+        }
         groups.forEach { (day, list) ->
             item { Text(day.replaceFirstChar { it.uppercase() }, color = Lime, style = MaterialTheme.typography.titleSmall) }
             items(list.size) { i ->
                 val t = list[i]
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(timeFmt.format(Date(t.dueAt)), Modifier.width(48.dp),
+                            color = if (!t.done && t.dueAt < now) MaterialTheme.colorScheme.error else Lime,
+                            style = MaterialTheme.typography.labelMedium)
                         Checkbox(t.done, { vm.saveTask(t.copy(done = it)) })
                         Column(Modifier.weight(1f)) {
                             Text(t.title, textDecoration = if (t.done) TextDecoration.LineThrough else null)
-                            Text((if (t.kind == "meeting") "Встреча · " else "") + timeFmt.format(Date(t.dueAt)) + if (!t.done && t.dueAt < now) " · просрочено" else "", color = Muted)
+                            Text(if (!t.done && t.dueAt < now) "Просрочено" else if (t.kind == "meeting") "Встреча" else "Задача",
+                                color = Muted, style = MaterialTheme.typography.bodySmall)
                         }
                         IconButton({ vm.deleteTask(t) }) { Icon(Icons.Default.Delete, "Удалить", tint = Muted) }
                     }

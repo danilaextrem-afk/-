@@ -2,6 +2,9 @@ package ru.vladis.realtorai.owner
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -36,10 +40,12 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
     val publications by remember { db.publications().publications() }.collectAsState(emptyList())
     val listing = listings.firstOrNull { it.propertyId == id }
     val clip = LocalClipboardManager.current
+    val browser = LocalUriHandler.current
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var evidence by remember(case?.step) { mutableStateOf("") }
     var draft by remember { mutableStateOf("") }
+    var inspectedStep by remember { mutableStateOf<OwnerStep?>(null) }
     var price by remember { mutableStateOf("") }
     var approval by remember { mutableStateOf<Pair<Long, Long>?>(null) }
 
@@ -68,6 +74,11 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
         item {
             TextButton(back) { Text("Назад") }
             ScreenHeading("Сопровождение собственника", property?.title ?: "Карточка объекта")
+            property?.let { current ->
+                if (current.address.isNotBlank()) Text(current.address, Modifier.padding(top = 6.dp), color = Muted)
+                if (current.price > 0L) Text(current.price.rub(), Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.displaySmall)
+            }
         }
         if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         error?.let { issue -> item { Text(issue, color = MaterialTheme.colorScheme.error) } }
@@ -102,11 +113,13 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
                 }
             }
             item {
-                var show by remember { mutableStateOf(false) }
-                AppCard {
-                    TextButton({ show = !show }) { Text(if (show) "Свернуть этапы" else "Показать все этапы") }
-                    if (show) OwnerStep.entries.forEachIndexed { i, stage ->
-                        Text("${i + 1}. ${stage.title}", color = if (i <= step.ordinal) Lime else Muted)
+                Text("Этапы работы", style = MaterialTheme.typography.titleLarge)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OwnerStep.entries.forEach { stage ->
+                        FilterChip(selected = stage == step, onClick = { inspectedStep = stage },
+                            label = { Text(stage.title) }, leadingIcon = if (stage.ordinal < step.ordinal) {
+                                { Text("✓", color = Lime) }
+                            } else null)
                     }
                 }
             }
@@ -130,10 +143,28 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
                     Text("Сравнение цен", style = MaterialTheme.typography.titleLarge)
                     Text("Тот же район, тип жилья, рынок и число комнат. Площадь ±20%. Источники за 30 дней.", color = Muted)
                     if (prices.isEmpty()) Text("Укажите район и тип жилья. Для расчёта нужны минимум три аналога.", color = Muted)
-                    SelectionContainer {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            comparable.forEach {
-                                Text("${it.address} · ${it.area} м² · ${it.price.rub()} · ${(it.price / it.area).rub()}/м²\n${it.source} · ${fmtDate(it.lastSeen)}\n${it.url}", style = MaterialTheme.typography.bodySmall)
+                    if (comparable.isNotEmpty()) {
+                        Column {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                                Text("Объект", Modifier.weight(1.4f), color = Muted, style = MaterialTheme.typography.labelSmall)
+                                Text("Цена", Modifier.weight(1f), color = Muted, style = MaterialTheme.typography.labelSmall)
+                                Text("За м²", Modifier.weight(1f), color = Muted, style = MaterialTheme.typography.labelSmall)
+                            }
+                            comparable.forEach { item ->
+                                HorizontalDivider()
+                                Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp)) {
+                                    Text(item.address.ifBlank { item.title }, Modifier.weight(1.4f).padding(end = 6.dp),
+                                        style = MaterialTheme.typography.bodySmall)
+                                    Text(item.price.rub(), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                                    Text((item.price / item.area).rub(), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                                }
+                                if (item.url.startsWith("https://") || item.url.startsWith("http://")) {
+                                    TextButton({ runCatching { browser.openUri(item.url) } }, contentPadding = PaddingValues(0.dp)) {
+                                        Text("${item.source} · ${item.area} м²", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                } else {
+                                    Text("${item.source} · ${item.area} м²", color = Muted, style = MaterialTheme.typography.labelSmall)
+                                }
                             }
                         }
                     }
@@ -191,6 +222,18 @@ fun OwnerScreen(vm: MainVm, id: Long, openPublish: () -> Unit, back: () -> Unit)
                 }
             }
         }
+    }
+    inspectedStep?.let { inspected ->
+        AlertDialog(onDismissRequest = { inspectedStep = null }, title = { Text(inspected.title) },
+            text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(when {
+                    step == null || inspected.ordinal > step.ordinal -> "Предстоит"
+                    inspected == step -> "Текущий этап"
+                    else -> "Подтверждён"
+                }, color = Lime)
+                Spacer(Modifier.height(8.dp))
+                Text(inspected.checklist)
+            } }, confirmButton = { TextButton({ inspectedStep = null }) { Text("Готово") } })
     }
     approval?.let { (previous, proposed) ->
         AlertDialog(onDismissRequest = { approval = null }, title = { Text("Изменить цену в CRM?") },
