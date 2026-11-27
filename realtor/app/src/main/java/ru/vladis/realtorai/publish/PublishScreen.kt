@@ -190,7 +190,7 @@ private val statusText = mapOf("published" to "опубликовано (под�
     var kitchen by remember(id) { mutableStateOf(if (cur.kitchenArea > 0) cur.kitchenArea.toString() else "") }
     var reno by remember(id) { mutableStateOf(cur.renovation) }
     var extra by remember(id) { mutableStateOf(cur.extra) }
-    var phone by remember(id) { mutableStateOf(cur.phone) }
+    var phone by remember(id) { mutableStateOf(cur.phone.ifBlank { pvm.secrets.get("phone") }) }
     var market by remember(id) { mutableStateOf(if (cur.market == "primary") "Первичка" else "Вторичка") }
     var title by remember(cur.title) { mutableStateOf(cur.title) }
     var desc by remember(cur.description) { mutableStateOf(cur.description) }
@@ -198,7 +198,7 @@ private val statusText = mapOf("published" to "опубликовано (под�
     var soldDlg by remember { mutableStateOf(false) }; var delDlg by remember { mutableStateOf(false) }
     var approve by remember(id) { mutableStateOf(false) }
     var rights by remember(id) { mutableStateOf(false) }
-    var editDetails by remember(id) { mutableStateOf(Checks.blocking(cur).isNotEmpty()) }
+    var editDetails by remember(id) { mutableStateOf(Checks.blocking(cur.copy(phone = cur.phone.ifBlank { pvm.secrets.get("phone") })).isNotEmpty()) }
     fun draft() = cur.copy(address = address.trim(), price = price.toLongOrNull() ?: 0, area = area.replace(',', '.').toDoubleOrNull() ?: 0.0,
         rooms = rooms.toIntOrNull() ?: 0, floor = floor.toIntOrNull() ?: 0, floorsTotal = floors.toIntOrNull() ?: 0,
         kitchenArea = kitchen.replace(',', '.').toDoubleOrNull() ?: 0.0, renovation = reno.trim(), extra = extra.trim(), phone = phone.trim(),
@@ -216,10 +216,13 @@ private val statusText = mapOf("published" to "опубликовано (под�
                 if (property != null) Text("Подбор по CRM · ${matches.size} покупателей", color = Muted)
                 Text(if (cur.approvedAt == null) "Ожидается согласие собственника" else "Согласие зафиксировано", color = Muted)
                 Checks.blocking(draft()).takeIf { it.isNotEmpty() }?.let {
-                    Text("Для запуска нужны " + it.joinToString(", "), color = Muted)
+                    Text("Не хватает только: " + it.joinToString(", "), color = Muted)
                 }
-                Button({ rights = false; approve = true }, enabled = !pvm.busy, modifier = Modifier.fillMaxWidth()) {
-                    Text("Активировать и разместить")
+                Button({
+                    if (Checks.blocking(draft()).isNotEmpty()) editDetails = true
+                    else { rights = false; approve = true }
+                }, enabled = !pvm.busy, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (Checks.blocking(draft()).isEmpty()) "Активировать и разместить" else "Дополнить обязательные данные")
                 }
                 pvm.log?.let { Text(it, color = Muted) }
             }
