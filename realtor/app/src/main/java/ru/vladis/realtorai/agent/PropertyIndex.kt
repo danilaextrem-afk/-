@@ -19,13 +19,13 @@ internal data class IndexResult(val pages: List<IndexedListing>, val sources: Li
 
 internal object PropertyIndex {
     internal data class Site(val name: String, val domain: String, val path: Regex)
-    private val sites = listOf(
+    internal val sites = listOf(
         Site("Авито", "avito.ru", Regex("/[^/]+/kvartiry/[^/]+_[0-9]+/?")),
         Site("Циан", "cian.ru", Regex("/sale/flat/[0-9]+/?")),
         Site("Домклик", "domclick.ru", Regex("/card/sale/[0-9a-fA-F-]{36}/?")),
         Site("Яндекс Недвижимость", "realty.yandex.ru", Regex("/offer/[0-9]+/?")),
         Site("М2", "m2.ru", Regex("/[^/]+/nedvizhimost/[^/]+/(?:[0-9a-fA-F-]{36}|[^/]+_[0-9]{5,})/?")),
-        Site("ONREALT", "onrealt.ru", Regex("/[^/]+/kupit-kvartiru/[0-9]+/?|/[^/]+/kupit-kvartiru-[^/]+/[0-9]+/?")),
+        Site("ONREALT", "onrealt.ru", Regex("/[^/]+/k[uy]pit-kvartiru(?:-[^/]+)?/[0-9]+/?")),
         Site("Мир квартир", "mirkvartir.ru", Regex("/[0-9]{5,}/?")),
         Site("ГдеЭтотДом", "gdeetotdom.ru", Regex("/obj/living/(?:[^/]+/)?[0-9]+/?")),
         Site("Move.ru", "move.ru", Regex("/objects/prodaetsya_[^/]+_[0-9]+/?")),
@@ -105,7 +105,7 @@ internal object PropertyIndex {
 
 private object GeoListingText {
     private val apartment = Regex("квартир|студи|\\d[ -]*(?:комн|к\\.)", RegexOption.IGNORE_CASE)
-    private val rent = Regex("аренда|сда[её]тся|снять|посуточно", RegexOption.IGNORE_CASE)
+    private val rent = Regex("аренда|сда[её]тся|снять|посуточно|объявление (?:снято|закрыто)|в архиве", RegexOption.IGNORE_CASE)
     private val sale = Regex("прод|купить|₽|руб", RegexOption.IGNORE_CASE)
     fun isApartment(title: String, source: String): Boolean = !rent.containsMatchIn(title) && apartment.containsMatchIn(title) &&
         (source !in setOf("Telegram · публичные сообщения", "ВКонтакте · публичные записи") || sale.containsMatchIn(title))

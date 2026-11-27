@@ -336,7 +336,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                     catch (e: kotlinx.coroutines.CancellationException) { throw e }
                     catch (e: Exception) { null }
                 } else null
-                val search = routed ?: offlineSearch
+                val search = offlineSearch?.takeIf { it.kind == "refine" && it.query == searchConversation.current } ?: routed ?: offlineSearch
                 if (search?.kind == "remember") {
                     saveSearchConversation(searchConversation.copy(preferences = search.query))
                     chat.add("assistant" to "Сохранил предпочтения для следующих поисков.")

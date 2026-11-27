@@ -91,51 +91,54 @@ internal object ListingSearch {
         ctx: Context, db: AppDb, query: ListingQuery, refresh: Boolean, seen: Set<String> = emptySet(), indexPage: Int = 0
     ): ListingReply {
         return kotlinx.coroutines.coroutineScope {
-        val web = if (refresh) async { PropertyIndex.search(ctx, query, indexPage, seen) } else null
-        val update = if (refresh) HuntRun.refreshAll(ctx, includeCatalog = false) else null
-        val geography = GeoPreferences.read(ctx)
-        val offers = db.hunter().allOffers()
-        fun identity(offer: Offer): String? = ListingOrigin.original(offer)?.identity
-        val previouslyShown = offers.filter { identity(it) in seen || "record:${it.id}" in seen }
-        val order = compareByDescending<Offer> { ListingOrigin.ownerApartment(it) }
-        val ranked = if (query.cheapestFirst) order.thenBy { it.price }.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }
-            else order.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }.thenBy { it.price }
-        val candidates = offers.asSequence().filter {
-            query.matches(it) && geography.matches(it) && identity(it) != null &&
-                !it.source.startsWith("Торги.Открыто") &&
-                GeoScope.normalize(it.housingKind.orEmpty()) in setOf("", "квартира", "квартиры", "flat", "apartment")
-        }.sortedWith(ranked)
-        val selected = mutableListOf<Offer>()
-        for (offer in candidates) {
-            val key = identity(offer)
-            if (key in seen || "record:${offer.id}" in seen) continue
-            if (previouslyShown.any { Dedup.same(it, offer) }) continue
-            if (selected.none { identity(it) == key || Dedup.same(it, offer) }) selected += offer
-            if (selected.size >= 8) break
-        }
-        val answer = when {
-            selected.isNotEmpty() -> selected.joinToString("\n\n") {
-                val original = requireNotNull(ListingOrigin.original(it))
-                "${it.title} · ${it.price.rub()} · ${it.address} · ${it.source} · ID ${original.id}\n${original.url}"
+            val web = if (refresh) async { PropertyIndex.search(ctx, query, indexPage, seen) } else null
+            val update = if (refresh) HuntRun.refreshAll(ctx, includeCatalog = false) else null
+            val geography = GeoPreferences.read(ctx)
+            val offers = db.hunter().allOffers()
+            fun identity(offer: Offer): String? = ListingOrigin.original(offer)?.identity
+            val previouslyShown = offers.filter { identity(it) in seen || "record:${it.id}" in seen }
+            val order = compareByDescending<Offer> { ListingOrigin.ownerApartment(it) }
+            val ranked = if (query.cheapestFirst) order.thenBy { it.price }.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }
+                else order.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }.thenBy { it.price }
+            val candidates = offers.asSequence().filter {
+                query.matches(it) && geography.matches(it) && identity(it) != null &&
+                    !it.source.startsWith("Торги.Открыто") &&
+                    GeoScope.normalize(it.housingKind.orEmpty()) in setOf("", "квартира", "квартиры", "flat", "apartment")
+            }.sortedWith(ranked)
+            val selected = mutableListOf<Offer>()
+            for (offer in candidates) {
+                val key = identity(offer)
+                if (key in seen || "record:${offer.id}" in seen) continue
+                if (previouslyShown.any { Dedup.same(it, offer) }) continue
+                if (selected.none { identity(it) == key || Dedup.same(it, offer) }) selected += offer
+                if (selected.size >= 8) break
             }
-            seen.isNotEmpty() -> "В подключённых источниках больше нет новых квартир по этим условиям."
-            db.hunter().allSubs().isEmpty() && offers.none { ListingOrigin.original(it) != null && !it.source.startsWith("Торги.Открыто") } ->
-                "Подключите разрешённый фид квартир Москвы и области в разделе «Поиск → Данные» или импортируйте файл объявлений."
-            else -> "В подключённых источниках нет квартир с прямой ссылкой по этим условиям."
-        }
-        val report = if (update != null && update.errors.isNotEmpty()) {
-            answer + "\n\nЧасть источников не ответила: " + update.errors.take(3).joinToString(" · ")
-        } else answer
-        val index = web?.await()
-        val originals = selected.mapNotNull { ListingOrigin.original(it)?.url }.toSet()
-        val links = index?.pages.orEmpty().filterNot { it.url in originals }
-        val feedStatus = db.hunter().allSubs().map { feed ->
-            SearchSourceStatus(feed.name, offers.count { it.source == "feed:${feed.name}" && query.matches(it) && geography.matches(it) },
-                feed.lastStatus.ifBlank { "Ещё не обновлялся" })
-        }
-        ListingReply(if (selected.isEmpty() && links.isNotEmpty()) "Найдены ссылки в поисковом индексе. Условия и наличие проверьте на площадках." else report,
-            selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}", ListingOrigin.original(it)?.url) } + links.map { "index:${it.url}" },
-            selected.minOfOrNull { it.price }, links, feedStatus + index?.sources.orEmpty())
+            val answer = when {
+                selected.isNotEmpty() -> selected.joinToString("\n\n") {
+                    val original = requireNotNull(ListingOrigin.original(it))
+                    "${it.title} · ${it.price.rub()} · ${it.address} · ${it.source} · ID ${original.id}\n${original.url}"
+                }
+                seen.isNotEmpty() -> "В подключённых источниках больше нет новых квартир по этим условиям."
+                db.hunter().allSubs().isEmpty() && offers.none { ListingOrigin.original(it) != null && !it.source.startsWith("Торги.Открыто") } ->
+                    "Подключите веб-индекс в настройках или разрешённый фид квартир в разделе «Поиск → Данные»."
+                else -> "В подключённых источниках нет квартир с прямой ссылкой по этим условиям."
+            }
+            val report = if (update != null && update.errors.isNotEmpty()) {
+                answer + "\n\nЧасть источников не ответила: " + update.errors.take(3).joinToString(" · ")
+            } else answer
+            val index = web?.await()
+            val originals = selected.mapNotNull { ListingOrigin.original(it)?.url }.toSet()
+            val verifiedIds = selected.mapNotNull { identity(it) }.toSet()
+            val links = index?.pages.orEmpty().filterNot {
+                it.url in originals || ListingOrigin.original(Offer(source = it.source, url = it.url))?.identity in verifiedIds
+            }
+            val feedStatus = db.hunter().allSubs().map { feed ->
+                SearchSourceStatus(feed.name, offers.count { it.source == "feed:${feed.name}" && query.matches(it) && geography.matches(it) },
+                    feed.lastStatus.ifBlank { "Ещё не обновлялся" })
+            }
+            ListingReply(if (selected.isEmpty() && links.isNotEmpty()) "Найдены ссылки в поисковом индексе. Условия и наличие проверьте на площадках." else report,
+                selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}", ListingOrigin.original(it)?.url) } + links.map { "index:${it.url}" },
+                selected.minOfOrNull { it.price }, links, feedStatus + index?.sources.orEmpty())
         }
     }
 }

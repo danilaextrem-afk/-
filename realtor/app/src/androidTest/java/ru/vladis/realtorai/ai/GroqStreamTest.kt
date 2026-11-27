@@ -53,4 +53,13 @@ class GroqStreamTest {
         .header("x-ratelimit-remaining-tokens", "150")
         .header("x-ratelimit-remaining-requests", "12")
         .body(body.toResponseBody()).build()
+    @Test fun searchUsesOnlyRecognizedToolArguments() {
+        val data = org.json.JSONObject().put("tool_calls", org.json.JSONArray().put(
+            org.json.JSONObject().put("type", "function").put("function",
+                org.json.JSONObject().put("name", "search_apartments")
+                    .put("arguments", """{"kind":"search","criteria":{"rooms":2}}"""))))
+        assertTrue(Groq.searchArguments(data).contains("rooms"))
+        val ordinary = org.json.JSONObject().put("content", "Выдуманное объявление")
+        assertTrue(Groq.searchArguments(ordinary).contains("chat"))
+    }
 }
