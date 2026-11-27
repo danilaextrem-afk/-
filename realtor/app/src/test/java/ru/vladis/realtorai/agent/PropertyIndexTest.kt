@@ -31,4 +31,13 @@ class PropertyIndexTest {
         assertNull(PropertyIndex.burstRetrySeconds("0,0", "1,998232", null))
         assertNull(PropertyIndex.burstRetrySeconds("0,50", "1,998232", "120"))
     }
+
+    @Test fun indexedPublicPostCanOpenTheSameSaleReviewAsTheSharedLink() {
+        val telegram = PropertyIndex.sites.single { it.domain == "t.me" }
+        val indexed = requireNotNull(PropertyIndex.canonical(telegram, "https://t.me/s/building_news/47"))
+        val shared = ru.vladis.realtorai.publish.SaleIntake.sharedLink("https://t.me/building_news/47")
+        assertEquals(shared?.identity, ru.vladis.realtorai.publish.SaleIntake.sharedLink(indexed)?.identity)
+        assertNotNull(shared)
+        assertNull(ru.vladis.realtorai.publish.SaleIntake.sharedLink("https://www.cian.ru/rent/flat/336656970/"))
+    }
 }

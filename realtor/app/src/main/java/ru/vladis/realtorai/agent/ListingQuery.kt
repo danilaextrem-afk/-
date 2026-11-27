@@ -24,10 +24,22 @@ internal data class ListingQuery(
             offer.area >= minArea && (rooms == null || offer.rooms == rooms) &&
             (market == null || offer.market == market) && (seller == null || offer.seller == seller) &&
             (!insideMkad || GeoScope.point(offer.lat, offer.lon)?.let(GeoScope::insideMkad) == true) &&
-            (metroWalk == null || offer.metroWalkMinutes?.let { it <= metroWalk } == true) &&
+            (metroWalk == null || walkMinutes(offer)?.let { it <= metroWalk } == true) &&
             GeoScope.within(place, offer) &&
             GeoScope.addressMatches(offer.address, address) &&
             (station.isBlank() || ru.vladis.realtorai.hunter.GeoQuery(stations = listOf(station)).matches(offer))
+    }
+
+    private fun walkMinutes(offer: Offer): Int? {
+        if (station.isBlank()) return offer.metroWalkMinutes
+        val name = GeoScope.normalize(station)
+        val raw = offer.metroWalkByStation
+        if (raw.isNullOrBlank()) return offer.metroWalkMinutes.takeIf {
+            offer.transit.orEmpty().split(';').map(GeoScope::normalize).filter(String::isNotBlank).distinct() == listOf(name)
+        }
+        return raw.split('|').firstNotNullOfOrNull { entry ->
+            entry.substringAfter('=', "").toIntOrNull()?.takeIf { it in 1..120 && entry.substringBefore('=') == name }
+        }
     }
 
     companion object {

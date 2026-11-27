@@ -56,7 +56,8 @@ internal object PropertyIndex {
     internal fun canonical(site: Site, raw: String): String? {
         val url = ListingOrigin.webUrl(raw) ?: return null
         if (url.host != site.domain && !url.host.endsWith(".${site.domain}")) return null
-        if (!site.path.matches(url.encodedPath)) return null
+        if (!site.path.matches(url.encodedPath) ||
+            ListingOrigin.original(Offer(source = site.name, url = raw)) == null) return null
         return url.newBuilder().host(url.host.removePrefix("www.")).query(null).fragment(null).build().toString()
     }
 
@@ -125,7 +126,9 @@ internal object PropertyIndex {
         }.awaitAll()
         val unseen = results.map { (links, _) -> links.filter { "index:${it.url}" !in seen && it.url !in seen &&
             ListingOrigin.original(Offer(source = it.source, url = it.url))?.identity !in seen } }
-        val fresh = roundRobin(unseen).distinctBy { it.url }
+        val fresh = roundRobin(unseen).distinctBy {
+            ListingOrigin.original(Offer(source = it.source, url = it.url))?.identity ?: it.url
+        }
         IndexResult(fresh.take(24), results.map { it.second })
     }
 

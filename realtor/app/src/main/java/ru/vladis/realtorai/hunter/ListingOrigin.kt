@@ -11,6 +11,10 @@ object ListingOrigin {
     private val slugId = Regex("(?:.*_)?([0-9]{5,})")
     private val lotId = Regex("[A-Za-z0-9_-]{4,100}")
     private val uuid = Regex("[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")
+    private val onrealtSale = Regex("k[uy]pit-kvartiru(?:-[^/]+)?")
+    private val irrSale = Regex(".+-advert([0-9]+)[.]html")
+    private val telegramChannel = Regex("[A-Za-z][A-Za-z0-9_]{3,}")
+    private val vkPost = Regex("wall-?[0-9]+_[0-9]+")
     private val phone = Regex("\\+?[0-9() .-]{10,24}")
 
     fun webUrl(raw: String): HttpUrl? = raw.trim().takeIf { it.length in 9..4096 }
@@ -32,10 +36,25 @@ object ListingOrigin {
             hostIs("realty.yandex.ru") -> last.takeIf { path.size == 2 && path[0] == "offer" && it.matches(numeric) }
             hostIs("move.ru") -> slugId.matchEntire(last)?.groupValues?.get(1)?.takeIf { path.size == 2 && path[0] == "objects" }
             hostIs("mirkvartir.ru") -> last.takeIf { path.size == 1 && it.matches(numeric) }
+            hostIs("m2.ru") -> last.takeIf { path.size == 4 && path[1] == "nedvizhimost" && it.matches(uuid) }
+                ?: slugId.matchEntire(last)?.groupValues?.get(1)?.takeIf { path.size == 4 && path[1] == "nedvizhimost" }
+            hostIs("onrealt.ru") -> last.takeIf { path.size == 3 && path[1].matches(onrealtSale) && it.matches(numeric) }
+            hostIs("gdeetotdom.ru") -> last.takeIf { path.size in 3..4 && path[0] == "obj" && path[1] == "living" && it.matches(numeric) }
+            hostIs("irr.ru") -> irrSale.matchEntire(last)?.groupValues?.get(1)?.takeIf {
+                path.size >= 3 && path[0] == "real-estate" && path[1] == "apartments-sale"
+            }
+            hostIs("pik.ru") -> last.takeIf { path.size == 2 && path[0] == "flat" && it.matches(numeric) }
+            host == "t.me" -> path.drop(if (path.firstOrNull() == "s") 1 else 0).let { pair ->
+                if (pair.size == 2 && pair[0].matches(telegramChannel) && pair[1].all(Char::isDigit))
+                    "${pair[0].lowercase(java.util.Locale.ROOT)}/${pair[1]}"
+                else null
+            }
+            hostIs("vk.com") -> last.takeIf { path.size == 1 && it.matches(vkPost) }
             hostIs("torgiopen.ru") -> last.takeIf { path.size == 2 && path[0] == "lot" && it.matches(lotId) }
             else -> offer.externalId.trim().takeIf { it.matches(lotId) && path.size >= 2 && last == it && path[path.lastIndex - 1] in setOf("listing", "listings", "offer", "offers", "property", "properties", "object", "objects") }
         } ?: return null
-        val provider = listOf("cian.ru", "avito.ru", "domclick.ru", "realty.yandex.ru", "move.ru", "mirkvartir.ru", "torgiopen.ru")
+        val provider = listOf("cian.ru", "avito.ru", "domclick.ru", "realty.yandex.ru", "move.ru", "mirkvartir.ru", "m2.ru",
+            "onrealt.ru", "gdeetotdom.ru", "irr.ru", "pik.ru", "vk.com", "torgiopen.ru")
             .firstOrNull(::hostIs) ?: host.removePrefix("www.")
         return Original(url.newBuilder().query(null).fragment(null).build().toString(), id, "$provider:$id")
     }

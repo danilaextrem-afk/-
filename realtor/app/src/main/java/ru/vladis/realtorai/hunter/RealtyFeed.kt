@@ -13,7 +13,7 @@ internal object RealtyFeed {
         val path = mutableListOf<String>()
         val images = mutableListOf<String>()
         val phones = mutableListOf<String>()
-        val metroWalkTimes = mutableListOf<Int>()
+        val metroWalkTimes = mutableMapOf<String, Int>()
         val stations = mutableListOf<String>()
         var fields = mutableMapOf<String, String>()
         while (p.eventType != XmlPullParser.END_DOCUMENT) {
@@ -35,11 +35,20 @@ internal object RealtyFeed {
                 }
                 XmlPullParser.END_TAG -> {
                     val field = path.drop(2).joinToString("/")
-                    if (field in setOf("location/metro/name","location/railway-station/name","location/mck/name","location/mcd/name")) {
+                    if (field in setOf("location/railway-station/name","location/mck/name","location/mcd/name")) {
                         fields.remove(field)?.takeIf { it.isNotBlank() }?.let(stations::add)
                     }
-                    if (field == "location/metro/time-on-foot")
-                        fields.remove(field)?.trim()?.toIntOrNull()?.takeIf { it in 1..120 }?.let(metroWalkTimes::add)
+                    if (field == "location/metro") {
+                        val name = fields.remove("location/metro/name").orEmpty().trim()
+                        val minutes = fields.remove("location/metro/time-on-foot")?.trim()?.toIntOrNull()
+                        if (name.isNotBlank()) {
+                            stations += name
+                            if (minutes != null && minutes in 1..120) {
+                                val key = GeoScope.normalize(name).replace("|", "").replace("=", "")
+                                metroWalkTimes[key] = minOf(minutes, metroWalkTimes[key] ?: minutes)
+                            }
+                        }
+                    }
                     if (field == "image") fields.remove(field)?.takeIf(String::isNotBlank)?.let(images::add)
                     if (field == "sales-agent/phone") fields.remove(field)?.let(phones::add)
                     if (path.size == 2 && p.name == "offer") {
@@ -55,7 +64,8 @@ internal object RealtyFeed {
                                 "region" to value("location/region"), "locality" to value("location/locality-name"),
                                 "lat" to value("location/latitude"), "lon" to value("location/longitude"),
                                 "transit" to stations.distinct().joinToString(";"), "seller" to value("sales-agent/category"),
-                                "metro_walk_minutes" to metroWalkTimes.minOrNull()?.toString().orEmpty(),
+                                "metro_walk_minutes" to metroWalkTimes.values.minOrNull()?.toString().orEmpty(),
+                                "metro_walk_by_station" to metroWalkTimes.entries.joinToString("|") { "${it.key}=${it.value}" },
                                 "photos" to images.joinToString("\n"), "description" to value("description"),
                                 "updated_at" to value("last-update-date"), "owner_name" to value("sales-agent/name"),
                                 "owner_phone" to phones.firstNotNullOfOrNull(ListingOrigin::dialable).orEmpty(),

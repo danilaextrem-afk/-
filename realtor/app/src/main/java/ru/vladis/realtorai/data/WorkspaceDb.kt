@@ -83,6 +83,7 @@ object WorkspaceDb {
     private val transitEvidence = object : androidx.room.migration.Migration(10, 11) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE Offer ADD COLUMN metroWalkMinutes INTEGER")
+            db.execSQL("ALTER TABLE Offer ADD COLUMN metroWalkByStation TEXT")
             db.execSQL("ALTER TABLE Property ADD COLUMN ownerContactBlocked INTEGER NOT NULL DEFAULT 0")
             db.execSQL("ALTER TABLE Client ADD COLUMN doNotContact INTEGER NOT NULL DEFAULT 0")
         }

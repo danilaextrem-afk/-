@@ -19,7 +19,7 @@ data class Offer(
     val fingerprint: String = "", val favorite: Boolean = false, val active: Boolean = true,
     val region: String? = null, val locality: String? = null, val transit: String? = null,
     val seller: String? = null, val expiresAt: Long? = null,
-    val metroWalkMinutes: Int? = null,
+    val metroWalkMinutes: Int? = null, val metroWalkByStation: String? = null,
     val photoUrls: String? = null, val sourceDescription: String? = null,
     val sourceUpdatedAt: Long? = null, val contactName: String? = null, val contactPhone: String? = null,
     val firstSeen: Long = System.currentTimeMillis(), val lastSeen: Long = System.currentTimeMillis())
