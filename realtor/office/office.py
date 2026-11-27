@@ -15,7 +15,14 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 ROLES = {"admin", "manager", "agent"}
-KINDS = {"properties", "buyers"}
+PRIVATE_KINDS = {"buyers", "deals"}
+KINDS = PRIVATE_KINDS | {"properties"}
+DEAL_NEXT = {
+    "qualification": "showing",
+    "showing": "deposit",
+    "deposit": "closed",
+}
+DEAL_TERMINAL = {"closed", "cancelled"}
 SLUG = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,79}")
 TOKEN = re.compile(r"[A-Za-z0-9_-]{43}")
 PAGE_SIZE = 100
@@ -87,6 +94,9 @@ class Office:
                     body TEXT NOT NULL, revision INTEGER NOT NULL, updated_at INTEGER NOT NULL,
                     deleted INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(kind, id));
                 CREATE INDEX IF NOT EXISTS employee_records ON record(kind, assigned_to, id);
+                CREATE INDEX IF NOT EXISTS deal_links ON record(
+                    json_extract(body, '$.buyer_id'), json_extract(body, '$.property_id'))
+                    WHERE kind='deals';
                 CREATE TABLE IF NOT EXISTS audit(
                     seq INTEGER PRIMARY KEY, at INTEGER NOT NULL, actor TEXT NOT NULL,
                     action TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL);
@@ -157,24 +167,70 @@ class Office:
         return row
 
     @staticmethod
-    def serialize(row):
-        return {"id": row["id"], "assigned_to": row["assigned_to"], "revision": row["revision"],
-                "updated_at": row["updated_at"], "data": json.loads(row["body"])}
+    def record(db, kind, identifier):
+        return db.execute("SELECT * FROM record WHERE kind=? AND id=?", (kind, identifier)).fetchone()
+
+    @staticmethod
+    def visible(row, actor, kind):
+        return row and not row["deleted"] and (
+            kind not in PRIVATE_KINDS or actor["role"] != "agent" or row["assigned_to"] == actor["id"])
+
+    def serialize(self, db, row):
+        data = json.loads(row["body"])
+        result = {"id": row["id"], "assigned_to": row["assigned_to"], "revision": row["revision"],
+                  "updated_at": row["updated_at"], "data": data}
+        if row["kind"] == "deals":
+            property_row = self.record(db, "properties", data["property_id"])
+            buyer = self.record(db, "buyers", data["buyer_id"])
+            result["property_title"] = json.loads(property_row["body"])["title"]
+            result["buyer_name"] = json.loads(buyer["body"])["name"]
+        return result
+
+    def deal(self, db, actor, row, payload):
+        if set(payload) != {"property_id", "buyer_id", "stage", "amount", "commission"}:
+            raise Problem(400, "invalid_fields")
+        property_id, buyer_id = payload["property_id"], payload["buyer_id"]
+        if any(not isinstance(key, str) or not SLUG.fullmatch(key) for key in (property_id, buyer_id)):
+            raise Problem(400, "invalid_fields")
+        stage, amount, commission = payload["stage"], payload["amount"], payload["commission"]
+        if (not isinstance(stage, str) or stage not in DEAL_NEXT.keys() | DEAL_TERMINAL or
+                type(amount) is not int or type(commission) is not int or not 0 <= commission <= amount <= 10**12):
+            raise Problem(400, "invalid_fields")
+        if stage == "closed" and amount <= 0 or stage != "closed" and (amount or commission):
+            raise Problem(400, "invalid_amount")
+        if row:
+            old = json.loads(row["body"])
+            if (property_id, buyer_id) != (old["property_id"], old["buyer_id"]):
+                raise Problem(409, "immutable_links")
+            if old["stage"] not in DEAL_NEXT or stage not in (DEAL_NEXT[old["stage"]], "cancelled"):
+                raise Problem(409, "invalid_stage")
+            return row["assigned_to"]
+        if stage != "qualification":
+            raise Problem(409, "invalid_stage")
+        buyer = self.record(db, "buyers", buyer_id)
+        if not self.visible(self.record(db, "properties", property_id), actor, "properties") or not self.visible(buyer, actor, "buyers"):
+            raise Problem(404, "deal_links_missing")
+        if db.execute("""SELECT 1 FROM record WHERE kind='deals'
+                         AND json_extract(body, '$.buyer_id')=? AND json_extract(body, '$.property_id')=?
+                         AND json_extract(body, '$.stage') NOT IN ('closed', 'cancelled')""",
+                      (buyer_id, property_id)).fetchone():
+            raise Problem(409, "duplicate_deal")
+        return buyer["assigned_to"]
 
     def list_records(self, db, actor, kind, cursor):
-        if kind == "buyers" and actor["role"] == "agent":
+        if kind in PRIVATE_KINDS and actor["role"] == "agent":
             rows = db.execute("SELECT * FROM record WHERE kind=? AND assigned_to=? AND deleted=0 AND id>? ORDER BY id LIMIT ?",
                               (kind, actor["id"], cursor, PAGE_SIZE + 1)).fetchall()
         else:
             rows = db.execute("SELECT * FROM record WHERE kind=? AND deleted=0 AND id>? ORDER BY id LIMIT ?",
                               (kind, cursor, PAGE_SIZE + 1)).fetchall()
-        return {"items": [self.serialize(row) for row in rows[:PAGE_SIZE]],
+        return {"items": [self.serialize(db, row) for row in rows[:PAGE_SIZE]],
                 "next": rows[PAGE_SIZE - 1]["id"] if len(rows) > PAGE_SIZE else ""}
 
     def mutate(self, db, actor, kind, identifier, method, payload, precondition):
-        row = db.execute("SELECT * FROM record WHERE kind=? AND id=?", (kind, identifier)).fetchone()
+        row = self.record(db, kind, identifier)
         if row and row["assigned_to"] != actor["id"] and actor["role"] == "agent":
-            raise Problem(404 if kind == "buyers" else 403, "inaccessible")
+            raise Problem(404 if kind in PRIVATE_KINDS else 403, "inaccessible")
         if row and not row["deleted"]:
             if precondition != f'"{row["revision"]}"':
                 raise Problem(412, "revision_mismatch")
@@ -182,7 +238,12 @@ class Office:
             raise Problem(404, "not_found")
         elif precondition != "*":
             raise Problem(412, "create_precondition")
+        if kind == "deals" and method != "PUT":
+            raise Problem(405, "deal_history_retained")
         if method == "DELETE":
+            link = "$.buyer_id" if kind == "buyers" else "$.property_id"
+            if db.execute("SELECT 1 FROM record WHERE kind='deals' AND json_extract(body, ?)=?", (link, identifier)).fetchone():
+                raise Problem(409, "record_linked_to_deal")
             db.execute("UPDATE record SET deleted=1, body='{}', revision=revision+1, updated_at=? WHERE kind=? AND id=?",
                        (int(time.time()), kind, identifier))
             self.audit(db, actor["id"], "delete", kind, identifier)
@@ -196,6 +257,15 @@ class Office:
             ).fetchone():
                 raise Problem(400, "invalid_assignee")
             body = row["body"]
+            if kind == "buyers" and assignee != row["assigned_to"]:
+                affected = db.execute("""UPDATE record SET assigned_to=?, revision=revision+1, updated_at=?
+                    WHERE kind='deals' AND json_extract(body, '$.buyer_id')=? RETURNING id""",
+                    (assignee, int(time.time()), identifier)).fetchall()
+                for deal in affected:
+                    self.audit(db, actor["id"], "assign", "deals", deal["id"])
+        elif kind == "deals":
+            assignee = self.deal(db, actor, row, payload)
+            body = json.dumps(payload)
         else:
             assignee = row["assigned_to"] if row else actor["id"]
             body = json.dumps(normalize(kind, payload), ensure_ascii=False)
@@ -207,7 +277,7 @@ class Office:
                    revision=excluded.revision, updated_at=excluded.updated_at""",
                    (kind, identifier, assignee, body, revision, now))
         self.audit(db, actor["id"], "assign" if method == "PATCH" else "save", kind, identifier)
-        return self.serialize(db.execute("SELECT * FROM record WHERE kind=? AND id=?", (kind, identifier)).fetchone())
+        return self.serialize(db, self.record(db, kind, identifier))
 
 
 def handler(office):
@@ -238,8 +308,7 @@ def handler(office):
             # Read the bounded request before acquiring the SQLite write lock.
             payload = wire_mutation(self) if method in {"PUT", "PATCH"} else None
             with closing(office.connect()) as db, db:
-                if method != "GET":
-                    db.execute("BEGIN IMMEDIATE")
+                db.execute("BEGIN" if method == "GET" else "BEGIN IMMEDIATE")
                 actor = office.actor(db, self.headers.get("Authorization", ""))
                 if method == "GET" and parts == ["v1", "me"]:
                     return dict(actor)
@@ -260,10 +329,10 @@ def handler(office):
                     raise Problem(404, "not_found")
                 identifier = parts[2]
                 if method == "GET":
-                    row = db.execute("SELECT * FROM record WHERE kind=? AND id=?", (kind, identifier)).fetchone()
-                    if not row or row["deleted"] or (kind == "buyers" and actor["role"] == "agent" and row["assigned_to"] != actor["id"]):
+                    row = office.record(db, kind, identifier)
+                    if not office.visible(row, actor, kind):
                         raise Problem(404, "not_found")
-                    return office.serialize(row)
+                    return office.serialize(db, row)
                 match = self.headers.get("If-Match", "")
                 if method == "PUT" and self.headers.get("If-None-Match") == "*" and not match:
                     match = "*"

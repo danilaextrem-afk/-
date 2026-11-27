@@ -90,6 +90,53 @@ class OfficeTest(unittest.TestCase):
         self.assertEqual(3, self.create("properties", PROPERTY)[1]["revision"])
         self.assertEqual(412, self.request("PUT", route, self.one, PROPERTY, **{"If-Match": '"1"'})[0])
 
+    def test_deal_visibility_follows_buyer_and_rejects_stale_writes(self):
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        self.assertEqual(200, self.create("buyers", BUYER)[0])
+        deal = dict(property_id="entry", buyer_id="entry", stage="qualification", amount=0, commission=0)
+        create = {"If-None-Match": "*"}
+        rev1 = {"If-Match": '"1"'}
+        route = "/v1/deals/entry"
+        self.assertEqual(404, self.request("PUT", route, self.two, deal, **create)[0])
+        status, result = self.request("PUT", route, self.manager, deal, **create)
+        self.assertEqual((200, "one", BUYER["name"], PROPERTY["title"]),
+                         (status, result["assigned_to"], result["buyer_name"], result["property_title"]))
+        self.assertEqual(409, self.request("PUT", "/v1/deals/another", self.one, deal, **create)[0])
+        self.assertEqual([], self.request("GET", "/v1/deals", self.two)[1]["items"])
+        self.assertEqual(404, self.request("GET", route, self.two)[0])
+        self.assertEqual(200, self.request("PATCH", "/v1/buyers/entry", self.manager, {"assigned_to": "two"}, **rev1)[0])
+        self.assertEqual(404, self.request("GET", route, self.one)[0])
+        result = self.request("GET", "/v1/deals", self.two)[1]["items"][0]
+        self.assertEqual(("two", 2), (result["assigned_to"], result["revision"]))
+        showing = dict(deal, stage="showing")
+        self.assertEqual(404, self.request("PUT", route, self.one, showing, **rev1)[0])
+        self.assertEqual(412, self.request("PUT", route, self.two, showing, **rev1)[0])
+        self.assertEqual(200, self.request("PUT", route, self.two, showing, **{"If-Match": '"2"'})[0])
+        with closing(self.office.connect()) as db:
+            self.assertEqual(["save", "assign", "save"], [r[0] for r in db.execute(
+                "SELECT action FROM audit WHERE kind='deals' ORDER BY seq")])
+
+    def test_deal_lifecycle_validates_price_and_retains_history(self):
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        self.assertEqual(200, self.create("buyers", BUYER)[0])
+        deal = dict(property_id="entry", buyer_id="entry", stage="qualification", amount=0, commission=0)
+        create = {"If-None-Match": "*"}
+        route = "/v1/deals/entry"
+        self.assertEqual(409, self.request("PUT", route, self.one, dict(deal, stage="deposit"), **create)[0])
+        self.assertEqual(200, self.request("PUT", route, self.one, deal, **create)[0])
+        self.assertEqual(409, self.request("DELETE", "/v1/properties/entry", self.one, **{"If-Match": '"1"'})[0])
+        self.assertEqual(409, self.request("DELETE", "/v1/buyers/entry", self.one, **{"If-Match": '"1"'})[0])
+        self.assertEqual(409, self.request("PUT", route, self.one, dict(deal, stage="deposit"), **{"If-Match": '"1"'})[0])
+        self.assertEqual(409, self.request("PUT", route, self.one, dict(deal, stage="showing", buyer_id="another"), **{"If-Match": '"1"'})[0])
+        for revision, stage in enumerate(("showing", "deposit"), start=1):
+            self.assertEqual(200, self.request("PUT", route, self.one, dict(deal, stage=stage), **{"If-Match": f'"{revision}"'})[0])
+        closed = dict(deal, stage="closed", amount=14_500_000, commission=250_000)
+        self.assertEqual(400, self.request("PUT", route, self.one, dict(closed, amount=200_000), **{"If-Match": '"3"'})[0])
+        self.assertEqual(400, self.request("PUT", route, self.one, dict(closed, amount=0, commission=0), **{"If-Match": '"3"'})[0])
+        self.assertEqual(closed, self.request("PUT", route, self.one, closed, **{"If-Match": '"3"'})[1]["data"])
+        self.assertEqual(409, self.request("PUT", route, self.one, dict(deal, stage="cancelled"), **{"If-Match": '"4"'})[0])
+        self.assertEqual(405, self.request("DELETE", route, self.manager, **{"If-Match": '"4"'})[0])
+
     def test_online_backup_preserves_data_and_refuses_overwrite(self):
         self.assertEqual(200, self.create("properties", PROPERTY)[0])
         snapshot = self.path.with_name("snapshot.sqlite3")

@@ -34,6 +34,8 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
     var page by remember { mutableStateOf("") }
     var employees by remember { mutableStateOf(emptyList<Employee>()) }
     var assignTarget by remember { mutableStateOf<OfficeRow?>(null) }
+    var createDeal by remember { mutableStateOf(false) }
+    var dealTransition by remember { mutableStateOf<Pair<OfficeRow, DealStage>?>(null) }
     var chooseShare by remember { mutableStateOf(false) }
     var shareTarget by remember { mutableStateOf<ShareChoice?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -73,7 +75,7 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             TextButton(close) { Text("Назад") }
-            ScreenHeading("Общая база офиса", "Объекты, заявки и ответственные сотрудники")
+            ScreenHeading("Общая база офиса", "Объекты, покупатели, сделки и ответственные сотрудники")
         }
         if (current == null) item {
             Text("Подключите рабочую учётную запись", style = MaterialTheme.typography.titleLarge)
@@ -105,12 +107,22 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button({ chooseShare = true }, enabled = !busy) { Text("Добавить из CRM") }
+                    Button({
+                        if (section == OfficeSection.DEALS) createDeal = true else chooseShare = true
+                    }, enabled = !busy) {
+                        Text(if (section == OfficeSection.DEALS) "Открыть сделку" else "Добавить из CRM")
+                    }
                     TextButton({ operation { refresh(OfficeClient(requireNotNull(session))) } }, enabled = !busy) { Text("Обновить") }
                 }
             }
             if (rows.isEmpty() && !busy && problem == null) item { Text("Нет доступных записей", color = Muted) }
             items(rows, key = { it.id }) { row ->
+                if (section == OfficeSection.DEALS) {
+                    OfficeDealCard(row, !busy && (current?.canAssign == true || current?.id == row.assignedTo)) {
+                        dealTransition = row to it
+                    }
+                    return@items
+                }
                 val field = if (section == OfficeSection.PROPERTIES) "title" else "name"
                 val amount = row.data.optLong(if (section == OfficeSection.PROPERTIES) "price" else "budget")
                 AppCard {
@@ -151,12 +163,38 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
         }
     }
 
+    if (createDeal) {
+        val client = remember(session) { OfficeClient(requireNotNull(session)) }
+        OfficeDealPicker(client, dismiss = { createDeal = false }) { property, buyer ->
+            createDeal = false
+            operation {
+                client.share(OfficeSection.DEALS, java.util.UUID.randomUUID().toString(),
+                    officeDealData(property.id, buyer.id, DealStage.QUALIFICATION), null)
+                refresh(client)
+                status = "Сделка открыта"
+            }
+        }
+    }
+    dealTransition?.let { (row, stage) ->
+        OfficeDealTransition(row, stage, dismiss = { dealTransition = null }) { amount, commission ->
+            dealTransition = null
+            operation {
+                val client = OfficeClient(requireNotNull(session))
+                client.share(OfficeSection.DEALS, row.id, officeDealData(
+                    row.data.getString("property_id"), row.data.getString("buyer_id"), stage, amount, commission
+                ), row.revision)
+                refresh(client)
+                status = "Этап сделки обновлён"
+            }
+        }
+    }
     if (chooseShare) {
         val choices = when (section) {
             OfficeSection.PROPERTIES -> properties.filter { it.status == "active" && it.title.isNotBlank() }
                 .map { ShareChoice(it.id, it.title, it.officeData()) }
             OfficeSection.BUYERS -> clients.filter { it.role == "buyer" && !it.doNotContact && it.name.isNotBlank() }
                 .map { ShareChoice(it.id, it.name, it.officeData()) }
+            OfficeSection.DEALS -> emptyList()
         }
         AlertDialog(onDismissRequest = { chooseShare = false }, title = { Text("Выбрать запись из CRM") }, text = {
             Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {

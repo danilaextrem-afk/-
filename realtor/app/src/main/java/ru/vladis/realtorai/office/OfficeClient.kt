@@ -22,9 +22,12 @@ internal data class Employee(val id: String, val name: String, val role: String)
     val canAssign get() = role in setOf("admin", "manager")
 }
 internal enum class OfficeSection(val route: String, val label: String) {
-    PROPERTIES("properties", "Объекты"), BUYERS("buyers", "Покупатели")
+    PROPERTIES("properties", "Объекты"), BUYERS("buyers", "Покупатели"), DEALS("deals", "Сделки")
 }
-internal data class OfficeRow(val id: String, val assignedTo: String, val revision: Int, val data: JSONObject)
+internal data class OfficeRow(
+    val id: String, val assignedTo: String, val revision: Int, val data: JSONObject,
+    val propertyTitle: String, val buyerName: String
+)
 internal data class OfficePage(val rows: List<OfficeRow>, val next: String)
 
 internal class OfficeSettings(context: Context) {
@@ -77,6 +80,13 @@ internal class OfficeClient(private val session: OfficeSession) {
             }.build()
         http.newCall(request).execute().use { response ->
             if (response.code == 412) throw OfficeConflict()
+            if (response.code == 409) throw IllegalStateException(
+                when (runCatching { JSONObject(response.peekBody(2_048L).string()).optString("error") }.getOrNull()) {
+                    "duplicate_deal" -> "По этой паре уже открыта сделка."
+                    "invalid_stage" -> "Этот переход недоступен. Обновите список сделок."
+                    else -> "Действие конфликтует с текущим состоянием общей базы."
+                }
+            )
             if (response.code == 404) throw NoSuchElementException("Запись в офисе не найдена")
             check(response.isSuccessful) { when (response.code) {
                 401 -> "Сервер отклонил токен. Проверьте доступ."
@@ -111,7 +121,8 @@ internal class OfficeClient(private val session: OfficeSession) {
     }
     private fun employee(json: JSONObject) = Employee(json.getString("id"), json.getString("name"), json.getString("role"))
     private fun row(json: JSONObject) = OfficeRow(json.getString("id"), json.getString("assigned_to"),
-        json.getInt("revision"), json.getJSONObject("data"))
+        json.getInt("revision"), json.getJSONObject("data"),
+        json.optString("property_title"), json.optString("buyer_name"))
 
     companion object {
         private val jsonType = "application/json".toMediaType()
