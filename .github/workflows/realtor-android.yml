@@ -50,7 +50,7 @@ jobs:
           "$apksigner" verify --verbose --print-certs ../candidate/RealtorAI-1.0-rc8.apk
           aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
           "$aapt" dump badging ../candidate/RealtorAI-1.0-rc8.apk > ../candidate/manifest.txt
-          grep -F "package: name='ru.vladis.realtorai.preview6'" ../candidate/manifest.txt
+          grep -F "package: name='ru.vladis.realtorai.preview8'" ../candidate/manifest.txt
           grep -E "^native-code: 'arm64-v8a'[[:space:]]*$" ../candidate/manifest.txt
           if grep -Fx 'application-debuggable' ../candidate/manifest.txt; then exit 1; fi
           unzip -p ../candidate/RealtorAI-1.0-rc8.apk assets/moscow-boundaries.json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert all(d[name] for name in ("moscow","oblast","new-moscow"))'

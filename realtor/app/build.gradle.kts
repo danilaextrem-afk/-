@@ -40,7 +40,7 @@ android {
         release.signingConfig = signingConfigs.findByName("production")
         create("preview") {
             initWith(release)
-            applicationIdSuffix = ".preview6"
+            applicationIdSuffix = ".preview8"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += "release"
         }
