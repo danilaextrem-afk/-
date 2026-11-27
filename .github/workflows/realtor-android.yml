@@ -91,7 +91,7 @@ jobs:
           if-no-files-found: error
   signed-release:
     if: ${{ github.ref_name == 'realtorai-build-04' }}
-    needs: android
+    needs: [android, office]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

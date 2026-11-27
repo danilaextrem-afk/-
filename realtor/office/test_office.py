@@ -81,6 +81,27 @@ class OfficeTest(unittest.TestCase):
         self.assertNotEqual(new_token, self.one)
         self.assertEqual(200, self.request("GET", "/v1/me", new_token)[0])
 
+    def test_deletion_cannot_reuse_prior_revision(self):
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        route = "/v1/properties/entry"
+        self.assertEqual(200, self.request("DELETE", route, self.one, **{"If-Match": '"1"'})[0])
+        self.assertEqual(404, self.request("GET", route, self.one)[0])
+        self.assertEqual([], self.request("GET", "/v1/properties", self.one)[1]["items"])
+        self.assertEqual(3, self.create("properties", PROPERTY)[1]["revision"])
+        self.assertEqual(412, self.request("PUT", route, self.one, PROPERTY, **{"If-Match": '"1"'})[0])
+
+    def test_online_backup_preserves_data_and_refuses_overwrite(self):
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        snapshot = self.path.with_name("snapshot.sqlite3")
+        self.office.backup(snapshot)
+        with self.assertRaises(FileExistsError):
+            self.office.backup(snapshot)
+        restored = Office(snapshot)
+        with closing(restored.connect()) as db:
+            actor = restored.actor(db, "Bearer " + self.one)
+            self.assertEqual("one", actor["id"])
+            self.assertEqual(PROPERTY, restored.list_records(db, actor, "properties", "")["items"][0]["data"])
+
 
 if __name__ == "__main__":
     unittest.main()

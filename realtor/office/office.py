@@ -8,8 +8,10 @@ import secrets
 import sqlite3
 import ssl
 import time
+import tempfile
 from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 ROLES = {"admin", "manager", "agent"}
@@ -83,12 +85,36 @@ class Office:
                 CREATE TABLE IF NOT EXISTS record(
                     kind TEXT NOT NULL, id TEXT NOT NULL, assigned_to TEXT NOT NULL REFERENCES employee(id),
                     body TEXT NOT NULL, revision INTEGER NOT NULL, updated_at INTEGER NOT NULL,
-                    PRIMARY KEY(kind, id));
+                    deleted INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(kind, id));
                 CREATE INDEX IF NOT EXISTS employee_records ON record(kind, assigned_to, id);
                 CREATE TABLE IF NOT EXISTS audit(
                     seq INTEGER PRIMARY KEY, at INTEGER NOT NULL, actor TEXT NOT NULL,
                     action TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL);
             """)
+            with db:
+                if "deleted" not in {row["name"] for row in db.execute("PRAGMA table_info(record)")}:
+                    db.execute("ALTER TABLE record ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
+
+    def backup(self, destination):
+        target = Path(destination).absolute()
+        # Write beside the destination and only publish the completed snapshot.
+        fd, temporary = tempfile.mkstemp(prefix=".office-backup-", dir=target.parent)
+        os.close(fd)
+        try:
+            with closing(self.connect()) as source, closing(sqlite3.connect(temporary)) as copy:
+                source.backup(copy)
+                if copy.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+                    raise ValueError("backup verification failed")
+            with open(temporary, "rb") as file:
+                os.fsync(file.fileno())
+            os.link(temporary, target)
+            directory = os.open(target.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+        finally:
+            os.unlink(temporary)
 
     def connect(self):
         db = sqlite3.connect(self.path, timeout=5)
@@ -137,10 +163,10 @@ class Office:
 
     def list_records(self, db, actor, kind, cursor):
         if kind == "buyers" and actor["role"] == "agent":
-            rows = db.execute("SELECT * FROM record WHERE kind=? AND assigned_to=? AND id>? ORDER BY id LIMIT ?",
+            rows = db.execute("SELECT * FROM record WHERE kind=? AND assigned_to=? AND deleted=0 AND id>? ORDER BY id LIMIT ?",
                               (kind, actor["id"], cursor, PAGE_SIZE + 1)).fetchall()
         else:
-            rows = db.execute("SELECT * FROM record WHERE kind=? AND id>? ORDER BY id LIMIT ?",
+            rows = db.execute("SELECT * FROM record WHERE kind=? AND deleted=0 AND id>? ORDER BY id LIMIT ?",
                               (kind, cursor, PAGE_SIZE + 1)).fetchall()
         return {"items": [self.serialize(row) for row in rows[:PAGE_SIZE]],
                 "next": rows[PAGE_SIZE - 1]["id"] if len(rows) > PAGE_SIZE else ""}
@@ -149,7 +175,7 @@ class Office:
         row = db.execute("SELECT * FROM record WHERE kind=? AND id=?", (kind, identifier)).fetchone()
         if row and row["assigned_to"] != actor["id"] and actor["role"] == "agent":
             raise Problem(404 if kind == "buyers" else 403, "inaccessible")
-        if row:
+        if row and not row["deleted"]:
             if precondition != f'"{row["revision"]}"':
                 raise Problem(412, "revision_mismatch")
         elif method != "PUT":
@@ -157,7 +183,8 @@ class Office:
         elif precondition != "*":
             raise Problem(412, "create_precondition")
         if method == "DELETE":
-            db.execute("DELETE FROM record WHERE kind=? AND id=?", (kind, identifier))
+            db.execute("UPDATE record SET deleted=1, body='{}', revision=revision+1, updated_at=? WHERE kind=? AND id=?",
+                       (int(time.time()), kind, identifier))
             self.audit(db, actor["id"], "delete", kind, identifier)
             return {"deleted": True}
         if method == "PATCH":
@@ -174,8 +201,9 @@ class Office:
             body = json.dumps(normalize(kind, payload), ensure_ascii=False)
         revision = (row["revision"] if row else 0) + 1
         now = int(time.time())
-        db.execute("""INSERT INTO record VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(kind,id) DO UPDATE SET
-                   assigned_to=excluded.assigned_to, body=excluded.body,
+        db.execute("""INSERT INTO record(kind,id,assigned_to,body,revision,updated_at,deleted)
+                   VALUES (?, ?, ?, ?, ?, ?, 0) ON CONFLICT(kind,id) DO UPDATE SET
+                   assigned_to=excluded.assigned_to, body=excluded.body, deleted=0,
                    revision=excluded.revision, updated_at=excluded.updated_at""",
                    (kind, identifier, assignee, body, revision, now))
         self.audit(db, actor["id"], "assign" if method == "PATCH" else "save", kind, identifier)
@@ -233,7 +261,7 @@ def handler(office):
                 identifier = parts[2]
                 if method == "GET":
                     row = db.execute("SELECT * FROM record WHERE kind=? AND id=?", (kind, identifier)).fetchone()
-                    if not row or (kind == "buyers" and actor["role"] == "agent" and row["assigned_to"] != actor["id"]):
+                    if not row or row["deleted"] or (kind == "buyers" and actor["role"] == "agent" and row["assigned_to"] != actor["id"]):
                         raise Problem(404, "not_found")
                     return office.serialize(row)
                 match = self.headers.get("If-Match", "")
@@ -267,6 +295,8 @@ def main():
     issue.add_argument("role", choices=sorted(ROLES))
     revoke = sub.add_parser("revoke")
     revoke.add_argument("id")
+    backup = sub.add_parser("backup")
+    backup.add_argument("destination")
     serve = sub.add_parser("serve")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", default=8443, type=int)
@@ -279,6 +309,11 @@ def main():
     elif args.command == "revoke":
         if not office.revoke(args.id):
             parser.error("active account not found")
+    elif args.command == "backup":
+        try:
+            office.backup(args.destination)
+        except FileExistsError:
+            parser.error("backup destination already exists")
     else:
         if bool(args.cert) != bool(args.key) or not args.cert and args.host not in {"127.0.0.1", "localhost"}:
             parser.error("provide a TLS certificate and key or listen on loopback behind a trusted TLS proxy")
