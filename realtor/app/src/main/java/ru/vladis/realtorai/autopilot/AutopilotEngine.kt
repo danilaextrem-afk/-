@@ -30,7 +30,7 @@ object AutoRules {
         .map { it.trim().lowercase(Locale.ROOT) }.distinct().count { it.isNotEmpty() && details.contains(it, true) }
 
     fun matches(c: Client, props: List<Property>): List<Property> =
-        if (c.role != "buyer" || c.budget <= 0 || c.stage in listOf("deal","lost")) emptyList()
+        if (c.doNotContact || c.role != "buyer" || c.budget <= 0 || c.stage in listOf("deal","lost")) emptyList()
         else props.filter { ru.vladis.realtorai.hunter.GeoScope.region(it) != null && it.status == "active" && it.price in 1..c.budget &&
             (c.desiredRooms == 0 || it.rooms == c.desiredRooms) &&
             (c.desiredKind == null || c.desiredKind.equals(it.housingKind, true)) &&
@@ -133,7 +133,7 @@ object AutopilotEngine {
             val activity = latest[client.id]
             val prefix = "followup/${client.id}"
             val key = "$prefix/${client.stage}-${activity?.id ?: 0}"
-            if (prefix in pending || key in known || client.stage in listOf("deal", "lost")) continue
+            if (client.doNotContact || prefix in pending || key in known || client.stage in listOf("deal", "lost")) continue
             val age = now - (activity?.at ?: client.createdAt)
             if (client.stage != "new" && age < 2 * 86_400_000L) continue
             val action = when (client.stage) {

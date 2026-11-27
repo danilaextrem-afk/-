@@ -124,7 +124,12 @@ fun stageName(k: String) = stages.firstOrNull { it.first == k }?.second ?: k
         }
         item {
             AppCard {
-                if (c.phone.isNotBlank()) TextButton({ ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + c.phone))) }) { Text("Позвонить: ${c.phone}") }
+                if (c.doNotContact) Text("Не связываться: отказ от контактов", color = MaterialTheme.colorScheme.error)
+                else ru.vladis.realtorai.hunter.ListingOrigin.dialable(c.phone)?.let { phone ->
+                    TextButton({ runCatching { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", phone, null))) } }) {
+                        Text("Позвонить: $phone")
+                    }
+                }
                 if (c.budget > 0) Text("Бюджет: ${c.budget.rub()}")
                 if (c.notes.isNotBlank()) Text(c.notes, color = Muted)
             }

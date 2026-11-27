@@ -80,8 +80,7 @@ def models():
     capture("models", "Модели на устройстве")
 
 def open_properties():
-    tap("Профиль")
-    tap("Недвижимость")
+    tap("Мои объекты")
 
 def properties():
     open_properties()
@@ -97,13 +96,18 @@ def properties():
     type_text("Owner workflow QA")
     tap("Сохранить")
     capture("property", "Сопровождение", scroll=True)
-    tap("Сопровождение")
+    tap("Звонок")
+    capture("owner-call", "Звонок собственнику")
+    find("В CRM и в источнике нет номера собственника")
+    open_properties()
+    tap("Сопровождение", scroll=True)
     tap("Начать сопровождение")
     capture("owner", "Подтвердить этап")
     capture("pricing", "Сравнение цен", scroll=True)
 
 def crm():
-    tap("CRM")
+    home()
+    tap("CRM", scroll=True)
     capture("crm", "Воронка продаж")
     tap("+ Клиент")
     tap("Имя")

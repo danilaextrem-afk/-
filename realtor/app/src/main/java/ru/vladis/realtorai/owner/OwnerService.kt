@@ -15,12 +15,7 @@ class OwnerService(private val context: Context) {
     private val dao = db.owners()
 
     suspend fun start(id: Long) = db.withTransaction {
-        requireNotNull(db.dao().property(id)) { "Объект удалён" }
-        if (dao.get(id) == null) {
-            val now = System.currentTimeMillis()
-            dao.save(OwnerCase(id, OwnerStep.CALL.name, now, null, 1, .95, 1.0, 1.05, "", null, "", "", "", null, null, null, null, null))
-            dao.event(OwnerEvent(propertyId = id, at = now, kind = "stage", text = "Начато сопровождение"))
-        }
+        begin(db, id)
     }.also { schedule(context); syncTasks() }
 
     suspend fun recordPublishingStarted(id: Long, channels: Int) {
@@ -160,7 +155,15 @@ class OwnerService(private val context: Context) {
             }
             for (case in cases) {
                 val property = db.dao().property(case.id) ?: continue
+                val ownerBlocked = property.ownerContactBlocked || property.ownerId?.let { db.dao().client(it)?.doNotContact } == true
                 val step = OwnerStep.valueOf(case.step)
+                if (ownerBlocked) {
+                    for (task in tasks.filter { !it.done && it.kind.startsWith("owner/${case.id}/") }) {
+                        db.dao().saveTask(task.copy(done = true))
+                        closed += task.id
+                    }
+                    continue
+                }
                 val stageKey = "owner/${case.id}/stage"
                 val label = "${step.title} · ${property.title}"
                 if (tasks.none { it.kind == stageKey && it.title == label }) ensure(stageKey, label, now, true)
@@ -177,6 +180,16 @@ class OwnerService(private val context: Context) {
     }
 
     companion object {
+        internal suspend fun begin(db: AppDb, id: Long) {
+            requireNotNull(db.dao().property(id)) { "Объект удалён" }
+            val dao = db.owners()
+            if (dao.get(id) == null) {
+                val now = System.currentTimeMillis()
+                dao.save(OwnerCase(id, OwnerStep.CALL.name, now, null, 1, .95, 1.0, 1.05, "", null, "", "", "", null, null, null, null, null))
+                dao.event(OwnerEvent(propertyId = id, at = now, kind = "stage", text = "Начато сопровождение"))
+            }
+        }
+
         fun schedule(context: Context) {
             WorkManager.getInstance(context).enqueueUniquePeriodicWork("owner-regimen",
                 ExistingPeriodicWorkPolicy.KEEP, PeriodicWorkRequestBuilder<OwnerWorker>(12, TimeUnit.HOURS).build())

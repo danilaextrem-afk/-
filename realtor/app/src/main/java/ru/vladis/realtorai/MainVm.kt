@@ -106,13 +106,23 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     var shareError by mutableStateOf<String?>(null); private set
     fun dismissSharedListing() { sharedListing = null; shareError = null }
     fun acceptSharedListing(text: String) = viewModelScope.launch {
-        try { sharedListing = ru.vladis.realtorai.publish.SaleIntake.fromShare(db, text).listingId }
+        try {
+            val result = ru.vladis.realtorai.publish.SaleIntake.fromShare(db, text)
+            if (!result.pending) afterSaleIntake(result)
+            sharedListing = result.listingId
+        }
         catch (e: kotlinx.coroutines.CancellationException) { throw e }
         catch (e: Exception) { shareError = e.localizedMessage ?: "Не удалось принять объявление" }
     }
     suspend fun takeForSale(offerId: Long): ru.vladis.realtorai.publish.SaleIntake.Result {
         val result = ru.vladis.realtorai.publish.SaleIntake.fromOffer(db, offerId)
-        ru.vladis.realtorai.owner.OwnerService(ctx).start(result.propertyId)
+        afterSaleIntake(result)
+        return result
+    }
+
+    private suspend fun afterSaleIntake(result: ru.vladis.realtorai.publish.SaleIntake.Result) {
+        ru.vladis.realtorai.owner.OwnerService.schedule(ctx)
+        ru.vladis.realtorai.owner.OwnerService(ctx).syncTasks()
         if (cloudReady) viewModelScope.launch {
             val publications = db.publications()
             val current = publications.listing(result.listingId) ?: return@launch
@@ -127,7 +137,42 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (_: Exception) { /* Keep the draft made from verified facts. */ }
         }
-        return result
+    }
+
+    internal suspend fun prepareCall(property: Property, objection: String = ""): String {
+        val offers = db.hunter().allOffers()
+        val location = property.sourceOfferId?.let { db.hunter().offer(it)?.district }.orEmpty()
+        val analogs = ru.vladis.realtorai.owner.OwnerRules.comparisons(property, offers, location, System.currentTimeMillis())
+        val average = analogs.takeIf { it.size >= 3 }?.map { it.price / it.area }?.average()?.toLong()
+        val facts = "Тип: ${if (property.type == "primary") "новостройка" else "вторичка"}. " +
+            "Площадь: ${property.area.takeIf { it > 0 } ?: "не указана"}. Комнат: ${property.rooms.takeIf { it > 0 } ?: "не указано"}. " +
+            "Цена предложения: ${property.price.takeIf { it > 0 } ?: "не указана"} ₽. Сопоставимых объявлений: ${analogs.size}. " +
+            (average?.let { "Среднее по цене предложения: $it ₽/м²." } ?: "Данных для оценки недостаточно.")
+        val system = "Подготовь короткий живой сценарий первого звонка собственнику: вступление, три вопроса, следующий шаг и ответ на возражение, если оно указано. " +
+            "Используй только подтверждённые факты. Не обещай покупателей, сроки продажи и результаты, не выдавай цены объявлений за цены сделок. Отвечай по-русски."
+        val prompt = listOf(facts, objection.take(350)).filter(String::isNotBlank).joinToString("\n")
+        if (cloudReady) {
+            try { return CloudAi.answer(ctx, system, prompt) }
+            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { /* Keep working with the local engine or confirmed facts. */ }
+        }
+        if (deviceReady) {
+            try { return DeviceModel.answer(ctx, system, listOf("user" to prompt)) }
+            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { /* Show facts if no model can answer. */ }
+        }
+        return "$facts\n\nУточните, актуальна ли продажа, какой срок удобен и возможен ли показ. Предложите согласовать один следующий шаг." +
+            if (objection.isBlank()) "" else "\n\n" + ru.vladis.realtorai.local.OfflineLogic.objection(objection)
+    }
+
+    internal suspend fun recordCall(
+        id: Long, outcome: ru.vladis.realtorai.local.CallOutcome, note: String, dueAt: Long?
+    ) {
+        val result = ru.vladis.realtorai.local.CallWorkflow.record(db, id, outcome, note, dueAt, System.currentTimeMillis())
+        result.cancelled.forEach { Reminder.cancel(ctx, it) }
+        result.task?.let { Reminder.schedule(ctx, it.id, it.title, it.dueAt) }
+        ru.vladis.realtorai.owner.OwnerService.schedule(ctx)
+        ru.vladis.realtorai.owner.OwnerService(ctx).syncTasks()
     }
 
     fun saveProperty(p: Property) = viewModelScope.launch { dao.saveProperty(p) }
@@ -158,7 +203,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         val reminder = db.withTransaction {
             dao.saveInteraction(Interaction(clientId = clientId, text = text))
             if (whenDue == null || !ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(ctx)) return@withTransaction null
-            val client = dao.allClients().firstOrNull { it.id == clientId } ?: return@withTransaction null
+            val client = dao.client(clientId)?.takeUnless { it.doNotContact } ?: return@withTransaction null
             val title = "${text.substringBefore(' ').trimEnd(':')} · ${client.name}"
             if (dao.allTasks().any { it.title == title && it.dueAt == whenDue && it.kind == "meeting" }) return@withTransaction null
             val meeting = TaskItem(title = title, dueAt = whenDue, kind = "meeting")
@@ -317,10 +362,31 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         error = null
     }
 
-    fun canSearch(text: String) = SearchLanguage.offline(text, searchConversation) != null
+    fun canSearch(text: String) = SearchLanguage.offline(text, searchConversation) != null ||
+        ru.vladis.realtorai.publish.SaleIntake.requested(text)
 
     fun ask(mode: String, text: String, p: Property?, c: Client?, retry: Boolean = false) {
         if (busy || text.isBlank()) return
+        val intake = ru.vladis.realtorai.publish.SaleIntake.requested(text)
+        if (intake && !retry) {
+            chat.add("user" to text)
+            saveTranscript()
+            generationJob = viewModelScope.launch {
+                busy = true
+                error = null
+                try {
+                    val sale = ru.vladis.realtorai.publish.SaleIntake.fromShare(db, text)
+                    if (!sale.pending) afterSaleIntake(sale)
+                    chat.add("assistant" to if (sale.pending) "Черновик сохранён. Проверьте характеристики объекта."
+                        else "Объект в работе. Сопровождение начато. Покупателей по критериям CRM: ${sale.buyers}.")
+                    saveTranscript()
+                    sharedListing = sale.listingId
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (e: Exception) { error = e.localizedMessage ?: "Не удалось взять объект в продажу" }
+                finally { busy = false }
+            }
+            return
+        }
         val identifiesClient = CloudAi.containsContact(text) || CloudAi.referencesClients(text, clients.value)
         val request = Request(mode, text, p, c)
         if (retry) {
@@ -364,7 +430,8 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                     catch (e: kotlinx.coroutines.CancellationException) { throw e }
                     catch (e: Exception) { null }
                 } else null
-                val search = offlineSearch?.takeIf { it.kind == "refine" && it.query == searchConversation.current } ?: routed ?: offlineSearch
+                val search = (offlineSearch?.takeIf { it.kind == "refine" && it.query == searchConversation.current }
+                    ?: routed ?: offlineSearch)?.let { SearchLanguage.enforceLocation(it, text) }
                 if (search?.kind == "remember") {
                     saveSearchConversation(searchConversation.copy(preferences = search.query))
                     chat.add("assistant" to "Сохранил предпочтения для следующих поисков.")

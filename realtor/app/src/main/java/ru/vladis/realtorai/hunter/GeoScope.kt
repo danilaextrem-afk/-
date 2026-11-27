@@ -18,6 +18,7 @@ object GeoScope {
     private val prefix = Regex("^(?:(?:российская федерация|россия|рф|[0-9]{6})[,; ]+)+")
     private val staleMs = 30 * 86_400_000L
     @Volatile private var boundaries: Map<String, List<List<Ring>>>? = null
+    @Volatile private var mkadInterior: Ring? = null
     @Volatile private var mkad: List<List<Point>> = emptyList()
 
     data class Point(val lat: Double, val lon: Double)
@@ -55,6 +56,7 @@ object GeoScope {
             mkad = readGeometry(ctx, "mkad.json").asJsonArray.map { way ->
                 way.asJsonArray.map { pair -> Point(pair.asJsonArray[0].asDouble, pair.asJsonArray[1].asDouble) }
             }
+            mkadInterior = innerMkadRing(mkad)
             boundaries = parsed
         }
     }
@@ -138,6 +140,34 @@ object GeoScope {
         val to = Math.toRadians(b.lat)
         val delta = sin((to - from) / 2).pow(2) + cos(from) * cos(to) * sin(Math.toRadians(b.lon - a.lon) / 2).pow(2)
         return 6371.0088 * 2 * asin(sqrt(delta.coerceIn(0.0,1.0)))
+    }
+
+    fun insideMkad(point: Point): Boolean = mkadInterior?.contains(point) == true
+
+    private fun innerMkadRing(ways: List<List<Point>>): Ring? {
+        // The two carriageways are separate closed loops. The inner one excludes the roadway.
+        val byEnd = HashMap<Point, MutableList<Int>>()
+        ways.forEachIndexed { index, way ->
+            if (way.size >= 2) {
+                byEnd.getOrPut(way.first(), ::mutableListOf) += index
+                byEnd.getOrPut(way.last(), ::mutableListOf) += index
+            }
+        }
+        val visited = HashSet<Int>()
+        val loops = mutableListOf<List<Point>>()
+        for ((index, way) in ways.withIndex()) {
+            if (way.size < 2 || !visited.add(index)) continue
+            val points = way.toMutableList()
+            while (points.last() != points.first()) {
+                val next = byEnd[points.last()]?.firstOrNull { it !in visited } ?: break
+                visited += next
+                val segment = ways[next]
+                points.addAll((if (segment.first() == points.last()) segment else segment.asReversed()).drop(1))
+            }
+            if (points.size >= 4 && points.first() == points.last()) loops += points
+        }
+        return loops.filter { Ring(it).contains(Point(55.7558, 37.6173)) }
+            .minByOrNull { loop -> abs(loop.zipWithNext().sumOf { (a, b) -> a.lon * b.lat - b.lon * a.lat }) }?.let(::Ring)
     }
 
     fun mkadKm(point: Point): Double? {

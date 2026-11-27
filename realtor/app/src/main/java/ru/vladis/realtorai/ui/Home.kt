@@ -174,7 +174,13 @@ fun Home(
             }
         }
         item {
-            ScreenHeading("Воронка", "Клиенты по этапам") { TextButton(openCrm) { Text("CRM") } }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(openCrm, Modifier.weight(1f)) { Text("CRM") }
+                OutlinedButton(openTasks, Modifier.weight(1f)) { Text("Календарь") }
+            }
+        }
+        item {
+            ScreenHeading("Воронка", "Клиенты по этапам")
             val pipeline = clients.groupingBy { it.stage }.eachCount()
             if (clients.isEmpty()) Text("Добавьте первый контакт в CRM или импортируйте список.", color = Muted)
             else {

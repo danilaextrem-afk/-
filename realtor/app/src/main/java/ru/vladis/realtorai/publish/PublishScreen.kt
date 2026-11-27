@@ -42,10 +42,10 @@ private val statusText = mapOf("published" to "опубликовано (под�
     bmp?.let { Image(it, null, modifier, contentScale = ContentScale.Crop) } ?: Box(modifier.background(Surface2))
 }
 
-@Composable fun PublishScreen(main: MainVm, initialId: Long? = null, back: () -> Unit) {
+@Composable fun PublishScreen(main: MainVm, initialId: Long? = null, openCall: (Long) -> Unit = {}, back: () -> Unit) {
     val pvm: PublishVm = viewModel()
     var openId by remember(initialId) { mutableStateOf(initialId) }
-    if (openId == null) ListingList(pvm, main, { openId = it }, back) else ListingEditor(pvm, main, openId!!) { if (initialId != null) back() else openId = null }
+    if (openId == null) ListingList(pvm, main, { openId = it }, back) else ListingEditor(pvm, main, openId!!, openCall) { if (initialId != null) back() else openId = null }
 }
 
 @Composable fun PubLines(pubs: List<Publication>, compact: Boolean) {
@@ -170,7 +170,7 @@ private val statusText = mapOf("published" to "опубликовано (под�
     }
 }
 
-@Composable fun ListingEditor(pvm: PublishVm, main: MainVm, id: Long, close: () -> Unit) {
+@Composable fun ListingEditor(pvm: PublishVm, main: MainVm, id: Long, openCall: (Long) -> Unit, close: () -> Unit) {
     val ctx = LocalContext.current
     val ls by pvm.listings.collectAsState(); val pubs by pvm.pubs.collectAsState()
     val cur = ls.find { it.id == id }
@@ -178,6 +178,12 @@ private val statusText = mapOf("published" to "опубликовано (под�
     val properties by main.properties.collectAsState()
     val clients by main.clients.collectAsState()
     val property = properties.firstOrNull { it.id == cur.propertyId }
+    val offers by main.sourceOffers.collectAsState()
+    val comparable = remember(property, offers) {
+        property?.let { p -> ru.vladis.realtorai.owner.OwnerRules.comparisons(p, offers,
+            offers.firstOrNull { it.id == p.sourceOfferId }?.district.orEmpty(), System.currentTimeMillis()) }.orEmpty()
+    }
+    val estimate = comparable.takeIf { it.size >= 3 }?.map { it.price / it.area }?.average()
     val matches = property?.let { p ->
         clients.filter { ru.vladis.realtorai.autopilot.AutoRules.matches(it, listOf(p)).isNotEmpty() }
     }.orEmpty()
@@ -213,7 +219,12 @@ private val statusText = mapOf("published" to "опубликовано (под�
             AppCard {
                 Text("Запуск рекламы", style = MaterialTheme.typography.titleLarge)
                 if (property?.status == "review") Text("Ссылка сохранена. Характеристики ещё не подтверждены.", color = Muted)
-                if (property != null) Text("Подбор по CRM · ${matches.size} покупателей", color = Muted)
+                if (property != null) {
+                    Text("Подходят по критериям CRM: ${matches.size} покупателей", color = Muted)
+                    Text(estimate?.let { "Средняя цена предложения: ${it.rub()}/м² · аналогов: ${comparable.size}" }
+                        ?: "Для оценки нужны три сопоставимых объявления. Найдено: ${comparable.size}", color = Muted)
+                    TextButton({ pvm.save(draft()); openCall(property.id) }, enabled = !pvm.busy) { Text("Подготовить звонок") }
+                }
                 Text(if (cur.approvedAt == null) "Ожидается согласие собственника" else "Согласие зафиксировано", color = Muted)
                 Checks.blocking(draft()).takeIf { it.isNotEmpty() }?.let {
                     Text("Не хватает только: " + it.joinToString(", "), color = Muted)

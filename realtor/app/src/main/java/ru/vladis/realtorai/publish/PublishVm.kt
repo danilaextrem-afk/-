@@ -104,6 +104,7 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
         val approved = draft.copy(approvedAt = System.currentTimeMillis(), photos = images.joinToString("\n"),
             cover = current.cover.ifBlank { images.firstOrNull().orEmpty() }, updatedAt = System.currentTimeMillis())
         db.withTransaction {
+            check(dao.listing(current.id) == current) { "Карточка изменилась. Проверьте данные и подтвердите заново." }
             dao.saveListing(approved)
             approved.propertyId?.let { db.dao().property(it) }?.takeIf { it.status != "deal" }?.let { property ->
                 db.dao().saveProperty(property.copy(address = approved.address, price = approved.price,
@@ -111,6 +112,7 @@ class PublishVm(app: Application) : AndroidViewModel(app) {
                     status = if (property.status == "review") "active" else property.status))
             }
         }
+        approved.propertyId?.let { ru.vladis.realtorai.owner.OwnerService(ctx).start(it) }
         val connected = Platform.entries.filter { it.isApi && secrets.publisher(it) != null }
         if (connected.isEmpty()) {
             log = "Карточка согласована. Реклама не запущена: Telegram и ВКонтакте не подключены. Доступен экспорт фидов."

@@ -68,7 +68,7 @@ import ru.vladis.realtorai.MainVm
     }
     BackHandler(sub != null || clientId != null) { if (clientId != null) clientId = null else sub = null }
     val tabs = listOf(Triple("home", "Главная", Icons.Default.Home), Triple("search", "Поиск", Icons.Default.Search),
-        Triple("ai", "ИИ", Icons.Default.Star), Triple("crm", "CRM", Icons.Default.Person),
+        Triple("ai", "ИИ", Icons.Default.Star), Triple("properties", "Мои объекты", Icons.Default.Place),
         Triple("profile", "Профиль", Icons.Default.Settings))
     val wide = LocalConfiguration.current.screenWidthDp >= 700
     Scaffold(containerColor = Graphite, bottomBar = {
@@ -122,17 +122,20 @@ import ru.vladis.realtorai.MainVm
                         c != null -> ClientDetail(vm, c) { clientId = null }
                         s?.startsWith("owner/") == true -> ru.vladis.realtorai.owner.OwnerScreen(vm, s.substringAfter('/').toLong(), { sub = "publish" }, { sub = null })
                         s == "agent" -> ru.vladis.realtorai.agent.AgentScreen(vm, command) { sub = null }
-                        s == "autopilot" -> ru.vladis.realtorai.autopilot.AutopilotScreen(vm, { sub = "hunter" }, { tab = "crm"; sub = null }, { sub = "tasks" }, { sub = null })
+                        s == "autopilot" -> ru.vladis.realtorai.autopilot.AutopilotScreen(vm, { sub = "hunter" }, { sub = "crm" }, { sub = "tasks" }, { sub = null })
                         s == "analytics" -> Analytics(vm) { sub = null }
                         s == "settings" -> SettingsScreen(vm, theme, setTheme) { sub = null }
                         s == "models" -> ModelScreen(vm) { sub = null }
                         s == "tasks" -> Tasks(vm)
-                        s == "properties" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" }, { sub = "offer/$it" })
+                        s == "properties" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" },
+                                { sub = "offer/$it" }, { sub = "call/$it" })
+                        s == "crm" -> Crm(vm) { clientId = it }
+                        s?.startsWith("call/") == true -> CallScreen(vm, s.substringAfter('/').toLong(), { sub = "tasks" }) { sub = null }
                         s?.startsWith("offer/") == true -> ru.vladis.realtorai.hunter.HunterScreen(vm,
                             selectedOffer = s.substringAfter('/').toLong(), openSale = { sub = "publication/$it" }) { sub = null }
                         s?.startsWith("publication/") == true -> ru.vladis.realtorai.publish.PublishScreen(vm,
-                            initialId = s.substringAfter('/').toLong()) { sub = null }
-                        s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm) { sub = null }
+                            initialId = s.substringAfter('/').toLong(), openCall = { sub = "call/$it" }) { sub = null }
+                        s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm, openCall = { sub = "call/$it" }) { sub = null }
                         s == "sales" -> SalesWorkspace(vm) { sub = null }
                         s == "leads" -> LeadWorkspace(vm, { sub = null }, { clientId = it })
                         s == "hunter" || s == "map" -> ru.vladis.realtorai.hunter.HunterScreen(vm, s == "map", openOnline = if (s == "hunter") ::onlineSearch else null, openSale = { sub = "publication/$it" }) { sub = null }
@@ -140,9 +143,10 @@ import ru.vladis.realtorai.MainVm
                             "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" },
                                 { request ->
                                     if (request == "Найди выгодные квартиры") onlineSearch("") else { command = request; sub = "agent" }
-                                }, { sub = "properties" }, { tab = "crm" }, { sub = "tasks" }, { sub = "owner/$it" })
+                                }, { tab = "properties"; sub = null }, { sub = "crm" }, { sub = "tasks" }, { sub = "owner/$it" })
                             "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, topLevel = true, openOnline = ::onlineSearch, openSale = { sub = "publication/$it" }) { tab = "home" }
-                            "crm" -> Crm(vm) { clientId = it }
+                            "properties" -> Properties(vm, { sub = "analytics" }, { sub = "owner/$it" }, { sub = "map" },
+                                { sub = "offer/$it" }, { sub = "call/$it" })
                             "profile" -> Profile(vm) { sub = it }
                             else -> Assistant(vm, { sub = "models" }, { sub = "settings" }, { sub = "offer/$it" }) { request ->
                                 command = request

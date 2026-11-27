@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.Flow
     val housingKind: String? = null, val ownerId: Long? = null, val favorite: Boolean = false,
     val status: String = "active", // active | deal | archived
     val createdAt: Long = System.currentTimeMillis(), val region: String? = null,
-    val sourceOfferId: Long? = null)
+    val sourceOfferId: Long? = null,
+    @ColumnInfo(defaultValue = "0") val ownerContactBlocked: Boolean = false)
 
 fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
 
@@ -30,7 +31,8 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     val searchArea: String? = null,
     val desiredKind: String? = null, val preferredMarket: String? = null, val wishes: String? = null,
     val stage: String = "new", // new|contact|showing|deposit|deal|lost
-    val createdAt: Long = System.currentTimeMillis())
+    val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "0") val doNotContact: Boolean = false)
 
 @Entity data class Interaction(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -64,12 +66,13 @@ fun Property.pricePerSqm(): Long = if (area > 0) (price / area).toLong() else 0L
     @Query("DELETE FROM Interaction WHERE clientId=:id") suspend fun deleteInteractions(id: Long)
     @Query("SELECT * FROM Property WHERE id=:id") suspend fun property(id: Long): Property?
     @Query("SELECT * FROM Property") suspend fun allProperties(): List<Property>
+    @Query("SELECT * FROM Client WHERE id=:id") suspend fun client(id: Long): Client?
     @Query("SELECT * FROM Client") suspend fun allClients(): List<Client>
     @Query("SELECT * FROM Interaction") suspend fun allInteractions(): List<Interaction>
     @Query("SELECT * FROM TaskItem") suspend fun allTasks(): List<TaskItem>
 }
 
-@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class, OwnerCase::class, OwnerEvent::class, AgentJob::class], version = 10, exportSchema = false)
+@Database(entities = [Property::class, Client::class, Interaction::class, TaskItem::class, RunLog::class, Offer::class, PricePoint::class, SavedFilter::class, Subscription::class, Listing::class, Publication::class, OwnerCase::class, OwnerEvent::class, AgentJob::class], version = 11, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): AppDao
     abstract fun agent(): AgentDao

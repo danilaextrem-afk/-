@@ -27,7 +27,8 @@ internal object SearchLanguage {
         Передай kind и criteria как аргументы инструмента. Для обычного диалога инструмент не вызывай.
         Если пользователь просит «подешевле» относительно выдачи, передай cheaper: true.
         Поля criteria: area (район или город), budget (верхняя цена целым числом в рублях), rooms (целое, 0 для студии),
-        minArea (м²), market (primary или secondary), seller (owner/developer/agent), address, station.
+        minArea (м²), market (primary или secondary), seller (owner/developer/agent), address, station, insideMkad (boolean), metroWalk (число минут пешком до метро).
+        «Рядом с метро» означает metroWalk=10, если пользователь не назвал другое время.
         Указывай только ограничения из нового сообщения, не додумывай. Чтобы снять ограничение передай null.
         Москва и Московская область разрешены по умолчанию. Без бюджета, района, комнат и площади поиск допустим.
         «От собственников» означает seller=owner. Для обычной просьбы без этого условия поле seller отсутствует.
@@ -36,6 +37,15 @@ internal object SearchLanguage {
     fun prompt(text: String, state: SearchConversation): Pair<String, String> {
         val context = gson.toJson(state.current)
         return protocol to "Предыдущие условия поиска: $context\nНовое сообщение: $text"
+    }
+
+    fun enforceLocation(turn: SearchTurn, text: String): SearchTurn {
+        if (turn.kind == "chat") return turn
+        val explicit = ListingQuery.read(text)
+        return turn.copy(query = turn.query.copy(
+            insideMkad = explicit.insideMkad || turn.query.insideMkad,
+            metroWalk = explicit.metroWalk ?: turn.query.metroWalk
+        ))
     }
 
     fun resolve(raw: String, state: SearchConversation): SearchTurn? {
@@ -68,6 +78,8 @@ internal object SearchLanguage {
             budget = if (value.has("budget")) field("budget")?.toLongOrNull()?.takeIf { it in 1..1_000_000_000_000L } ?: Long.MAX_VALUE else base.budget,
             rooms = if (value.has("rooms")) field("rooms")?.toIntOrNull()?.takeIf { it in 0..20 } else base.rooms,
             minArea = if (value.has("minArea")) field("minArea")?.toDoubleOrNull()?.takeIf { it.isFinite() && it in 0.0..100_000.0 } ?: 0.0 else base.minArea,
+            insideMkad = if (value.has("insideMkad")) field("insideMkad") == "true" else base.insideMkad,
+            metroWalk = if (value.has("metroWalk")) field("metroWalk")?.toIntOrNull()?.takeIf { it in 1..60 } else base.metroWalk,
             market = option("market", base.market, setOf("primary", "secondary")),
             seller = option("seller", base.seller, setOf("owner", "developer", "agent"))
         )
@@ -87,7 +99,8 @@ internal object SearchLanguage {
             place = inferred.place.ifBlank { base.place }, address = inferred.address.ifBlank { base.address },
             station = inferred.station.ifBlank { base.station }, budget = inferred.budget.takeUnless { it == Long.MAX_VALUE } ?: base.budget,
             rooms = inferred.rooms ?: base.rooms, minArea = inferred.minArea.takeIf { it > 0 } ?: base.minArea,
-            market = inferred.market ?: base.market, seller = inferred.seller ?: base.seller
+            market = inferred.market ?: base.market, seller = inferred.seller ?: base.seller,
+            insideMkad = inferred.insideMkad || base.insideMkad, metroWalk = inferred.metroWalk ?: base.metroWalk
         )
         return SearchTurn(if (continuation) "refine" else "search",
             if (wantsCheaper && continuation) cheaper(query, state.lastLowestPrice) else query)

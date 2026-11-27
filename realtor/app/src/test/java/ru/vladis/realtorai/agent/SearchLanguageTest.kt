@@ -22,4 +22,15 @@ class SearchLanguageTest {
         assertEquals(Long.MAX_VALUE, turn.query.budget)
         assertEquals(earlier.current, SearchLanguage.offline("Ещё", earlier)?.query)
     }
+
+    @Test fun interpretsMkadMetroAndPriceWithoutConflatingMinutesWithRubles() {
+        val query = ListingQuery.read("Найди двухкомнатную квартиру внутри МКАД до 15 миллионов, рядом с метро")
+        assertTrue(query.insideMkad)
+        assertEquals(10, query.metroWalk)
+        assertEquals(2, query.rooms)
+        assertEquals(15_000_000L, query.budget)
+        val walking = ListingQuery.read("Квартира до 8 минут пешком до метро")
+        assertEquals(8, walking.metroWalk)
+        assertEquals(Long.MAX_VALUE, walking.budget)
+    }
 }

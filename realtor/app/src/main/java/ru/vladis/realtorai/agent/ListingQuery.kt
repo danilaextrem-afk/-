@@ -16,12 +16,15 @@ internal data class ListingQuery(
     val place: String = "", val budget: Long = Long.MAX_VALUE,
     val rooms: Int? = null, val minArea: Double = 0.0,
     val market: String? = null, val seller: String? = null,
-    val address: String = "", val station: String = "", val cheapestFirst: Boolean = false
+    val address: String = "", val station: String = "", val cheapestFirst: Boolean = false,
+    val insideMkad: Boolean = false, val metroWalk: Int? = null
 ) {
     fun matches(offer: Offer): Boolean {
         return GeoScope.eligible(offer) && offer.deal == "sale" && offer.price in 1..budget &&
             offer.area >= minArea && (rooms == null || offer.rooms == rooms) &&
             (market == null || offer.market == market) && (seller == null || offer.seller == seller) &&
+            (!insideMkad || GeoScope.point(offer.lat, offer.lon)?.let(GeoScope::insideMkad) == true) &&
+            (metroWalk == null || offer.metroWalkMinutes?.let { it <= metroWalk } == true) &&
             GeoScope.within(place, offer) &&
             GeoScope.addressMatches(offer.address, address) &&
             (station.isBlank() || ru.vladis.realtorai.hunter.GeoQuery(stations = listOf(station)).matches(offer))
@@ -34,7 +37,14 @@ internal data class ListingQuery(
         fun read(goal: String, args: JsonObject = JsonObject()): ListingQuery {
             val text = GeoScope.normalize(goal)
             fun arg(key: String) = args.get(key)?.asString.orEmpty().trim().take(160)
-            val price = amount.find(text)?.let {
+            val inside = Regex("внутри\\s+мкад|в пределах\\s+мкад").containsMatchIn(text) || arg("insideMkad") == "true"
+            val near = Regex("рядом с метро|у метро|недалеко от метро").containsMatchIn(text)
+            val walk = Regex("""(\d{1,2})\s*мин\p{L}*\s*(?:пешком\s*)?до метро""").find(text)
+                ?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it in 1..60 }
+                ?: arg("metroWalk").toIntOrNull()?.takeIf { it in 1..60 } ?: 10.takeIf { near }
+            val price = amount.findAll(text).firstOrNull {
+                !text.substring(it.range.last + 1).trimStart().startsWith("мин")
+            }?.let {
                 val value = it.groupValues[1].replace(" ", "").replace("\u00a0", "").replace(',', '.').toDoubleOrNull()
                 val scale = when {
                     it.groupValues[2].startsWith("м") -> 1_000_000
@@ -44,9 +54,9 @@ internal data class ListingQuery(
                 value?.let { n -> (n * scale).toLong().takeIf { it in 1..1_000_000_000_000 } }
             }
             val rooms = roomsCount.find(text)?.groupValues?.get(1)?.toIntOrNull() ?: when {
-                "однуш" in text -> 1
-                "двуш" in text -> 2
-                "треш" in text -> 3
+                "однуш" in text || "однокомнатн" in text -> 1
+                "двуш" in text || "двухкомнатн" in text -> 2
+                "треш" in text || "трехкомнатн" in text -> 3
                 "четыреш" in text -> 4
                 else -> arg("rooms").toIntOrNull()?.takeIf { it in 0..20 }
             }
@@ -70,7 +80,7 @@ internal data class ListingQuery(
             }
             return ListingQuery(place, price ?: arg("budget").toLongOrNull()?.takeIf { it > 0 } ?: Long.MAX_VALUE,
                 rooms, arg("minArea").toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0 } ?: 0.0,
-                market, seller, arg("address"), arg("station"))
+                market, seller, arg("address"), arg("station"), insideMkad = inside, metroWalk = walk)
         }
     }
 }

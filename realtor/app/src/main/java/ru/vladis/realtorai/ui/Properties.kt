@@ -23,7 +23,7 @@ import ru.vladis.realtorai.MainVm
 import ru.vladis.realtorai.data.Property
 import ru.vladis.realtorai.data.pricePerSqm
 
-@Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit, openOwner: (Long) -> Unit, openMap: () -> Unit, openListing: (Long) -> Unit) {
+@Composable fun Properties(vm: MainVm, openAnalytics: () -> Unit, openOwner: (Long) -> Unit, openMap: () -> Unit, openListing: (Long) -> Unit, openCall: (Long) -> Unit) {
     val props by vm.properties.collectAsState()
     val listings by vm.listings.collectAsState()
     val covers = remember(listings) { listings.filter { it.propertyId != null && it.cover.isNotBlank() }.associate { it.propertyId to it.cover } }
@@ -86,8 +86,9 @@ import ru.vladis.realtorai.data.pricePerSqm
                             p.pricePerSqm().takeIf { it > 0 }?.let { it.rub() + "/м²" })
                         if (facts.isNotEmpty()) Text(facts.joinToString("  ·  "), color = Muted)
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Text("Ваш доход: ${vm.earning(p).rub()}", color = Lime, style = MaterialTheme.typography.labelMedium)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Ваш доход: ${vm.earning(p).rub()}", Modifier.weight(1f), color = Lime, style = MaterialTheme.typography.labelMedium)
+                            TextButton({ openCall(p.id) }) { Text("Звонок") }
                             TextButton({ openOwner(p.id) }) { Text("Сопровождение") }
                             p.sourceOfferId?.let { id -> TextButton({ openListing(id) }) { Text("Объявление") } }
                         }

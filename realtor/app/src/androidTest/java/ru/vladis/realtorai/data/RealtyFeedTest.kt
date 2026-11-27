@@ -28,7 +28,7 @@ class RealtyFeedTest {
               <url>https://www.cian.ru/sale/flat/12345678/</url>
               <last-update-date>2026-11-26T09:00:00+03:00</last-update-date>
               <image>https://cdn.example.org/one.jpg</image><image>https://cdn.example.org/two.jpg</image>
-              <location><locality-name>Москва</locality-name><address>Лесная, 4</address></location>
+              <location><locality-name>Москва</locality-name><address>Лесная, 4</address><metro><name>Белорусская</name><time-on-foot>7</time-on-foot></metro></location>
               <price><value>13000000</value><currency>RUB</currency></price><area><value>52.1</value></area>
               <sales-agent><category>владелец</category><phone>+7 999 123-45-…</phone><phone>+7 999 123-45-67</phone></sales-agent>
             </offer></realty-feed>
@@ -36,6 +36,7 @@ class RealtyFeedTest {
         val row = RealtyFeed.parse(xml, "allowed-test").single()
         val origin = ru.vladis.realtorai.hunter.ListingOrigin
         assertEquals(2, origin.photos(row.photoUrls).size)
+        assertEquals(7, row.metroWalkMinutes)
         assertEquals("12345678", origin.original(row)?.id)
         assertEquals("+79991234567", row.contactPhone)
         assertNull(row.ownerPhone)

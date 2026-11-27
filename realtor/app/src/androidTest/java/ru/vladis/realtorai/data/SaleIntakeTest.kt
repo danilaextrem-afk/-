@@ -30,6 +30,8 @@ class SaleIntakeTest {
             assertEquals(9, listing.floorsTotal)
             assertEquals(10_000_000L, listing.price)
             assertNull(listing.approvedAt)
+            assertEquals("CALL", db.owners().get(taken.propertyId)?.step)
+            assertNull(db.owners().get(taken.propertyId)?.activatedAt)
             assertTrue(db.publications().pubsOf(listing.id).isEmpty())
             assertEquals(taken, SaleIntake.fromShare(db, url))
             assertEquals(1, db.dao().allProperties().size)
@@ -52,5 +54,24 @@ class SaleIntakeTest {
             assertEquals("19", pending.single { it.platform == "TELEGRAM" }.externalId)
             assertTrue(pending.single { it.platform == "CIAN" }.message.contains("фид"))
         } finally { db.close() }
+    }
+
+    @Test fun explicitCallOutcomeSchedulesMeetingAndOptOutCancelsIt(): Unit = runBlocking {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        Room.inMemoryDatabaseBuilder(ctx, AppDb::class.java).build().use { db ->
+            val now = System.currentTimeMillis()
+            val owner = db.dao().saveClient(Client(name = "Тест", phone = "+79991234567", role = "owner"))
+            val property = db.dao().saveProperty(Property(title = "Квартира", ownerId = owner))
+            val meeting = ru.vladis.realtorai.local.CallWorkflow.record(db, property,
+                ru.vladis.realtorai.local.CallOutcome.MEETING, "О времени договорились", now + 60_000, now)
+            assertEquals("meeting/$property", meeting.task?.kind)
+            assertEquals("AGREEMENT", db.owners().get(property)?.step)
+            val refused = ru.vladis.realtorai.local.CallWorkflow.record(db, property,
+                ru.vladis.realtorai.local.CallOutcome.OPT_OUT, "", null, now + 100)
+            assertEquals(listOf(meeting.task?.id), refused.cancelled)
+            assertTrue(db.dao().allTasks().single().done)
+            assertTrue(db.dao().client(owner)!!.doNotContact)
+            assertTrue(db.dao().property(property)!!.ownerContactBlocked)
+        }
     }
 }

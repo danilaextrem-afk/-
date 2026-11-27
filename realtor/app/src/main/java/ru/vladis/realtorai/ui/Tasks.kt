@@ -46,7 +46,7 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
     val zone = ZoneId.systemDefault()
     var selected by remember { mutableStateOf<LocalDate?>(null) }
     var week by remember { mutableStateOf(today.minusDays(today.dayOfWeek.value.toLong() - 1)) }
-    val staged = when (filter) { "Предстоящие" -> tasks.filter { !it.done }; "Встречи" -> tasks.filter { it.kind == "meeting" && !it.done }; else -> tasks.filter { it.done } }
+    val staged = when (filter) { "Предстоящие" -> tasks.filter { !it.done }; "Встречи" -> tasks.filter { (it.kind == "meeting" || it.kind.startsWith("meeting/")) && !it.done }; else -> tasks.filter { it.done } }
     val shown = staged.filter { selected == null || Instant.ofEpochMilli(it.dueAt).atZone(zone).toLocalDate() == selected }
     val groups = shown.sortedBy { it.dueAt }.groupBy { headFmt.format(Date(it.dueAt)) }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -107,7 +107,7 @@ private val timeFmt = SimpleDateFormat("HH:mm", Locale("ru"))
                         Checkbox(t.done, { vm.saveTask(t.copy(done = it)) })
                         Column(Modifier.weight(1f)) {
                             Text(t.title, textDecoration = if (t.done) TextDecoration.LineThrough else null)
-                            Text(if (!t.done && t.dueAt < now) "Просрочено" else if (t.kind == "meeting") "Встреча" else "Задача",
+                            Text(if (!t.done && t.dueAt < now) "Просрочено" else if ((t.kind == "meeting" || t.kind.startsWith("meeting/"))) "Встреча" else "Задача",
                                 color = Muted, style = MaterialTheme.typography.bodySmall)
                         }
                         IconButton({ vm.deleteTask(t) }) { Icon(Icons.Default.Delete, "Удалить", tint = Muted) }

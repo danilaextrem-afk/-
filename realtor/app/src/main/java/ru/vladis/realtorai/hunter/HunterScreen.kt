@@ -301,6 +301,8 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
     val crmProps by main.properties.collectAsState()
     val exists = crmProps.any { ru.vladis.realtorai.autopilot.AutoRules.isDuplicate(o, it) }
     val scope = rememberCoroutineScope()
+    val clients by main.clients.collectAsState()
+    val crmProperty = crmProps.firstOrNull { ru.vladis.realtorai.autopilot.AutoRules.isDuplicate(o, it) }
     val original = remember(o.url, o.externalId) { ListingOrigin.original(o) }
     val photos = remember(o.photoUrls) { ListingOrigin.photos(o.photoUrls) }
     val contact = if (o.seller == "owner") ListingOrigin.dialable(o.contactPhone ?: o.ownerPhone) else null
@@ -329,6 +331,8 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
             }, Modifier.fillMaxWidth()) { Text("Открыть оригинал объявления") }
             if (o.seller == "owner") (o.contactName ?: o.ownerName)?.let { Text(it) }
             if (contact == null) Text("Источник не предоставил номер собственника", color = Muted)
+            else if (!ru.vladis.realtorai.local.CallWorkflow.canDial(crmProperty, contact, clients))
+                Text("Не звонить: собственник отказался от контактов", color = MaterialTheme.colorScheme.error)
             else {
                 OutlinedButton({
                     runCatching { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", contact, null))) }

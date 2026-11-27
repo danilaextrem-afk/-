@@ -67,6 +67,8 @@ internal object PropertyIndex {
         if (q.minArea > 0) append(" от ").append(q.minArea).append(" м²")
         if (q.market != null) append(if (q.market == "primary") " новостройка" else " вторичка")
         if (q.seller != null) append(when(q.seller) { "owner" -> " от собственника"; "developer" -> " от застройщика"; else -> " от агентства" })
+        if (q.insideMkad) append(" внутри МКАД")
+        q.metroWalk?.let { append(" метро до ").append(it).append(" минут пешком") }
         append(" ").append(q.address).append(" ").append(q.station)
     }.take(430).replace(Regex("(?i)(?:site|filetype|inurl):\\S+"), "")
 

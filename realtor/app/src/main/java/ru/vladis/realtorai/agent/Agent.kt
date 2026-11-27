@@ -63,6 +63,7 @@ enum class AgentTool(val label: String, val network: Boolean = false) {
     FIND("Найти предложения в базе"),
     OWNER_REPORT("Подготовить отчёт собственнику"),
     LISTING("Подготовить черновик объявления"),
+    INTAKE("Взять объект в продажу"),
     DOCUMENT("Составить предложение или сообщение"),
     TASK("Запланировать локальную задачу")
 }
@@ -116,7 +117,7 @@ internal object AgentProtocol {
         val tool = AgentTool.valueOf(value.get("tool").asString)
         val args = value.getAsJsonObject("args")
         val allowed = when (tool) {
-            AgentTool.FIND -> setOf("area","budget","rooms","minArea","market","seller","address","station")
+            AgentTool.FIND -> setOf("area","budget","rooms","minArea","market","seller","address","station","insideMkad","metroWalk")
             AgentTool.MATCH -> setOf("client")
             AgentTool.OWNER_REPORT, AgentTool.LISTING -> setOf("property")
             AgentTool.DOCUMENT -> setOf("title")
@@ -212,7 +213,7 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     }
 
     private suspend fun decide(job: AgentJob, progress: AgentProgress, prior: String): AgentDecision {
-        val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market,seller,address,station}: seller owner/developer, только Москва и МО; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Передавай только известные параметры. Если критически не хватает данных, ask."""
+        val system = """Один следующий шаг JSON: {"tool":"КОД","args":{}} или {"ask":"вопрос"} или {"finish":"итог"}. FEEDS обновить; FIND {area,budget,rooms,minArea,market,seller,address,station,insideMkad,metroWalk}, только Москва и МО; INTAKE {} только при просьбе взять объект и прямой ссылке в поручении; MATCH {client}; MARKET цены; LEADS заявки; WEEK задачи; OWNERS сроки; OWNER_REPORT {property}; LISTING {property}; DOCUMENT {title}; TASK {title,date} YYYY-MM-DD. ID числовые. Смотри фактические результаты, не повторяй выполненное. Передавай только известные параметры. Если критически не хватает данных, ask."""
         val observed = progress.steps.zip(progress.used.orEmpty()) { result, call ->
             "${call.tool} ${call.args}: ${result.substringAfter('\n').take(180)}"
         }.joinToString("\n").takeLast(570)
@@ -250,6 +251,19 @@ class AgentWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         AgentTool.FIND -> ListingSearch.run(ctx, db, job.goal, action.args,
             refresh = progress.used.orEmpty().none { it.tool == AgentTool.FEEDS || it.tool == AgentTool.FIND })
         AgentTool.OWNER_REPORT -> OwnerService(ctx).draftReport(requireNotNull(number("property")) { "Нужен ID объекта" })
+        AgentTool.INTAKE -> {
+            require(ru.vladis.realtorai.publish.SaleIntake.requested(job.goal)) {
+                "Для приёма объекта укажите прямую ссылку и попросите взять его в продажу"
+            }
+            val intake = ru.vladis.realtorai.publish.SaleIntake.fromShare(db, job.goal)
+            if (!intake.pending) {
+                OwnerService.schedule(ctx)
+                OwnerService(ctx).syncTasks()
+            }
+            "Объект #${intake.propertyId}, черновик #${intake.listingId}. " +
+                if (intake.pending) "Требуется проверка характеристик в «Моих объектах»." else
+                    "Сопровождение начато. Покупателей по критериям CRM: ${intake.buyers}."
+        }
         AgentTool.LISTING -> db.withTransaction {
             val id = requireNotNull(number("property")) { "Нужен ID объекта" }
             val p = requireNotNull(db.dao().property(id)) { "Объект не найден" }

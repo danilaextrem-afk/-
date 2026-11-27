@@ -14,6 +14,12 @@ object SaleIntake {
         ListingOrigin.original(Offer(source = "Поделиться", url = it.value.trimEnd('.', ',', ';', '!', ']')))
     }
 
+    internal fun requested(text: String): Boolean {
+        val goal = GeoScope.normalize(text)
+        val action = Regex("""(?:^|\s)(?:возьми|взять|добавь|добавить|прими|принять)\s""")
+        return action.containsMatchIn(goal) && "продаж" in goal && sharedLink(text) != null
+    }
+
     // Parse only explicit, unambiguous values in Android's shared text. No network
     // access or inferred address, seller, rights, or market classification.
     private data class SharedFacts(val price: Long = 0, val area: Double = 0.0, val rooms: Int = 0,
@@ -73,7 +79,7 @@ object SaleIntake {
         val facts = AutoRules.propertyFromOffer(offer, owner)
         val property = when {
             previous == null -> facts
-            previous.status == "review" -> facts.copy(id = previous.id, createdAt = previous.createdAt)
+            previous.status == "review" -> facts.copy(id = previous.id, createdAt = previous.createdAt, ownerContactBlocked = previous.ownerContactBlocked, ownerId = owner ?: previous.ownerId)
             else -> previous.copy(sourceOfferId = previous.sourceOfferId ?: id, ownerId = previous.ownerId ?: owner)
         }
         save(db, property, offer)
@@ -95,6 +101,7 @@ object SaleIntake {
                 title = base.title, description = SmartAi.factsText(base).trim(), market = base.market)
             pubs.saveListing(draft)
         } else existing.id
+        if (saved.status == "active") ru.vladis.realtorai.owner.OwnerService.begin(db, propertyId)
         val buyers = db.dao().allClients().count { AutoRules.matches(it, listOf(saved)).isNotEmpty() }
         return Result(listing, propertyId, buyers, saved.status == "review")
     }

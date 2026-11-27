@@ -44,6 +44,7 @@ object HunterImport {
         "owner_name" to listOf("owner_name", "ownername", "contact_name", "имя собственника"),
         "owner_phone" to listOf("owner_phone", "ownerphone", "contact_phone", "телефон собственника"),
         "crm_allowed" to listOf("crm_allowed", "разрешен импорт контакта"),
+        "metro_walk_minutes" to listOf("metro_walk_minutes", "metro_walk", "пешком до метро"),
         "photos" to listOf("photos", "photo_urls", "images", "image", "photo", "фото"),
         "description" to listOf("description", "описание"),
         "updated_at" to listOf("updated_at", "updatedat", "last_updated", "lastupdated", "last_update_date", "дата обновления"),
@@ -72,6 +73,7 @@ object HunterImport {
             ownerName = g("owner_name")?.takeIf { allowed }, ownerPhone = g("owner_phone")?.takeIf { allowed },
             contactName = g("owner_name")?.takeIf { seller == "owner" }?.take(150),
             contactPhone = ListingOrigin.dialable(g("owner_phone"))?.takeIf { seller == "owner" },
+            metroWalkMinutes = g("metro_walk_minutes")?.toIntOrNull()?.takeIf { it in 1..120 },
             photoUrls = ListingOrigin.photos(g("photos")).joinToString("\n").takeIf(String::isNotEmpty),
             sourceDescription = g("description")?.take(12_000), sourceUpdatedAt = ListingOrigin.updatedAt(g("updated_at")),
             externalId = g("id").orEmpty().take(250), url = g("url").orEmpty().take(4096), title = g("title").orEmpty(),
@@ -130,7 +132,7 @@ object HunterImport {
             if (old == null) { val n = r.copy(firstSeen = now, lastSeen = now); ins += n; keys(n).forEach { known[it] = n } }
             else if (old.id == 0L || !updatedIds.add(old.id)) skipped++ // повтор внутри того же файла
             else upd += old.copy(externalId = r.externalId.ifBlank { old.externalId },
-                photoUrls = r.photoUrls, sourceDescription = r.sourceDescription ?: old.sourceDescription,
+                metroWalkMinutes = r.metroWalkMinutes, photoUrls = r.photoUrls, sourceDescription = r.sourceDescription ?: old.sourceDescription,
                 sourceUpdatedAt = r.sourceUpdatedAt ?: old.sourceUpdatedAt, contactName = r.contactName, contactPhone = r.contactPhone,
                 region = r.region, locality = r.locality ?: old.locality, transit = r.transit ?: old.transit, seller = r.seller, expiresAt = r.expiresAt, housingKind = r.housingKind ?: old.housingKind, ownerName = r.ownerName, ownerPhone = r.ownerPhone, price = r.price, area = r.area, market = r.market, rooms = r.rooms.takeIf { it > 0 } ?: old.rooms, floor = r.floor.takeIf { it > 0 } ?: old.floor, lastSeen = now, active = true, title = r.title.ifBlank { old.title },
                 address = r.address.ifBlank { old.address }, district = r.district.ifBlank { old.district }, url = r.url.ifBlank { old.url },

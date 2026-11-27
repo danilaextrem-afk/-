@@ -91,6 +91,7 @@ object Groq {
           "cheaper":{"type":"boolean"},"criteria":{"type":"object","additionalProperties":false,
           "properties":{"area":{"type":["string","null"]},"budget":{"type":["integer","null"]},
           "rooms":{"type":["integer","null"]},"minArea":{"type":["number","null"]},
+          "insideMkad":{"type":["boolean","null"]},"metroWalk":{"type":["integer","null"]},
           "market":{"type":["string","null"]},"seller":{"type":["string","null"]},
           "address":{"type":["string","null"]},"station":{"type":["string","null"]}}}}}""")
         return JSONObject().put("type","function").put("function", JSONObject()
