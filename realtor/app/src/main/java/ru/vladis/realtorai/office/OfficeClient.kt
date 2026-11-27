@@ -82,6 +82,12 @@ internal class OfficeClient(private val session: OfficeSession) {
             if (response.code == 412) throw OfficeConflict()
             if (response.code == 409) throw IllegalStateException(
                 when (runCatching { JSONObject(response.peekBody(2_048L).string()).optString("error") }.getOrNull()) {
+                    "feed_not_configured" -> "Офис не подключил корпоративный фид."
+                    "advertising_disabled" -> "Администратор приостановил размещение."
+                    "placement_limit" -> "Все места в корпоративном фиде заняты."
+                    "limit_below_active_count" -> "Лимит ниже числа действующих размещений."
+                    "incomplete_secondary_property" -> "Для фида нужна вторичная квартира с адресом, ценой, площадью и комнатами."
+                    "property_sold" -> "По объекту уже закрыта сделка."
                     "duplicate_deal" -> "По этой паре уже открыта сделка."
                     "invalid_stage" -> "Этот переход недоступен. Обновите список сделок."
                     else -> "Действие конфликтует с текущим состоянием общей базы."
@@ -99,6 +105,24 @@ internal class OfficeClient(private val session: OfficeSession) {
             JSONObject(stream.readUtf8())
         }
     }
+
+    suspend fun advertisingPolicy() = request(listOf("advertising", "policy"))
+
+    suspend fun saveAdvertisingPolicy(enabled: Boolean, limit: Int) = request(
+        listOf("advertising", "policy"), method = "PUT",
+        data = JSONObject().put("enabled", enabled).put("active_limit", limit)
+    )
+
+    suspend fun feedOffer(id: String) = request(listOf("advertising", "yandex", id))
+
+    suspend fun approveFeedOffer(row: OfficeRow, offerRevision: Int, materials: JSONObject) = request(
+        listOf("advertising", "yandex", row.id), method = "PUT", revision = offerRevision,
+        data = materials.put("property_revision", row.revision)
+    )
+
+    suspend fun withdrawFeedOffer(id: String, offerRevision: Int) = request(
+        listOf("advertising", "yandex", id), method = "DELETE", revision = offerRevision
+    )
 
     suspend fun me(): Employee = employee(request(listOf("me")))
 

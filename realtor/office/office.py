@@ -14,6 +14,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from advertising import Advertising, SCHEMA as ADVERTISING_SCHEMA
+
 ROLES = {"admin", "manager", "agent"}
 PRIVATE_KINDS = {"buyers", "deals"}
 KINDS = PRIVATE_KINDS | {"properties"}
@@ -81,8 +83,9 @@ def normalize(kind, value):
 
 
 class Office:
-    def __init__(self, path):
+    def __init__(self, path, feed_key=None):
         self.path = path
+        self.advertising = Advertising(feed_key, Problem)
         with closing(self.connect()) as db:
             db.executescript("""
                 PRAGMA journal_mode = WAL;
@@ -101,6 +104,7 @@ class Office:
                     seq INTEGER PRIMARY KEY, at INTEGER NOT NULL, actor TEXT NOT NULL,
                     action TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL);
             """)
+            db.executescript(ADVERTISING_SCHEMA)
             with db:
                 if "deleted" not in {row["name"] for row in db.execute("PRAGMA table_info(record)")}:
                     db.execute("ALTER TABLE record ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
@@ -198,6 +202,10 @@ class Office:
             raise Problem(400, "invalid_fields")
         if stage == "closed" and amount <= 0 or stage != "closed" and (amount or commission):
             raise Problem(400, "invalid_amount")
+        if stage == "closed" and actor["role"] == "agent":
+            property_row = self.record(db, "properties", property_id)
+            if not property_row or property_row["assigned_to"] != actor["id"]:
+                raise Problem(403, "sale_confirmation_requires_property_assignee")
         if row:
             old = json.loads(row["body"])
             if (property_id, buyer_id) != (old["property_id"], old["buyer_id"]):
@@ -246,6 +254,8 @@ class Office:
                 raise Problem(409, "record_linked_to_deal")
             db.execute("UPDATE record SET deleted=1, body='{}', revision=revision+1, updated_at=? WHERE kind=? AND id=?",
                        (int(time.time()), kind, identifier))
+            if kind == "properties":
+                self.advertising.withdraw(self, db, identifier, actor["id"], "property_deleted")
             self.audit(db, actor["id"], "delete", kind, identifier)
             return {"deleted": True}
         if method == "PATCH":
@@ -276,6 +286,10 @@ class Office:
                    assigned_to=excluded.assigned_to, body=excluded.body, deleted=0,
                    revision=excluded.revision, updated_at=excluded.updated_at""",
                    (kind, identifier, assignee, body, revision, now))
+        if method == "PUT" and kind == "properties":
+            self.advertising.on_property_change(self, db, identifier, actor["id"], json.loads(body))
+        if method == "PUT" and kind == "deals" and payload["stage"] == "closed":
+            self.advertising.withdraw(self, db, payload["property_id"], actor["id"], "property_sold")
         self.audit(db, actor["id"], "assign" if method == "PATCH" else "save", kind, identifier)
         return self.serialize(db, self.record(db, kind, identifier))
 
@@ -291,8 +305,11 @@ def handler(office):
 
         def reply(self, status, data):
             body = json.dumps(data, ensure_ascii=False).encode()
+            self.send_bytes(status, body, "application/json; charset=utf-8")
+
+        def send_bytes(self, status, body, content_type):
             self.send_response(status)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(body)))
@@ -317,6 +334,8 @@ def handler(office):
                         raise Problem(403, "role_required")
                     return {"items": [dict(row) for row in db.execute(
                         "SELECT id,name,role FROM employee WHERE token_hash IS NOT NULL ORDER BY id")]}
+                if parts[:2] == ["v1", "advertising"]:
+                    return office.advertising.route(office, db, actor, method, parts, payload, self.headers.get("If-Match", ""))
                 if len(parts) < 2 or parts[0] != "v1" or parts[1] not in KINDS:
                     raise Problem(404, "not_found")
                 kind = parts[1]
@@ -340,7 +359,16 @@ def handler(office):
 
         def dispatch(self):
             try:
-                self.reply(200, self.route())
+                path = urlsplit(self.path).path
+                if self.command == "GET" and office.advertising.feed_path(path):
+                    with closing(office.connect()) as db, db:
+                        db.execute("BEGIN")
+                        body = office.advertising.xml(db)
+                    self.send_bytes(200, body, "application/xml; charset=utf-8")
+                elif path.startswith("/feeds/"):
+                    raise Problem(404, "not_found")
+                else:
+                    self.reply(200, self.route())
             except Problem as e:
                 self.reply(e.status, {"error": e.code})
             except sqlite3.Error:
@@ -372,7 +400,7 @@ def main():
     serve.add_argument("--cert")
     serve.add_argument("--key")
     args = parser.parse_args()
-    office = Office(args.db)
+    office = Office(args.db, os.environ.get("REALTOR_YANDEX_FEED_KEY") if args.command == "serve" else None)
     if args.command == "issue":
         print(office.issue(args.id, args.name, args.role))
     elif args.command == "revoke":

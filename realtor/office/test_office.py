@@ -7,6 +7,9 @@ import unittest
 from contextlib import closing
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from xml.etree import ElementTree
+
+from advertising import NAMESPACE
 
 from office import Office, handler
 
@@ -19,9 +22,11 @@ class OfficeTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.path = Path(directory.name) / "office.sqlite3"
-        self.office = Office(self.path)
+        self.feed_key = "k" * 43
+        self.office = Office(self.path, self.feed_key)
         self.one = self.office.issue("one", "Первый", "agent")
         self.two = self.office.issue("two", "Второй", "agent")
+        self.admin = self.office.issue("admin", "Администратор", "admin")
         self.manager = self.office.issue("manager", "Руководитель", "manager")
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler(self.office))
         self.thread = threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True)
@@ -136,6 +141,92 @@ class OfficeTest(unittest.TestCase):
         self.assertEqual(closed, self.request("PUT", route, self.one, closed, **{"If-Match": '"3"'})[1]["data"])
         self.assertEqual(409, self.request("PUT", route, self.one, dict(deal, stage="cancelled"), **{"If-Match": '"4"'})[0])
         self.assertEqual(405, self.request("DELETE", route, self.manager, **{"If-Match": '"4"'})[0])
+
+    def yandex(self, expected=200, key=None):
+        with closing(http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)) as connection:
+            connection.request("GET", "/feeds/yandex/" + (self.feed_key if key is None else key))
+            response = connection.getresponse()
+            self.assertEqual(expected, response.status)
+            self.assertEqual("no-store", response.getheader("Cache-Control"))
+            body = response.read()
+        if expected == 200:
+            return ElementTree.fromstring(body).findall(f"{{{NAMESPACE}}}offer")
+        return body
+
+    @staticmethod
+    def materials():
+        return dict(consent_reference="Agreement 42", description="Прямая продажа & готовность к показу",
+                    phone="+74951234567", images=["https://example.test/photo.jpg?a=b&c=d"],
+                    floor=3, media_rights=True, property_revision=1)
+
+    def test_approved_yandex_lifecycle_and_access(self):
+        policy = "/v1/advertising/policy"
+        offer = "/v1/advertising/yandex/entry"
+        with_revision = lambda revision: {"If-Match": f'"{revision}"'}
+        self.assertEqual(404, self.request("GET", offer, self.one)[0])
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        self.assertEqual(403, self.request("GET", policy, self.one)[0])
+        self.assertEqual(403, self.request("PUT", policy, self.manager, dict(enabled=True, active_limit=1))[0])
+        self.assertEqual(404, self.request("GET", offer, self.two)[0])
+        self.assertEqual(409, self.request("PUT", offer, self.one, self.materials(), **with_revision(0))[0])
+        self.assertEqual(200, self.request("PUT", policy, self.admin, dict(enabled=True, active_limit=1))[0])
+        self.assertEqual(400, self.request("PUT", offer, self.one,
+            dict(self.materials(), media_rights=False), **with_revision(0))[0])
+        self.assertEqual(400, self.request("PUT", offer, self.one,
+            dict(self.materials(), images=["file:///private"]), **with_revision(0))[0])
+        self.assertEqual(412, self.request("PUT", offer, self.one,
+            dict(self.materials(), property_revision=41), **with_revision(0))[0])
+        status, approved = self.request("PUT", offer, self.one, self.materials(), **with_revision(0))
+        self.assertEqual((200, "in_feed", 1), (status, approved["state"], approved["revision"]))
+        self.assertEqual(412, self.request("PUT", offer, self.one, self.materials(), **with_revision(0))[0])
+        self.assertEqual(200, self.request("PUT", offer, self.one, self.materials(), **with_revision(1))[0])
+        self.yandex(404, key="v" * 43)
+        record, = self.yandex()
+        self.assertEqual("entry", record.attrib["internal-id"])
+        self.assertEqual("14800000", record.findtext("r:price/r:value", namespaces={"r": NAMESPACE}))
+        self.assertEqual(self.materials()["description"], record.findtext("r:description", namespaces={"r": NAMESPACE}))
+        self.assertNotIn("Agreement 42", ElementTree.tostring(record, encoding="unicode"))
+        self.assertEqual(200, self.request("PUT", "/v1/properties/second", self.one, PROPERTY, **{"If-None-Match": "*"})[0])
+        self.assertEqual((409, {"error": "placement_limit"}), self.request("PUT", "/v1/advertising/yandex/second",
+            self.one, self.materials(), **with_revision(0)))
+        self.assertEqual(200, self.request("PUT", "/v1/properties/entry", self.one, dict(PROPERTY, price=14_000_000),
+            **with_revision(1))[0])
+        updated, = self.yandex()
+        self.assertEqual("14000000", updated.findtext("r:price/r:value", namespaces={"r": NAMESPACE}))
+        self.assertEqual(record.attrib, updated.attrib)
+        self.assertEqual(200, self.create("buyers", BUYER)[0])
+        deal = dict(property_id="entry", buyer_id="entry", stage="qualification", amount=0, commission=0)
+        route = "/v1/deals/yandex"
+        self.assertEqual(200, self.request("PUT", route, self.one, deal, **{"If-None-Match": "*"})[0])
+        for revision, stage in enumerate(("showing", "deposit", "closed"), start=1):
+            data = dict(deal, stage=stage, amount=14_000_000 if stage == "closed" else 0)
+            self.assertEqual(200, self.request("PUT", route, self.one, data, **with_revision(revision))[0])
+        self.assertEqual([], self.yandex())
+        current = self.request("GET", offer, self.one)[1]
+        self.assertEqual("withdrawn_from_feed", current["state"])
+        self.assertEqual((409, {"error": "property_sold"}), self.request("PUT", offer, self.one,
+            dict(self.materials(), property_revision=2), **with_revision(current["revision"])))
+
+    def test_yandex_policy_pause_backup_and_reapproval(self):
+        policy = "/v1/advertising/policy"
+        offer = "/v1/advertising/yandex/entry"
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        self.assertEqual(200, self.request("PUT", policy, self.admin, dict(enabled=True, active_limit=2))[0])
+        self.assertEqual(200, self.request("PUT", offer, self.one, self.materials(), **{"If-Match": '"0"'})[0])
+        self.assertEqual(200, self.request("PUT", policy, self.admin, dict(enabled=False, active_limit=0))[0])
+        self.assertEqual([], self.yandex())
+        self.assertEqual("feed_disabled", self.request("GET", offer, self.one)[1]["state"])
+        self.assertEqual(200, self.request("PUT", policy, self.admin, dict(enabled=True, active_limit=1))[0])
+        self.assertEqual(1, len(self.yandex()))
+        snapshot = self.path.with_name("with-feed.sqlite3")
+        self.office.backup(snapshot)
+        restored = Office(snapshot, self.feed_key)
+        with closing(restored.connect()) as db:
+            self.assertIn(b"14800000", restored.advertising.xml(db))
+        self.assertEqual(200, self.request("PUT", "/v1/properties/entry", self.one,
+            dict(PROPERTY, address="Другой адрес"), **{"If-Match": '"1"'})[0])
+        self.assertEqual([], self.yandex())
+        self.assertEqual(412, self.request("PUT", offer, self.one, self.materials(), **{"If-Match": '"1"'})[0])
 
     def test_online_backup_preserves_data_and_refuses_overwrite(self):
         self.assertEqual(200, self.create("properties", PROPERTY)[0])

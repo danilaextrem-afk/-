@@ -38,6 +38,8 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
     var dealTransition by remember { mutableStateOf<Pair<OfficeRow, DealStage>?>(null) }
     var chooseShare by remember { mutableStateOf(false) }
     var shareTarget by remember { mutableStateOf<ShareChoice?>(null) }
+    var advertisingPolicy by remember { mutableStateOf<JSONObject?>(null) }
+    var advertisingOffer by remember { mutableStateOf<Pair<OfficeRow, JSONObject>?>(null) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
     var problem by remember { mutableStateOf<String?>(null) }
@@ -98,6 +100,11 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
                 val profile = current!!
                 Text(profile.name, style = MaterialTheme.typography.titleLarge)
                 Text(when (profile.role) { "admin" -> "Администратор"; "manager" -> "Руководитель"; else -> "Риелтор" }, color = Muted)
+                if (profile.canAssign) {
+                    TextButton({
+                        operation { advertisingPolicy = OfficeClient(requireNotNull(session)).advertisingPolicy() }
+                    }, enabled = !busy) { Text("Корпоративное размещение") }
+                }
                 Chips(OfficeSection.entries.map { it.label }, section.label) { label ->
                     if (!busy && label != section.label) {
                         section = OfficeSection.entries.first { it.label == label }
@@ -130,6 +137,15 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
                     Text(row.data.optString(if (section == OfficeSection.PROPERTIES) "address" else "district"), color = Muted)
                     if (amount > 0) Text(amount.rub(), color = Lime)
                     Text("Ответственный: ${row.assignedTo}", color = Muted)
+                    if (section == OfficeSection.PROPERTIES &&
+                        (current?.canAssign == true || current?.id == row.assignedTo)) {
+                        TextButton({
+                            operation {
+                                val offer = OfficeClient(requireNotNull(session)).feedOffer(row.id)
+                                advertisingOffer = row to offer
+                            }
+                        }, enabled = !busy) { Text("Фид Яндекс Недвижимости") }
+                    }
                     if (current?.canAssign == true) TextButton({
                         operation {
                             employees = OfficeClient(requireNotNull(session)).employees()
@@ -163,6 +179,31 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
         }
     }
 
+    advertisingPolicy?.let { policy ->
+        OfficeAdvertisingPolicy(policy, current?.role == "admin", { advertisingPolicy = null }) { enabled, limit ->
+            advertisingPolicy = null
+            operation {
+                OfficeClient(requireNotNull(session)).saveAdvertisingPolicy(enabled, limit)
+                status = "Правила корпоративного размещения сохранены"
+            }
+        }
+    }
+    advertisingOffer?.let { (row, offer) ->
+        val local = properties.firstOrNull { settings.recordId(it.id) == row.id }
+        OfficeAdvertisingOffer(row, offer, local, { advertisingOffer = null }, { materials ->
+            advertisingOffer = null
+            operation {
+                OfficeClient(requireNotNull(session)).approveFeedOffer(row, offer.getInt("revision"), materials)
+                status = "Объект доступен в фиде. Ожидается получение площадкой."
+            }
+        }, {
+            advertisingOffer = null
+            operation {
+                OfficeClient(requireNotNull(session)).withdrawFeedOffer(row.id, offer.getInt("revision"))
+                status = "Объект исключён из фида"
+            }
+        })
+    }
     if (createDeal) {
         val client = remember(session) { OfficeClient(requireNotNull(session)) }
         OfficeDealPicker(client, dismiss = { createDeal = false }) { property, buyer ->
