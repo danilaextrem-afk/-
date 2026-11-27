@@ -14,7 +14,8 @@ import ru.vladis.realtorai.publish.SaleIntake
 class SaleIntakeTest {
     @Test fun sharingAndTakingAnOfferReuseOneDraftWithoutAdvertisingApproval(): Unit = runBlocking {
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        Room.inMemoryDatabaseBuilder(ctx, AppDb::class.java).build().use { db ->
+        val db = Room.inMemoryDatabaseBuilder(ctx, AppDb::class.java).build()
+        try {
             val url = "https://www.cian.ru/sale/flat/336656970/"
             val shared = SaleIntake.fromShare(db, "Объявление $url?utm_test=123")
             assertTrue(shared.pending)
@@ -32,11 +33,12 @@ class SaleIntakeTest {
             assertTrue(db.publications().pubsOf(listing.id).isEmpty())
             assertEquals(taken, SaleIntake.fromShare(db, url))
             assertEquals(1, db.dao().allProperties().size)
-        }
+        } finally { db.close() }
     }
     @Test fun changedPriceAndSaleStayPendingUntilEachPlatformConfirms(): Unit = runBlocking {
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        Room.inMemoryDatabaseBuilder(ctx, AppDb::class.java).build().use { db ->
+        val db = Room.inMemoryDatabaseBuilder(ctx, AppDb::class.java).build()
+        try {
             val dao = db.publications()
             val id = dao.saveListing(ru.vladis.realtorai.publish.Listing())
             dao.savePub(ru.vladis.realtorai.publish.Publication(listingId = id, platform = "TELEGRAM",
@@ -49,6 +51,6 @@ class SaleIntakeTest {
             assertTrue(pending.all { it.status == "removal_pending" })
             assertEquals("19", pending.single { it.platform == "TELEGRAM" }.externalId)
             assertTrue(pending.single { it.platform == "CIAN" }.message.contains("фид"))
-        }
+        } finally { db.close() }
     }
 }
