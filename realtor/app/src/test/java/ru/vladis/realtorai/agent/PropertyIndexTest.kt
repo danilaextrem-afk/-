@@ -14,6 +14,19 @@ class PropertyIndexTest {
         assertNull(PropertyIndex.canonical(cian, "https://user@www.cian.ru/sale/flat/336656970/"))
     }
 
+    @Test fun acceptsBothDirectMoveRoutesAsOneListing() {
+        val move = PropertyIndex.sites.single { it.domain == "move.ru" }
+        val short = "https://move.ru/objects/9293358415"
+        val long = "https://move.ru/objects/prodaetsya_1-komnatnaya_kvartira_ploschadyu_313_kvm_moskva_9293358415/"
+        assertEquals(short, PropertyIndex.canonical(move, "$short?utm_source=test"))
+        assertEquals(long, PropertyIndex.canonical(move, long))
+        val shortId = ru.vladis.realtorai.publish.SaleIntake.sharedLink(short)?.identity
+        assertEquals("move.ru:9293358415", shortId)
+        assertEquals(shortId, ru.vladis.realtorai.publish.SaleIntake.sharedLink(long)?.identity)
+        assertNull(PropertyIndex.canonical(move, "https://move.ru/objects/"))
+        assertNull(PropertyIndex.canonical(move, "https://move.ru/objects/sdaetsya_kvartira_9293358415/"))
+    }
+
     @Test fun continuationKeepsThePriorQuery() {
         val query = ListingQuery(place = "Химки", rooms = 2)
         val prior = SearchConversation(current = query, seen = listOf("index:https://example.com/1"))

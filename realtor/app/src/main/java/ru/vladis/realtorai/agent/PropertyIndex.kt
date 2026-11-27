@@ -29,7 +29,7 @@ internal object PropertyIndex {
         Site("ONREALT", "onrealt.ru", Regex("/[^/]+/k[uy]pit-kvartiru(?:-[^/]+)?/[0-9]+/?")),
         Site("Мир квартир", "mirkvartir.ru", Regex("/[0-9]{5,}/?")),
         Site("ГдеЭтотДом", "gdeetotdom.ru", Regex("/obj/living/(?:[^/]+/)?[0-9]+/?")),
-        Site("Move.ru", "move.ru", Regex("/objects/prodaetsya_[^/]+_[0-9]+/?")),
+        Site("Move.ru", "move.ru", Regex("/objects/(?:prodaetsya_[^/]+_)?[0-9]{5,}/?")),
         Site("Из рук в руки", "irr.ru", Regex("/real-estate/apartments-sale/.+-advert[0-9]+[.]html")),
         Site("ПИК · застройщик", "pik.ru", Regex("/flat/[0-9]+/?")),
         Site("Telegram · публичные сообщения", "t.me", Regex("/(?:s/)?[A-Za-z][A-Za-z0-9_]{3,}/[0-9]+/?")),
