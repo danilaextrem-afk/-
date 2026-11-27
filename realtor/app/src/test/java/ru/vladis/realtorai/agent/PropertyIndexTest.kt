@@ -19,4 +19,16 @@ class PropertyIndexTest {
         val prior = SearchConversation(current = query, seen = listOf("index:https://example.com/1"))
         assertEquals(SearchTurn("refine", query), SearchLanguage.offline("Найди ещё", prior))
     }
+    @Test fun keepsLaterPlatformsVisibleWithinTheDisplayLimit() {
+        val first = (1..10).map { "first-$it" }
+        val second = (1..10).map { "second-$it" }
+        assertEquals(listOf("first-1", "second-1", "cian", "avito"),
+            PropertyIndex.roundRobin(listOf(first, second, listOf("cian"), emptyList(), listOf("avito"))).take(4))
+    }
+
+    @Test fun retriesBurstLimitButNotExhaustedMonthlyQuota() {
+        assertEquals(1L, PropertyIndex.burstRetrySeconds("0,50", "1,998232", null))
+        assertNull(PropertyIndex.burstRetrySeconds("0,0", "1,998232", null))
+        assertNull(PropertyIndex.burstRetrySeconds("0,50", "1,998232", "120"))
+    }
 }

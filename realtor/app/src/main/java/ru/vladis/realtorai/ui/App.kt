@@ -51,6 +51,14 @@ import ru.vladis.realtorai.MainVm
     var tab by rememberSaveable { mutableStateOf("home") }
     var sub by rememberSaveable { mutableStateOf<String?>(null) }
     var clientId by rememberSaveable { mutableStateOf<Long?>(null) }
+    fun onlineSearch(query: String) {
+        if (vm.busy) return
+        tab = "ai"
+        sub = null
+        val prompt = if (query.isBlank()) "Найди квартиры" else "Найди квартиры. $query"
+        vm.ask("", prompt, null, null)
+    }
+
     BackHandler(sub != null || clientId != null) { if (clientId != null) clientId = null else sub = null }
     val tabs = listOf(Triple("home", "Главная", Icons.Default.Home), Triple("search", "Поиск", Icons.Default.Search),
         Triple("ai", "ИИ", Icons.Default.Star), Triple("crm", "CRM", Icons.Default.Person),
@@ -118,11 +126,13 @@ import ru.vladis.realtorai.MainVm
                         s == "publish" -> ru.vladis.realtorai.publish.PublishScreen(vm) { sub = null }
                         s == "sales" -> SalesWorkspace(vm) { sub = null }
                         s == "leads" -> LeadWorkspace(vm, { sub = null }, { clientId = it })
-                        s == "hunter" || s == "map" -> ru.vladis.realtorai.hunter.HunterScreen(vm, s == "map") { sub = null }
+                        s == "hunter" || s == "map" -> ru.vladis.realtorai.hunter.HunterScreen(vm, s == "map", openOnline = if (s == "hunter") ::onlineSearch else null) { sub = null }
                         else -> when (t) {
                             "home" -> Home(vm, { sub = "analytics" }, { sub = "settings" }, { sub = "publish" }, { sub = "hunter" }, { sub = "sales" }, { sub = "leads" }, { sub = "autopilot" },
-                                { request -> command = request; sub = "agent" }, { sub = "properties" }, { tab = "crm" }, { sub = "tasks" }, { sub = "owner/$it" })
-                            "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, topLevel = true) { tab = "home" }
+                                { request ->
+                                    if (request == "Найди выгодные квартиры") onlineSearch("") else { command = request; sub = "agent" }
+                                }, { sub = "properties" }, { tab = "crm" }, { sub = "tasks" }, { sub = "owner/$it" })
+                            "search" -> ru.vladis.realtorai.hunter.HunterScreen(vm, topLevel = true, openOnline = ::onlineSearch) { tab = "home" }
                             "crm" -> Crm(vm) { clientId = it }
                             "profile" -> Profile(vm) { sub = it }
                             else -> Assistant(vm, { sub = "models" }, { sub = "settings" }, { sub = "offer/$it" }) { request ->

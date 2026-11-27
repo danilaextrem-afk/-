@@ -151,6 +151,11 @@ fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, open
                             }) { Text("Открыть объявление") }
                         }
                     }
+                    val needsKey = listingReply?.sources.orEmpty().any { it.status == "Индекс не настроен" }
+                    if (needsKey) {
+                        Text("Поиск по Авито, Циану и другим площадкам через индекс требует ключ Brave Search API.", color = Muted)
+                        TextButton(openSettings) { Text("Настроить поиск по площадкам") }
+                    }
                     if (listingReply?.sources.orEmpty().isNotEmpty()) {
                         var expanded by remember { mutableStateOf(false) }
                         TextButton({ expanded = !expanded }) { Text(if (expanded) "Скрыть статус источников" else "Статус источников") }

@@ -50,7 +50,7 @@ import kotlin.math.max
 
 private fun pct(d: Double) = "${(d * 100).toInt()}%"
 
-@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, topLevel: Boolean = false, selectedOffer: Long? = null, back: () -> Unit) {
+@Composable fun HunterScreen(main: MainVm, initialMap: Boolean = false, topLevel: Boolean = false, selectedOffer: Long? = null, openOnline: ((String) -> Unit)? = null, back: () -> Unit) {
     val vm: HunterVm = viewModel()
     val allDeals by vm.deals.collectAsState()
     val geoContext = LocalContext.current
@@ -75,6 +75,7 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         }
         return
     }
+    var onlineQuery by remember { mutableStateOf("") }
     var showQuickFilters by remember { mutableStateOf(false) }
     val sale = deals.filter { it.o.deal == "sale" }
     val shown = sale.filter { d ->
@@ -101,6 +102,12 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         TextButton({ showGeography = true }, contentPadding = PaddingValues(horizontal = 0.dp)) {
             Icon(Icons.Default.Place, null, Modifier.padding(end = 6.dp).size(18.dp))
             Text("География · " + geography.locations.joinToString(", ").ifBlank { "Москва и МО" })
+        }
+        if (openOnline != null && tab == "Лента") {
+            Field(onlineQuery, { onlineQuery = it.take(250) }, "Район, бюджет, комнаты — по желанию")
+            FilledTonalButton({ openOnline(onlineQuery.trim()) }, enabled = !main.busy, modifier = Modifier.fillMaxWidth()) {
+                Text("Искать квартиры по площадкам")
+            }
         }
         Chips(listOf("Лента", "Карта", "Фильтры", "Данные", "Подбор"), tab) { tab = it }
         if (tab in listOf("Лента", "Карта")) Chips(listOf("Все продавцы", "Собственники", "Застройщики", "Вторичка", "Новостройки"), sellerFilter) { sellerFilter = it }
@@ -246,9 +253,8 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
             Button({ vm.refreshNow() }, enabled = !vm.busy) { Text("Обновить сейчас") }
         } }
         item { AppCard {
-            Text("Подключённые источники", fontWeight = FontWeight.SemiBold)
-            Text("Торги.Открыто плюс сохранённые фиды. Допустимы только подтверждённые адреса Москвы и МО.", color = Muted, style = MaterialTheme.typography.bodySmall)
-            Field(q, { q = it }, "Запрос к источникам"); OutlinedButton({ vm.searchSources(q) }, enabled = q.isNotBlank()) { Text("Искать в источниках") }
+            Text("Банкротные торги и банковские залоги", fontWeight = FontWeight.SemiBold)
+            Field(q, { q = it }, "Город или район для поиска на торгах"); OutlinedButton({ vm.searchSources(q) }, enabled = q.isNotBlank()) { Text("Искать на торгах") }
         } }
         item { OutlinedButton({ vm.geocodeMissing() }, enabled = !vm.busy) { Text("Определить координаты по адресам (для карты)") } }
     }

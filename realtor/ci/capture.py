@@ -28,8 +28,9 @@ def find(label, attempts=7, scroll=False):
         except (subprocess.CalledProcessError, ET.ParseError):
             time.sleep(1)
             continue
-        # Close only a known emulator launcher ANR, never an app crash.
-        if any("Pixel Launcher isn't responding" in n.get("text", "") for n in nodes):
+        # Close only a known emulator system ANR, never an app crash.
+        if any(any(k in n.get("text", "") for k in ("Pixel Launcher isn't responding",
+                   "com.google.android.googlesdksetup isn't responding")) for n in nodes):
             button = next((n for n in nodes if n.get("resource-id", "").endswith(":id/aerr_close")
                            or n.get("text") == "Close app"), None)
             if button is not None:
