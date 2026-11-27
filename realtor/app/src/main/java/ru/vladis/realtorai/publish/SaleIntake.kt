@@ -14,6 +14,31 @@ object SaleIntake {
         ListingOrigin.original(Offer(source = "Поделиться", url = it.value.trimEnd('.', ',', ';', '!', ']')))
     }
 
+    // Parse only explicit, unambiguous values in Android's shared text. No network
+    // access or inferred address, seller, rights, or market classification.
+    private data class SharedFacts(val price: Long = 0, val area: Double = 0.0, val rooms: Int = 0,
+        val floor: Int = 0, val floorsTotal: Int = 0)
+
+    private fun sharedFacts(raw: String): SharedFacts {
+        val links = urlPattern.findAll(raw.take(8_000)).map { it.value }.toList()
+        if (links.size != 1) return SharedFacts()
+        val text = raw.take(8_000).replace(urlPattern, " ").replace('\u00a0', ' ').replace('\u202f', ' ')
+        fun unique(regex: Regex, group: Int = 1): String? =
+            regex.findAll(text).map { it.groupValues[group] }.toList().singleOrNull()
+        val price = if (Regex("""(?i)(?:₽|руб\.?)\s*/\s*(?:м|кв)""").containsMatchIn(text)) 0L else
+            unique(Regex("""(?<![\d.,])(\d{1,3}(?: \d{3})+|\d{5,12})\s*(?:₽|руб(?:лей|\.)?)(?![\p{L}])"""))
+                ?.replace(" ", "")?.toLongOrNull()?.takeIf { it in 100_000L..10_000_000_000L } ?: 0L
+        val area = unique(Regex("""(?i)(?<![\d.,])(\d{1,4}(?:[.,]\d{1,2})?)\s*(?:м²|м2|кв\.\s*м)(?![\p{L}\d])"""))
+            ?.replace(',', '.')?.toDoubleOrNull()?.takeIf { it in 5.0..5000.0 } ?: 0.0
+        val rooms = unique(Regex("""(?i)(?<!\d)([1-9])\s*[-–]?\s*(?:к\.\s*квартир|комнатн\w*\s+квартир)"""))
+            ?.toIntOrNull() ?: 0
+        val floorPattern = Regex("""(?i)(?<!\d)(\d{1,3})\s*/\s*(\d{1,3})\s*(?:эт\.?|этаж)""")
+        val floor = unique(floorPattern)?.toIntOrNull() ?: 0
+        val total = unique(floorPattern, 2)?.toIntOrNull() ?: 0
+        return SharedFacts(price, area, rooms, floor.takeIf { it in 1..total } ?: 0,
+            total.takeIf { floor in 1..it && it <= 200 } ?: 0)
+    }
+
     suspend fun fromShare(db: AppDb, input: String): Result = db.withTransaction {
         val original = requireNotNull(sharedLink(input)) { "Поделитесь прямой HTTPS-ссылкой на карточку объекта" }
         val known = db.hunter().allOffers().firstOrNull {
@@ -23,8 +48,10 @@ object SaleIntake {
         val existing = db.dao().allProperties().firstOrNull {
             ListingOrigin.original(Offer(source = "", url = it.url))?.identity == original.identity
         }
-        val property = existing ?: Property(title = "Объявление №${original.id}", url = original.url, status = "review")
-        save(db, property, null)
+        val facts = sharedFacts(input)
+        val property = existing ?: Property(title = "Объявление №${original.id}", url = original.url, status = "review",
+            price = facts.price, area = facts.area, rooms = facts.rooms, floor = facts.floor)
+        save(db, property, null, if (existing == null) facts.floorsTotal else 0)
     }
 
     suspend fun fromOffer(db: AppDb, id: Long): Result = db.withTransaction {
@@ -52,13 +79,13 @@ object SaleIntake {
         save(db, property, offer)
     }
 
-    private suspend fun save(db: AppDb, property: Property, offer: Offer?): Result {
+    private suspend fun save(db: AppDb, property: Property, offer: Offer?, sharedFloors: Int = 0): Result {
         val propertyId = db.dao().saveProperty(property)
         val saved = property.copy(id = propertyId)
         val pubs = db.publications()
         val existing = pubs.listingForProperty(propertyId)
         val base = Listing(propertyId = propertyId, address = saved.address, price = saved.price, area = saved.area,
-            rooms = saved.rooms, floor = saved.floor, floorsTotal = offer?.floorsTotal ?: 0, market = saved.type,
+            rooms = saved.rooms, floor = saved.floor, floorsTotal = offer?.floorsTotal ?: sharedFloors, market = saved.type,
             title = saved.title.take(50))
         val listing = if (existing == null || (existing.approvedAt == null && existing.address.isBlank() && saved.address.isNotBlank())) {
             val draft = if (existing == null) base.copy(description = SmartAi.factsText(base).trim())
