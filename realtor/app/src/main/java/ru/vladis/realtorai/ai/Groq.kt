@@ -161,7 +161,7 @@ object CloudAi {
         val key = store.cloudKey
         check(store.cloudEnabled && key.isNotBlank()) { "Облачный ИИ не подключён" }
         check(history.none { containsContact(it.second) }) { "Уберите телефон или почту из запроса либо выберите локальный режим" }
-        return Groq.complete(key, system, history, stream, onPartial).also {
+        return Groq.complete(key, system, history, stream, onPartial = onPartial).also {
             check(it.text.isNotBlank()) { "Groq вернул пустой ответ" }
         }
     }
