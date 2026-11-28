@@ -56,7 +56,7 @@ internal fun OfficeAdvertisingPolicy(
 @Composable
 internal fun OfficeAdvertisingOffer(
     feed: OfficeFeed, row: OfficeRow, offer: JSONObject, local: Property?, draft: Listing?, close: () -> Unit,
-    approve: (JSONObject) -> Unit, withdraw: () -> Unit
+    approve: (JSONObject) -> Unit, withdraw: () -> Unit, reserve: (() -> Unit)?
 ) {
     val state = offer.getString("state")
     val active = state == "in_feed" || state == "feed_disabled"
@@ -83,6 +83,7 @@ internal fun OfficeAdvertisingOffer(
                 "withdrawn_from_feed" -> "Исключён из корпоративного фида."
                 else -> "Ещё не добавлен в корпоративный фид."
             })
+            if (reserve != null) TextButton(reserve) { Text("Зарезервировать бюджет") }
             if (!active) {
                 Field(consent, { consent = it.take(180) }, "Реквизиты согласия собственника")
                 Field(phone, { phone = it.take(12) }, "Публичный телефон агента (+7…)", keyboard = KeyboardType.Phone)

@@ -40,6 +40,10 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
     var chooseShare by remember { mutableStateOf(false) }
     var shareTarget by remember { mutableStateOf<ShareChoice?>(null) }
     var advertisingPolicy by remember { mutableStateOf<Pair<OfficeFeed, JSONObject>?>(null) }
+    var budget by remember { mutableStateOf<JSONObject?>(null) }
+    var budgetEntries by remember { mutableStateOf(emptyList<JSONObject>()) }
+    var budgetNext by remember { mutableStateOf("") }
+    var reserveTarget by remember { mutableStateOf<Pair<OfficeFeed, OfficeRow>?>(null) }
     var ownerPortal by remember { mutableStateOf<Pair<OfficeRow, JSONObject>?>(null) }
     var ownerLink by remember { mutableStateOf<String?>(null) }
     var advertisingOffer by remember { mutableStateOf<Triple<OfficeFeed, OfficeRow, JSONObject>?>(null) }
@@ -65,6 +69,19 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
         val result = client.records(section)
         rows = result.rows
         page = result.next
+    }
+
+    fun appendBudgetEntries(response: JSONObject, replace: Boolean) {
+        val array = response.getJSONArray("items")
+        val newEntries = (0 until array.length()).map(array::getJSONObject)
+        budgetEntries = if (replace) newEntries else (budgetEntries + newEntries).distinctBy { it.getString("id") }
+        budgetNext = response.optString("next")
+    }
+
+    suspend fun refreshBudget(client: OfficeClient) {
+        val snapshot = client.promotionBudget()
+        appendBudgetEntries(client.promotionReservations(), replace = true)
+        budget = snapshot
     }
 
     LaunchedEffect(Unit) {
@@ -104,6 +121,9 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
                 Text(profile.name, style = MaterialTheme.typography.titleLarge)
                 Text(when (profile.role) { "admin" -> "Администратор"; "manager" -> "Руководитель"; else -> "Риелтор" }, color = Muted)
                 if (profile.canAssign) {
+                    TextButton({
+                        operation { refreshBudget(OfficeClient(requireNotNull(session))) }
+                    }, enabled = !busy) { Text("Бюджет продвижения") }
                     Text("Корпоративное размещение", style = MaterialTheme.typography.titleSmall)
                     Row {
                         OfficeFeed.entries.forEach { feed ->
@@ -197,6 +217,51 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
         }
     }
 
+    budget?.let { snapshot ->
+        OfficePromotionBudget(snapshot, budgetEntries, current?.role == "admin", busy, problem,
+            close = { budget = null },
+            saveLimit = { amount ->
+                operation {
+                    budget = OfficeClient(requireNotNull(session)).setPromotionLimit(snapshot.getInt("revision"), amount)
+                }
+            },
+            nextPage = if (budgetNext.isBlank()) null else {
+                {
+                    operation {
+                        val client = OfficeClient(requireNotNull(session))
+                        appendBudgetEntries(client.promotionReservations(budgetNext), replace = false)
+                    }
+                }
+            },
+            settle = { entry, amount, receipt ->
+                operation {
+                    val id = entry.getString("id")
+                    val client = OfficeClient(requireNotNull(session))
+                    val updated = client.settlePromotion(id, amount, receipt)
+                    budgetEntries = budgetEntries.map { if (it.getString("id") == id) updated else it }
+                    budget = client.promotionBudget()
+                }
+            },
+            release = { entry ->
+                operation {
+                    val id = entry.getString("id")
+                    val client = OfficeClient(requireNotNull(session))
+                    val updated = client.releasePromotion(id)
+                    budgetEntries = budgetEntries.map { if (it.getString("id") == id) updated else it }
+                    budget = client.promotionBudget()
+                }
+            })
+    }
+    reserveTarget?.let { (feed, row) ->
+        OfficeReservePromotion(feed, row, busy, problem, close = { reserveTarget = null }) { id, amount ->
+            operation {
+                val client = OfficeClient(requireNotNull(session))
+                client.reservePromotion(id, row, feed, amount)
+                reserveTarget = null
+                status = "Бюджет зарезервирован. Продвижение запускается в кабинете площадки."
+            }
+        }
+    }
     ownerPortal?.let { (row, snapshot) ->
         OfficeOwnerReport(row, snapshot, busy, close = { ownerPortal = null },
             save = { revision, views, inquiries, note ->
@@ -245,7 +310,13 @@ internal fun OfficeScreen(vm: MainVm, close: () -> Unit) {
                 OfficeClient(requireNotNull(session)).withdrawFeedOffer(feed, row.id, offer.getInt("revision"))
                 status = "Объект исключён из фида"
             }
-        })
+        }, reserve = if (current?.canAssign == true && offer.optString("state") == "in_feed") {
+            {
+                advertisingOffer = null
+                problem = null
+                reserveTarget = feed to row
+            }
+        } else null)
     }
     if (createDeal) {
         val client = remember(session) { OfficeClient(requireNotNull(session)) }

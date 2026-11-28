@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from advertising import Advertising
+from budget import PromotionBudget, SCHEMA as BUDGET_SCHEMA
 from owner_portal import OwnerPortal, SCHEMA as OWNER_SCHEMA
 
 ROLES = {"admin", "manager", "agent"}
@@ -92,6 +93,7 @@ class Office:
         self.cian = Advertising(cian_feed_key, Problem, "cian")
         self.feeds = (self.advertising, self.cian)
         self.owner_portal = OwnerPortal(Problem, SLUG, TOKEN)
+        self.promotion_budget = PromotionBudget(Problem, SLUG)
         with closing(self.connect()) as db:
             db.executescript("""
                 PRAGMA journal_mode = WAL;
@@ -113,6 +115,7 @@ class Office:
             for feed in self.feeds:
                 feed.setup(db)
             db.executescript(OWNER_SCHEMA)
+            db.executescript(BUDGET_SCHEMA)
             with db:
                 if "deleted" not in {row["name"] for row in db.execute("PRAGMA table_info(record)")}:
                     db.execute("ALTER TABLE record ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
@@ -351,6 +354,10 @@ def handler(office):
                 if method == "GET" and parts == ["owner", "report"]:
                     return office.owner_portal.authenticate(office, db, authorization)
                 actor = office.actor(db, authorization)
+                if parts[:2] == ["v1", "promotion-budget"]:
+                    cursor = parse_qs(path.query).get("after", [""])[0]
+                    return office.promotion_budget.route(office, db, actor, method, parts, payload,
+                                                         self.headers.get("If-Match", ""), cursor)
                 if parts[:2] == ["v1", "owner-portal"]:
                     return office.owner_portal.route(office, db, actor, method, parts, payload, self.headers.get("If-Match", ""))
                 if method == "GET" and parts == ["v1", "me"]:

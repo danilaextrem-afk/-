@@ -94,6 +94,12 @@ internal class OfficeClient(private val session: OfficeSession) {
                     "placement_limit" -> "Все места в корпоративном фиде заняты."
                     "limit_below_active_count" -> "Лимит ниже числа действующих размещений."
                     "incomplete_secondary_property" -> "Для фида нужна вторичная квартира с адресом, ценой, площадью и комнатами."
+                    "budget_below_usage" -> "Лимит ниже суммы расходов и открытых резервов."
+                    "budget_exceeded" -> "Недостаточно свободного бюджета. Проверьте текущий лимит."
+                    "promotion_offer_required" -> "Для резерва объект должен быть в действующем фиде этой площадки."
+                    "promotion_already_reserved" -> "На этот объект и площадку уже есть открытый резерв."
+                    "promotion_receipt_used" -> "Расход с этим номером документа уже учтён."
+                    "reservation_closed" -> "Резерв уже закрыт. Обновите журнал."
                     "property_sold" -> "По объекту уже закрыта сделка."
                     "duplicate_deal" -> "По этой паре уже открыта сделка."
                     "invalid_stage" -> "Этот переход недоступен. Обновите список сделок."
@@ -130,6 +136,27 @@ internal class OfficeClient(private val session: OfficeSession) {
 
     suspend fun revokeOwnerLink(id: String) =
         request(listOf("owner-portal", id, "access"), method = "DELETE")
+
+    suspend fun promotionBudget() = request(listOf("promotion-budget"))
+
+    suspend fun setPromotionLimit(revision: Int, amount: Long) = request(
+        listOf("promotion-budget"), method = "PUT", revision = revision,
+        data = JSONObject().put("limit_minor", amount)
+    )
+
+    suspend fun promotionReservations(after: String? = null) =
+        request(listOf("promotion-budget", "reservations"), after = after)
+
+    suspend fun reservePromotion(id: String, row: OfficeRow, feed: OfficeFeed, amount: Long) =
+        request(listOf("promotion-budget", "reservations", id, "reserve"), method = "PUT",
+            data = JSONObject().put("property_id", row.id).put("channel", feed.route).put("amount_minor", amount))
+
+    suspend fun settlePromotion(id: String, amount: Long, receipt: String) =
+        request(listOf("promotion-budget", "reservations", id, "settle"), method = "PUT",
+            data = JSONObject().put("actual_minor", amount).put("receipt", receipt))
+
+    suspend fun releasePromotion(id: String) =
+        request(listOf("promotion-budget", "reservations", id, "release"), method = "PUT", data = JSONObject())
 
     suspend fun advertisingPolicy(feed: OfficeFeed) = request(feed.policyRoute())
 

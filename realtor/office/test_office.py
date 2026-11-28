@@ -5,6 +5,7 @@ import tempfile
 import threading
 import unittest
 from unittest.mock import patch
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -281,6 +282,66 @@ class OfficeTest(unittest.TestCase):
             self.assertEqual(200, self.request("PUT", route, self.one, entry, **{"If-Match": fmt(revision)})[0])
         self.assertEqual([], self.cian_xml(self.cian_key).findall("object"))
         self.assertEqual("withdrawn_from_feed", self.request("GET", offer, self.one)[1]["state"])
+
+    def promotion_fixture(self, limit=100_000):
+        budget = "/v1/promotion-budget"
+        self.assertEqual(200, self.create("properties", PROPERTY)[0])
+        for channel, policy in (("yandex", "/v1/advertising/policy"), ("cian", "/v1/advertising/policy/cian")):
+            self.assertEqual(200, self.request("PUT", policy, self.admin, dict(enabled=True, active_limit=1))[0])
+            materials = self.materials()
+            if channel == "cian":
+                materials.update(description="Квартира готова к просмотрам.", floors_total=9)
+            self.assertEqual(200, self.request("PUT", f"/v1/advertising/{channel}/entry", self.one,
+                materials, **{"If-Match": '"0"'})[0])
+        self.assertEqual(200, self.request("PUT", budget, self.admin, dict(limit_minor=limit),
+            **{"If-Match": '"0"'})[0])
+        return budget
+
+    def test_budget_roles_receipts_and_accounting(self):
+        budget = self.promotion_fixture()
+        changes = f"{budget}/reservations"
+        first = changes + "/first"
+        second = changes + "/second"
+        reservation = dict(property_id="entry", channel="cian", amount_minor=60_000)
+        self.assertEqual(403, self.request("GET", budget, self.one)[0])
+        self.assertEqual(403, self.request("PUT", budget, self.manager, dict(limit_minor=200_000))[0])
+        self.assertEqual(403, self.request("PUT", first + "/reserve", self.one, reservation)[0])
+        _, original = self.request("PUT", first + "/reserve", self.manager, reservation)
+        self.assertEqual("reserved", original["status"])
+        self.assertEqual(original, self.request("PUT", first + "/reserve", self.manager, reservation)[1])
+        self.assertEqual("promotion_already_reserved", self.request("PUT", second + "/reserve", self.manager,
+            reservation)[1]["error"])
+        self.assertEqual("reservation_id_used", self.request("PUT", first + "/reserve", self.manager,
+            dict(reservation, amount_minor=40_000))[1]["error"])
+        self.assertEqual("budget_below_usage", self.request("PUT", budget, self.admin, dict(limit_minor=50_000),
+            **{"If-Match": '"1"'})[1]["error"])
+        charge = dict(actual_minor=45_050, receipt="cian/invoice-001")
+        self.assertEqual(403, self.request("PUT", first + "/settle", self.manager, charge)[0])
+        settled = self.request("PUT", first + "/settle", self.admin, charge)[1]
+        self.assertEqual("settled", settled["status"])
+        self.assertEqual(settled, self.request("PUT", first + "/settle", self.admin, charge)[1])
+        self.assertEqual("reservation_closed", self.request("PUT", first + "/release", self.admin, {})[1]["error"])
+        self.assertEqual(200, self.request("PUT", second + "/reserve", self.manager,
+            dict(reservation, amount_minor=50_000))[0])
+        self.assertEqual("promotion_receipt_used", self.request("PUT", second + "/settle", self.admin, charge)[1]["error"])
+        self.assertEqual(200, self.request("PUT", second + "/release", self.admin, {})[0])
+        state = self.request("GET", budget, self.manager)[1]
+        self.assertEqual((45_050, 0, 54_950), tuple(state[key] for key in
+            ("spent_minor", "reserved_minor", "available_minor")))
+        self.assertEqual(["released", "settled"], [entry["status"] for entry in
+            self.request("GET", changes, self.admin)[1]["items"]])
+
+    def test_concurrent_promotions_cannot_oversubscribe_budget(self):
+        budget = self.promotion_fixture()
+        def reserve(channel):
+            return self.request("PUT", f"{budget}/reservations/{channel}/reserve", self.manager,
+                dict(property_id="entry", channel=channel, amount_minor=70_000))
+        with ThreadPoolExecutor(2) as pool:
+            replies = list(pool.map(reserve, ("yandex", "cian")))
+        self.assertEqual([200, 409], sorted(code for code, _ in replies))
+        self.assertEqual("budget_exceeded", next(body["error"] for code, body in replies if code == 409))
+        state = self.request("GET", budget, self.admin)[1]
+        self.assertEqual((70_000, 30_000), (state["reserved_minor"], state["available_minor"]))
 
     def test_owner_portal_only_exposes_the_shared_property(self):
         self.assertEqual(200, self.create("properties", PROPERTY)[0])
