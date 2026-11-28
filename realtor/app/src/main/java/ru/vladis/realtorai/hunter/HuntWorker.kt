@@ -132,8 +132,24 @@ class HuntWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
             emptyList()
         } catch (e: kotlinx.coroutines.CancellationException) { throw e }
         catch (e: Exception) { listOf("Канал заявок: ${e.message}") }
-        val s = HuntRun.refreshAll(applicationContext);
- if (ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(applicationContext)) ru.vladis.realtorai.autopilot.AutopilotEngine.sync(applicationContext, s.errors + leadError); HuntRun.notifyDeals(applicationContext, s); return Result.success()
+        val local = HuntRun.refreshAll(applicationContext)
+        val summary = try {
+            if (ru.vladis.realtorai.agent.SearchServer.connected(applicationContext)) {
+                val changes = ru.vladis.realtorai.agent.SearchServer.syncMonitor(
+                    applicationContext, HunterDb.get(applicationContext))
+                local.copy(newIds = (local.newIds + changes.newIds).distinct(),
+                    dropIds = (local.dropIds + changes.dropIds).distinct())
+            } else local
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            local.copy(errors = local.errors + "Серверный мониторинг: ${e.message}")
+        }
+        if (ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(applicationContext)) {
+            ru.vladis.realtorai.autopilot.AutopilotEngine.sync(applicationContext, summary.errors + leadError)
+        }
+        HuntRun.notifyDeals(applicationContext, summary)
+        return Result.success()
     }
     companion object {
         fun schedule(ctx: Context, on: Boolean) {

@@ -34,7 +34,20 @@ class HunterVm(app: Application) : AndroidViewModel(app) {
     private fun err(e: Throwable) = e.message ?: e.javaClass.simpleName
     private inline fun work(crossinline b: suspend () -> Unit) = viewModelScope.launch { busy = true; log = null; b(); busy = false }
 
-    fun changeMonitoring(on: Boolean) { monitoring = on; prefs.edit().putBoolean("monitoring", on).apply(); HuntWorker.schedule(ctx, on || ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(ctx)) }
+    fun changeMonitoring(on: Boolean) {
+        monitoring = on
+        prefs.edit().putBoolean("monitoring", on).apply()
+        HuntWorker.schedule(ctx, on || ru.vladis.realtorai.autopilot.AutopilotEngine.enabled(ctx))
+        if (ru.vladis.realtorai.agent.SearchServer.connected(ctx)) viewModelScope.launch {
+            try {
+                ru.vladis.realtorai.agent.SearchServer.syncMonitor(ctx, dao)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                log = "Серверный мониторинг: ${err(e)}"
+            }
+        }
+    }
 
     fun importFile(uri: Uri) = work {
         runCatching {

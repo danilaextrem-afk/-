@@ -37,6 +37,9 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
     var restoreLegacy by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     val store = remember(ctx) { ru.vladis.realtorai.data.Store(ctx) }
+    var searchUrl by remember { mutableStateOf(store.searchServerUrl) }
+    var searchToken by remember { mutableStateOf("") }
+    var searchNote by remember { mutableStateOf("") }
     var indexKey by remember { mutableStateOf("") }
     var indexEnabled by remember { mutableStateOf(store.propertyIndexKey.isNotBlank()) }
     val exp = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
@@ -93,6 +96,18 @@ import ru.vladis.realtorai.automation.IntegrationRegistry
         item {
             AppCard {
                 Text("Поиск по площадкам", style = MaterialTheme.typography.titleLarge)
+                Text("Сервер Realtor AI · статусы площадок видны в ответе поиска", color = Muted)
+                Field(searchUrl, { searchUrl = it.trim().take(300) }, "HTTPS-адрес сервера")
+                Field(searchToken, { searchToken = it.trim().take(300) }, "Токен сервера", password = true)
+                TextButton({
+                    if (ru.vladis.realtorai.agent.SearchServer.valid(searchUrl) && searchToken.isNotBlank()) {
+                        store.searchServerUrl = searchUrl
+                        store.searchServerToken = searchToken
+                        searchToken = ""
+                        searchNote = "Сервер сохранён. Выполните поиск, чтобы проверить подключение."
+                    } else searchNote = "Укажите HTTPS-адрес и токен."
+                }) { Text("Сохранить сервер") }
+                if (searchNote.isNotBlank()) Text(searchNote, color = Muted)
                 Text(if (indexEnabled) "Ключ индекса сохранён. Статус появится после поиска." else "Brave Search API получает поисковые параметры. Данные CRM остаются на устройстве.", color = Muted)
                 Field(indexKey, { indexKey = it.trim().take(300) }, "Ключ Brave Search API", password = true)
                 Row {

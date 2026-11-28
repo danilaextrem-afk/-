@@ -19,6 +19,12 @@ class Store(ctx: Context) {
     var cloudKey: String
         get() = secure.getString("groq_cloud_key", "").orEmpty()
         set(v) { secure.edit().putString("groq_cloud_key", v).apply() }
+    var searchServerUrl: String
+        get() = plain.getString("search_server_url", "").orEmpty()
+        set(value) { plain.edit().putString("search_server_url", value).apply() }
+    var searchServerToken: String
+        get() = secure.getString("search_server_token", "").orEmpty()
+        set(value) { secure.edit().putString("search_server_token", value).apply() }
     var propertyIndexKey: String
         get() = secure.getString("property_index_key", "").orEmpty()
         set(value) { secure.edit().putString("property_index_key", value).apply() }
