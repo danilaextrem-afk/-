@@ -24,7 +24,7 @@ preview_result=0
 (
     (cd realtor && gradle -PemulatorAbi :app:assemblePreview) &&
     adb install -r realtor/app/build/outputs/apk/preview/app-preview.apk &&
-    adb shell am start -W -n ru.vladis.realtorai.preview17/ru.vladis.realtorai.MainActivity &&
+    adb shell am start -W -n ru.vladis.realtorai.preview18/ru.vladis.realtorai.MainActivity &&
     python3 realtor/ci/capture.py --preview
 ) > reports/release-candidate.txt 2>&1 || preview_result=$?
 cat reports/release-candidate.txt

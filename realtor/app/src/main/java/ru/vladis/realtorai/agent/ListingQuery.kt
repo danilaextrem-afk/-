@@ -17,10 +17,10 @@ internal data class ListingQuery(
     val rooms: Int? = null, val minArea: Double = 0.0,
     val market: String? = null, val seller: String? = null,
     val address: String = "", val station: String = "", val cheapestFirst: Boolean = false,
-    val insideMkad: Boolean = false, val metroWalk: Int? = null
+    val insideMkad: Boolean = false, val metroWalk: Int? = null, val deal: String? = null
 ) {
     fun matches(offer: Offer): Boolean {
-        return GeoScope.eligible(offer) && offer.deal == "sale" && offer.price in 1..budget &&
+        return GeoScope.eligible(offer) && offer.deal == (deal ?: "sale") && offer.price in 1..budget &&
             offer.area >= minArea && (rooms == null || offer.rooms == rooms) &&
             (market == null || offer.market == market) && (seller == null || offer.seller == seller) &&
             (!insideMkad || GeoScope.point(offer.lat, offer.lon)?.let(GeoScope::insideMkad) == true) &&
@@ -92,7 +92,11 @@ internal data class ListingQuery(
             }
             return ListingQuery(place, price ?: arg("budget").toLongOrNull()?.takeIf { it > 0 } ?: Long.MAX_VALUE,
                 rooms, arg("minArea").toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0 } ?: 0.0,
-                market, seller, arg("address"), arg("station"), insideMkad = inside, metroWalk = walk)
+                market, seller, arg("address"), arg("station"), insideMkad = inside, metroWalk = walk, deal = when {
+                    Regex("аренд|снять|сниму").containsMatchIn(text) -> "rent"
+                    Regex("купить|покупк").containsMatchIn(text) -> "sale"
+                    else -> null
+                })
         }
     }
 }
@@ -101,8 +105,8 @@ internal data class ListingQuery(
 internal object ListingSearch {
     fun accepts(goal: String): Boolean {
         val text = GeoScope.normalize(goal)
-        return listOf("найди", "найти", "поищи", "покажи", "подбери", "ищу", "хочу купить").any(text::contains) &&
-            listOf("квартир", "жиль", "двуш", "однуш", "треш", "четыреш", "новострой", "вариант").any(text::contains)
+        return listOf("найди", "найти", "поищи", "покажи", "подбери", "ищу", "хочу купить", "хочу снять", "снять", "сниму").any(text::contains) &&
+            listOf("квартир", "жиль", "двуш", "однуш", "треш", "четыреш", "новострой", "вариант", "студи").any(text::contains)
     }
 
     suspend fun run(ctx: Context, db: AppDb, goal: String, args: JsonObject = JsonObject(), refresh: Boolean = false): String {
@@ -116,7 +120,27 @@ internal object ListingSearch {
         ctx: Context, db: AppDb, query: ListingQuery, refresh: Boolean, seen: Set<String> = emptySet(), indexPage: Int = 0
     ): ListingReply {
         return kotlinx.coroutines.coroutineScope {
-            val web = if (refresh) async { PropertyIndex.search(ctx, query, indexPage, seen) } else null
+            val managed = SearchServer.connected(ctx)
+            var verifiedLinks: Set<String>? = if (managed && refresh) emptySet() else null
+            var serverStatus = emptyList<SearchSourceStatus>()
+            if (managed && refresh) {
+                try {
+                    val result = SearchServer.search(ctx, query)
+                    ru.vladis.realtorai.hunter.HunterImport.ingest(db.hunter(), result.offers)
+                    verifiedLinks = result.offers.map { it.url }.toSet()
+                    serverStatus = result.sources
+                    ctx.getSharedPreferences("hunter", 0).edit()
+                        .putString("serverQuery", com.google.gson.Gson().toJson(query)).apply()
+                    if (ctx.getSharedPreferences("hunter", 0).getBoolean("monitoring", false)) {
+                        SearchServer.syncMonitor(ctx, db.hunter())
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    serverStatus = serverStatus + SearchSourceStatus("Сервер Realtor AI", 0, e.message.orEmpty().take(180))
+                }
+            }
+            val web = if (refresh && !managed) async { PropertyIndex.search(ctx, query, indexPage, seen) } else null
             val update = if (refresh) HuntRun.refreshAll(ctx, includeCatalog = false) else null
             val geography = GeoPreferences.read(ctx)
             val offers = db.hunter().allOffers()
@@ -127,6 +151,7 @@ internal object ListingSearch {
                 else order.thenByDescending { it.sourceUpdatedAt ?: it.lastSeen }.thenBy { it.price }
             val candidates = offers.asSequence().filter {
                 query.matches(it) && geography.matches(it) && identity(it) != null &&
+                    (!it.source.startsWith("search:") || verifiedLinks?.contains(it.url) != false) &&
                     !it.source.startsWith("Торги.Открыто") &&
                     GeoScope.normalize(it.housingKind.orEmpty()) in setOf("", "квартира", "квартиры", "flat", "apartment")
             }.sortedWith(ranked)
@@ -163,7 +188,7 @@ internal object ListingSearch {
             }
             ListingReply(if (selected.isEmpty() && links.isNotEmpty()) "Найдены ссылки в поисковом индексе. Условия и наличие проверьте на площадках." else report,
                 selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}", ListingOrigin.original(it)?.url) } + links.map { "index:${it.url}" },
-                selected.minOfOrNull { it.price }, links, feedStatus + index?.sources.orEmpty(), query)
+                selected.minOfOrNull { it.price }, links, serverStatus + feedStatus + index?.sources.orEmpty(), query)
         }
     }
 }

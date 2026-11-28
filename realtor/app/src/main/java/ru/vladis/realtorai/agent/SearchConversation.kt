@@ -27,7 +27,7 @@ internal object SearchLanguage {
         Передай kind и criteria как аргументы инструмента. Для обычного диалога инструмент не вызывай.
         Если пользователь просит «подешевле» относительно выдачи, передай cheaper: true.
         Поля criteria: area (район или город), budget (верхняя цена целым числом в рублях), rooms (целое, 0 для студии),
-        minArea (м²), market (primary или secondary), seller (owner/developer/agent), address, station, insideMkad (boolean), metroWalk (число минут пешком до метро).
+        minArea (м²), market (primary или secondary), seller (owner/developer/agent), address, station, insideMkad (boolean), metroWalk (число минут пешком до метро), deal (sale или rent).
         «Рядом с метро» означает metroWalk=10, если пользователь не назвал другое время.
         Указывай только ограничения из нового сообщения, не додумывай. Чтобы снять ограничение передай null.
         Москва и Московская область разрешены по умолчанию. Без бюджета, района, комнат и площади поиск допустим.
@@ -44,7 +44,7 @@ internal object SearchLanguage {
         val explicit = ListingQuery.read(text)
         return turn.copy(query = turn.query.copy(
             insideMkad = explicit.insideMkad || turn.query.insideMkad,
-            metroWalk = explicit.metroWalk ?: turn.query.metroWalk
+            metroWalk = explicit.metroWalk ?: turn.query.metroWalk, deal = explicit.deal ?: turn.query.deal
         ))
     }
 
@@ -81,7 +81,8 @@ internal object SearchLanguage {
             insideMkad = if (value.has("insideMkad")) field("insideMkad") == "true" else base.insideMkad,
             metroWalk = if (value.has("metroWalk")) field("metroWalk")?.toIntOrNull()?.takeIf { it in 1..60 } else base.metroWalk,
             market = option("market", base.market, setOf("primary", "secondary")),
-            seller = option("seller", base.seller, setOf("owner", "developer", "agent"))
+            seller = option("seller", base.seller, setOf("owner", "developer", "agent")),
+            deal = option("deal", base.deal, setOf("sale", "rent"))
         )
     }
 
@@ -100,7 +101,7 @@ internal object SearchLanguage {
             station = inferred.station.ifBlank { base.station }, budget = inferred.budget.takeUnless { it == Long.MAX_VALUE } ?: base.budget,
             rooms = inferred.rooms ?: base.rooms, minArea = inferred.minArea.takeIf { it > 0 } ?: base.minArea,
             market = inferred.market ?: base.market, seller = inferred.seller ?: base.seller,
-            insideMkad = inferred.insideMkad || base.insideMkad, metroWalk = inferred.metroWalk ?: base.metroWalk
+            insideMkad = inferred.insideMkad || base.insideMkad, metroWalk = inferred.metroWalk ?: base.metroWalk, deal = inferred.deal ?: base.deal
         )
         return SearchTurn(if (continuation) "refine" else "search",
             if (wantsCheaper && continuation) cheaper(query, state.lastLowestPrice) else query)
