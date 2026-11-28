@@ -14,7 +14,7 @@ internal data class SearchConversation(
 )
 
 internal data class SearchTurn(val kind: String, val query: ListingQuery)
-internal data class ListingReply(val text: String, val ids: List<Long> = emptyList(), val keys: List<String> = emptyList(), val lowestPrice: Long? = null, val indexed: List<IndexedListing>? = null, val sources: List<SearchSourceStatus>? = null)
+internal data class ListingReply(val text: String, val ids: List<Long> = emptyList(), val keys: List<String> = emptyList(), val lowestPrice: Long? = null, val indexed: List<IndexedListing>? = null, val sources: List<SearchSourceStatus>? = null, val browserQuery: ListingQuery? = null)
 
 internal object SearchLanguage {
     private val gson = Gson()

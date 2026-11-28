@@ -1,9 +1,23 @@
 package ru.vladis.realtorai.agent
 
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Assert.*
 import org.junit.Test
 
 class PropertyIndexTest {
+    @Test fun browserSearchKeepsMarketLocationAndFiltersWithoutApiKeys() {
+        val source = PropertyIndex.browserSites.single { it.domain == "cian.ru" }
+        val query = ListingQuery(place = "Химки site:wrong.test", budget = 14_000_000, rooms = 2, market = "secondary")
+        val url = PropertyIndex.browserSearch(source, query).toHttpUrl()
+        val text = requireNotNull(url.queryParameter("text"))
+        assertEquals("yandex.ru", url.host)
+        assertEquals(setOf("text"), url.queryParameterNames)
+        assertTrue(text.startsWith("site:cian.ru "))
+        for (word in listOf("Москва", "Химки", "14000000", "2-комнатная", "вторичка")) assertTrue(text.contains(word))
+        assertFalse(text.contains("wrong.test"))
+        assertEquals("Химки", PropertyIndex.browserQuery("Химки").place)
+    }
+
     @Test fun acceptsDirectCardsAndStripsTracking() {
         val cian = PropertyIndex.sites.single { it.name == "Циан" }
         assertEquals("https://cian.ru/sale/flat/336656970/",

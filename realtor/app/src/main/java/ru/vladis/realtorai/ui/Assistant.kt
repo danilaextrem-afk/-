@@ -152,9 +152,10 @@ fun Assistant(vm: MainVm, openModels: () -> Unit, openSettings: () -> Unit, open
                             TextButton({ vm.acceptSharedListing(hit.url) }, enabled = !vm.busy) { Text("Взять в продажу") }
                         }
                     }
+                    listingReply?.browserQuery?.let { MarketplaceSearchButton(it) }
                     val needsKey = listingReply?.sources.orEmpty().any { it.status == "Индекс не настроен" }
                     if (needsKey) {
-                        Text("Поиск по Авито, Циану и другим площадкам через индекс требует ключ Brave Search API.", color = Muted)
+                        Text("Чтобы видеть результаты веб-индекса внутри приложения, подключите ключ Brave Search API.", color = Muted)
                         TextButton(openSettings) { Text("Настроить поиск по площадкам") }
                     }
                     if (listingReply?.sources.orEmpty().isNotEmpty()) {

@@ -163,7 +163,7 @@ internal object ListingSearch {
             }
             ListingReply(if (selected.isEmpty() && links.isNotEmpty()) "Найдены ссылки в поисковом индексе. Условия и наличие проверьте на площадках." else report,
                 selected.map { it.id }, selected.flatMap { listOfNotNull(identity(it), "record:${it.id}", ListingOrigin.original(it)?.url) } + links.map { "index:${it.url}" },
-                selected.minOfOrNull { it.price }, links, feedStatus + index?.sources.orEmpty())
+                selected.minOfOrNull { it.price }, links, feedStatus + index?.sources.orEmpty(), query)
         }
     }
 }

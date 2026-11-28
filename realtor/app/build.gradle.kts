@@ -18,7 +18,7 @@ android {
     defaultConfig {
         applicationId = if (providers.gradleProperty("sideBySide").isPresent) "ru.vladis.realtorai.workspace" else "ru.vladis.realtorai"
         minSdk = 26; targetSdk = 35
-        versionCode = 34; versionName = "1.0"
+        versionCode = 35; versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters += "arm64-v8a"
@@ -36,13 +36,13 @@ android {
         }
     }
     buildTypes {
-        getByName("debug").versionNameSuffix = "-rc16"
+        getByName("debug").versionNameSuffix = "-rc17"
         val release = getByName("release")
         release.signingConfig = signingConfigs.findByName("production")
         create("preview") {
             initWith(release)
-            applicationIdSuffix = ".preview16"
-            versionNameSuffix = "-rc16"
+            applicationIdSuffix = ".preview17"
+            versionNameSuffix = "-rc17"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += "release"
         }

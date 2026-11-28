@@ -105,8 +105,9 @@ private fun pct(d: Double) = "${(d * 100).toInt()}%"
         }
         if (openOnline != null && tab == "Лента") {
             Field(onlineQuery, { onlineQuery = it.take(250) }, "Район, бюджет, комнаты — по желанию")
+            MarketplaceSearchButton(ru.vladis.realtorai.agent.PropertyIndex.browserQuery(onlineQuery))
             FilledTonalButton({ openOnline(onlineQuery.trim()) }, enabled = !main.busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Искать квартиры по площадкам")
+                Text("Искать в подключённых источниках")
             }
         }
         Chips(listOf("Лента", "Карта", "Фильтры", "Данные", "Подбор"), tab) { tab = it }

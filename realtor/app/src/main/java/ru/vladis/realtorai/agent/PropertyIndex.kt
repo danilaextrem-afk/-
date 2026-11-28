@@ -61,8 +61,26 @@ internal object PropertyIndex {
         return url.newBuilder().host(url.host.removePrefix("www.")).query(null).fragment(null).build().toString()
     }
 
+    internal val browserSites = sites.filter { it.domain !in setOf("t.me", "vk.com") }
+
+    internal fun browserQuery(input: String): ListingQuery {
+        val query = ListingQuery.read(input)
+        val text = input.trim().take(80)
+        return if (query == ListingQuery() && text.matches(Regex("""[\p{L} -]{2,80}"""))) {
+            query.copy(place = text)
+        } else query
+    }
+
+    internal fun browserSearch(site: Site, query: ListingQuery): String {
+        require(site in browserSites)
+        return "https://yandex.ru/search/".toHttpUrl().newBuilder()
+            .addQueryParameter("text", "site:${site.domain} ${phrase(query)}")
+            .build().toString()
+    }
+
     private fun phrase(q: ListingQuery) = buildString {
-        append("купить квартиру ").append(q.place.ifBlank { """(Москва OR "Московская область")""" })
+        append("""купить квартиру (Москва OR "Московская область")""")
+        if (q.place.isNotBlank()) append(" ").append(q.place)
         q.rooms?.let { append(if (it == 0) " студия" else " $it-комнатная") }
         if (q.budget < Long.MAX_VALUE) append(" до ").append(q.budget).append(" руб")
         if (q.minArea > 0) append(" от ").append(q.minArea).append(" м²")
