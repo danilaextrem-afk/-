@@ -1,0 +1,25 @@
+[Unit]
+Description=Realtor AI office
+After=network.target
+
+[Service]
+Type=simple
+User=realtor-office
+Group=realtor-office
+WorkingDirectory=/opt/realtor-office
+StateDirectory=realtor-office
+StateDirectoryMode=0700
+EnvironmentFile=/etc/realtor-office/office.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /opt/realtor-office/office.py --db /var/lib/realtor-office/office.sqlite3 serve --host 127.0.0.1 --port 8443
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

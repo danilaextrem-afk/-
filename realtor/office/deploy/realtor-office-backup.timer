@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Realtor AI office database backup
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+Unit=realtor-office-backup.service
+
+[Install]
+WantedBy=timers.target
